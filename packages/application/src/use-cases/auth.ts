@@ -1,4 +1,4 @@
-import { ok, type Result } from "@egov/shared";
+import { appError, err, ok, type Result } from "@egov/shared";
 import {
   EGOV_SSO_SCOPE_AUTHENTICATION,
   type EgovSsoCitizenProfile,
@@ -43,4 +43,28 @@ export async function getSsoCitizenProfile(
   const profile = await deps.sso.authenticatePartner(input.accessToken);
   if (!profile.ok) return profile;
   return ok(mapSsoCitizenProfile(profile.value.raw));
+}
+
+export type CompleteSsoAuthenticationDeps =
+  & ExchangeSsoTokenDeps
+  & GetSsoCitizenProfileDeps;
+
+export type CompleteSsoAuthenticationInput = ExchangeSsoTokenInput;
+
+/**
+ * Completes the official widget flow without exposing the temporary eGov
+ * access token to a browser or mobile client.
+ */
+export async function completeSsoAuthentication(
+  deps: CompleteSsoAuthenticationDeps,
+  input: CompleteSsoAuthenticationInput,
+): Promise<Result<EgovSsoCitizenProfile>> {
+  const exchanged = await exchangeSsoToken(deps, input);
+  if (!exchanged.ok) return exchanged;
+  if (!exchanged.value.accessToken) {
+    return err(
+      appError("VALIDATION", "eGov SSO token exchange returned no access token"),
+    );
+  }
+  return getSsoCitizenProfile(deps, { accessToken: exchanged.value.accessToken });
 }

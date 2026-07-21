@@ -115,6 +115,16 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (method === "POST" && url.pathname === "/auth/sso/complete") {
+      const body = (await readJson(req)) as {
+        exchangeCode: string;
+        scope?: string;
+      };
+      const result = await auth.completeSso(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
     if (method === "POST" && url.pathname === "/cases") {
       const body = (await readJson(req)) as { citizenId: string; title: string };
       const result = await cases.submit(body);
