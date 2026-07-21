@@ -30,6 +30,45 @@ import {
 type AiMessage = { role: "ai" | "user"; text: string };
 type NavDirection = "forward" | "back";
 
+type CitizenProfile = {
+  firstName: string;
+  lastName: string;
+  birthDate: string;
+  civilStatus: string;
+  vitalStatus: string;
+};
+
+/** Local demo session — skips SSO minting so the shell opens already signed in. */
+const DEMO_SESSION: {
+  accessToken: string;
+  citizenId: string;
+  profile: CitizenProfile;
+} = {
+  accessToken: "demo-session",
+  citizenId: "demo-citizen",
+  profile: {
+    firstName: "Juan",
+    lastName: "Dela Cruz",
+    birthDate: "1958-03-14",
+    // Seed rules use English PSA tokens; UI may still show Filipino labels.
+    civilStatus: "WIDOWED",
+    vitalStatus: "ALIVE",
+  },
+};
+
+function isDemoSession(token: string): boolean {
+  return token === DEMO_SESSION.accessToken;
+}
+
+function wait(ms: number) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+/** Local fallback matches when API/DBM are unavailable in the demo shell. */
+function demoFallbackMatches(): Array<{ id: string; benefitId: string }> {
+  return BENEFITS.map((b) => ({ id: `demo-match-${b.id}`, benefitId: b.id }));
+}
+
 function useDeferredOpen(open: boolean, durationMs = 280) {
   const [mounted, setMounted] = useState(open);
   const [visible, setVisible] = useState(open);
@@ -93,13 +132,7 @@ export default function App() {
   const [everifyLoading, setEverifyLoading] = useState(false);
   const [everifyDone, setEverifyDone] = useState(false);
   const [everifyError, setEverifyError] = useState("");
-  const [profileView, setProfileView] = useState({
-    firstName: "",
-    lastName: "",
-    birthDate: "",
-    civilStatus: "",
-    vitalStatus: "",
-  });
+  const [profileView, setProfileView] = useState({ ...DEMO_SESSION.profile });
   const [benefits, setBenefits] = useState<Benefit[]>([]);
   const [selectedBenefitId, setSelectedBenefitId] = useState<string | null>(null);
   const [disburseStep, setDisburseStep] = useState(0);
@@ -118,10 +151,10 @@ export default function App() {
   const [projectsError, setProjectsError] = useState("");
   const [projectsReportYear, setProjectsReportYear] = useState<number | null>(null);
 
-  const accessToken = useRef("");
-  const citizenId = useRef("");
+  const accessToken = useRef(DEMO_SESSION.accessToken);
+  const citizenId = useRef(DEMO_SESSION.citizenId);
   const livenessSessionToken = useRef("");
-  const profile = useRef({ firstName: "", lastName: "", birthDate: "", civilStatus: "", vitalStatus: "" });
+  const profile = useRef({ ...DEMO_SESSION.profile });
   const matchIds = useRef<string[]>([]);
   const selectedMatchId = useRef("");
   const disbursedAmount = useRef(0);
@@ -139,6 +172,36 @@ export default function App() {
       if (scanTimer.current) clearInterval(scanTimer.current);
       if (t.current) clearTimeout(t.current);
     };
+  }, []);
+
+  // Demo shell: pull DBM-gated matches immediately so Benepisyo isn't empty.
+  useEffect(() => {
+    if (!isDemoSession(accessToken.current)) return;
+    let cancelled = false;
+    (async () => {
+      try {
+        await loadBenefitMatches(DEMO_SESSION.citizenId);
+        if (cancelled) return;
+        setScanDone(true);
+        setConfidence(98.4);
+        livenessSessionToken.current = "demo-liveness-session";
+        setEverifyDone(true);
+      } catch {
+        if (cancelled) return;
+        // Offline demo fallback — still walk the happy path without live API.
+        const fallback = demoFallbackMatches();
+        matchIds.current = fallback.map((m) => m.id);
+        setBenefits(enrichMatches(fallback));
+        setScanDone(true);
+        setConfidence(98.4);
+        livenessSessionToken.current = "demo-liveness-session";
+        setEverifyDone(true);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -248,6 +311,20 @@ export default function App() {
     setScanDone(false);
     setApiError("");
     (async () => {
+      // Demo shell: simulate Face Liveness so the journey works without a live capture.
+      if (isDemoSession(accessToken.current)) {
+        livenessSessionToken.current = "demo-liveness-session";
+        scanTimer.current = setInterval(() => {
+          setScanProgress((p) => Math.min(92, p + 10 + Math.random() * 8));
+        }, 140);
+        await wait(1600);
+        if (scanTimer.current) clearInterval(scanTimer.current);
+        setScanning(false);
+        setScanDone(true);
+        setScanProgress(100);
+        setConfidence(98.4);
+        return;
+      }
       try {
         const session = await api.createLivenessSession("post");
         livenessSessionToken.current = session.sessionToken;
@@ -268,6 +345,28 @@ export default function App() {
     })();
   };
 
+  const loadBenefitMatches = async (citizen: string) => {
+    try {
+      const found = await api.findMatches({
+        citizenId: citizen,
+        profile: {
+          dateOfBirth: profile.current.birthDate,
+          civilStatus: profile.current.civilStatus,
+          vitalStatus: profile.current.vitalStatus,
+        },
+      });
+      matchIds.current = found.matches.map((m) => m.id);
+      setBenefits(enrichMatches(found.matches));
+      return found.matches;
+    } catch (err) {
+      if (!isDemoSession(accessToken.current)) throw err;
+      const fallback = demoFallbackMatches();
+      matchIds.current = fallback.map((m) => m.id);
+      setBenefits(enrichMatches(fallback));
+      return fallback;
+    }
+  };
+
   const runEverify = () => {
     if (everifyLoading) return;
     setEverifyLoading(true);
@@ -276,6 +375,14 @@ export default function App() {
     setApiError("");
     (async () => {
       try {
+        // Demo shell has no real SSO token — skip live eVerify and match on seeded profile.
+        if (isDemoSession(accessToken.current)) {
+          citizenId.current = DEMO_SESSION.citizenId;
+          await loadBenefitMatches(DEMO_SESSION.citizenId);
+          setEverifyLoading(false);
+          setEverifyDone(true);
+          return;
+        }
         const confirmed = await api.confirmIdentity({
           token: accessToken.current,
           sessionToken: livenessSessionToken.current,
@@ -285,16 +392,7 @@ export default function App() {
           birthDate: profile.current.birthDate,
         });
         citizenId.current = confirmed.citizenId;
-        const found = await api.findMatches({
-          citizenId: confirmed.citizenId,
-          profile: {
-            dateOfBirth: profile.current.birthDate,
-            civilStatus: profile.current.civilStatus,
-            vitalStatus: profile.current.vitalStatus,
-          },
-        });
-        matchIds.current = found.matches.map((m) => m.id);
-        setBenefits(enrichMatches(found.matches));
+        await loadBenefitMatches(confirmed.citizenId);
         setEverifyLoading(false);
         setEverifyDone(true);
       } catch (err) {
@@ -336,9 +434,17 @@ export default function App() {
     setDisburseBusy(true);
     setApiError("");
     const matchId = selectedMatchId.current;
+    const demo = isDemoSession(accessToken.current) || matchId.startsWith("demo-match-");
     (async () => {
       try {
-        if (disburseStep === 0) {
+        if (demo) {
+          // Simulate the post-match pipeline without live Pay/Message/AI credentials.
+          await wait(700);
+          if (disburseStep === 1) disbursedAmount.current = 1000;
+          if (disburseStep === 3) {
+            setAnchorHash(`demo-anchor-${matchId.slice(-8)}-${Date.now().toString(36)}`);
+          }
+        } else if (disburseStep === 0) {
           await api.explain(matchId);
         } else if (disburseStep === 1) {
           const result = await api.disburse(matchId, 1000);
@@ -446,6 +552,12 @@ export default function App() {
     setApiError("");
     (async () => {
       try {
+        if (isDemoSession(accessToken.current)) {
+          await wait(500);
+          setCaseId(`DEMO-CASE-${Date.now().toString(36).toUpperCase()}`);
+          setReportSubmitted(true);
+          return;
+        }
         const result = await api.reportNonDelivery({
           accessToken: accessToken.current,
           citizenId: citizenId.current,

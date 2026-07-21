@@ -234,6 +234,20 @@ describe("isEligibleForBenefit case-insensitive status", () => {
     };
     assert.equal(isEligibleForBenefit(profile, rule, clock.now()), true);
   });
+
+  it("matches Filipino PSA/UI aliases (Balo/Buhay)", () => {
+    const profile: CitizenEligibilityProfile = {
+      dateOfBirth: new Date("1950-01-01"),
+      civilStatus: "Balo",
+      vitalStatus: "Buhay",
+    };
+    const rule: EligibilityRule = {
+      minAge: 60,
+      civilStatusIn: ["WIDOWED"],
+      vitalStatusIn: ["ALIVE"],
+    };
+    assert.equal(isEligibleForBenefit(profile, rule, clock.now()), true);
+  });
 });
 
 describe("runAgentTurn blocked on LLM failure", () => {

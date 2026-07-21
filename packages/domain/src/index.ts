@@ -192,14 +192,40 @@ function ageAt(dateOfBirth: Date, now: Date): number {
   return age;
 }
 
+/** Map common PSA / Filipino UI labels onto the English seed-rule tokens. */
+const STATUS_ALIASES: Record<string, string> = {
+  ALIVE: "ALIVE",
+  BUHAY: "ALIVE",
+  LIVING: "ALIVE",
+  DECEASED: "DECEASED",
+  NAMATAY: "DECEASED",
+  DEAD: "DECEASED",
+  SINGLE: "SINGLE",
+  WALANG_ASAWA: "SINGLE",
+  "WALANG ASAWA": "SINGLE",
+  MARRIED: "MARRIED",
+  MAY_ASAWA: "MARRIED",
+  "MAY ASAWA": "MARRIED",
+  WIDOWED: "WIDOWED",
+  BALO: "WIDOWED",
+  WIDOW: "WIDOWED",
+  WIDOWER: "WIDOWED",
+  SEPARATED: "SEPARATED",
+  HIWALAY: "SEPARATED",
+  DIVORCED: "DIVORCED",
+  ANNULLED: "ANNULLED",
+  "NULL AND VOID": "ANNULLED",
+};
+
 function normalizeStatus(value: string): string {
-  return value.trim().toUpperCase();
+  const key = value.trim().toUpperCase().replace(/[_-]+/g, " ").replace(/\s+/g, " ");
+  return STATUS_ALIASES[key] ?? STATUS_ALIASES[key.replace(/\s+/g, "_")] ?? key;
 }
 
 /** Pure eligibility check — no I/O. Fund status is checked separately
  * (DBM Compass) before a benefit is even offered as a match candidate.
- * Civil/vital status compares case-insensitively so eVerify casing
- * variants (e.g. "Alive") still match seed rules ("ALIVE"). */
+ * Civil/vital status compares case-insensitively and accepts common
+ * Filipino/PSA aliases (e.g. "Buhay" → ALIVE, "Balo" → WIDOWED). */
 export function isEligibleForBenefit(
   profile: CitizenEligibilityProfile,
   rule: EligibilityRule,
