@@ -23,6 +23,15 @@ export type EgovSsoToken = {
 
 export type EgovSsoCitizenProfile = {
   readonly raw: PlatformJson;
+  readonly uniqid?: string;
+  readonly fullName?: string;
+  readonly firstName?: string;
+  readonly middleName?: string;
+  readonly lastName?: string;
+  readonly birthdate?: string;
+  readonly address?: string;
+  readonly email?: string;
+  readonly contactNumber?: string;
 };
 
 export type EgovSsoPort = {

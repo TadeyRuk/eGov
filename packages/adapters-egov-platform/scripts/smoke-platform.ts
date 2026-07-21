@@ -202,9 +202,13 @@ async function smokePay(p: EgovPlatformAdapters): Promise<void> {
     const amount = Number(envGet("SMOKE_PAY_AMOUNT") ?? "1");
     const txnid = envGet("SMOKE_PAY_TXNID") ?? `smoke-${Date.now()}`;
     const redirectUrl =
-      envGet("SMOKE_PAY_REDIRECT_URL") ?? "https://example.com/pay/return";
+      envGet("SMOKE_PAY_REDIRECT_URL") ??
+      envGet("EGOVPAY_REDIRECT_URL") ??
+      "https://example.com/pay/return";
     const callbackUrl =
-      envGet("SMOKE_PAY_CALLBACK_URL") ?? "https://example.com/pay/callback";
+      envGet("SMOKE_PAY_CALLBACK_URL") ??
+      envGet("EGOVPAY_CALLBACK_URL") ??
+      "https://example.com/pay/callback";
     const res = await p.egovPay.generatePayment({
       payload: {
         items: [{ name: "Smoke test", amount }],

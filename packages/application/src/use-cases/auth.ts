@@ -5,6 +5,7 @@ import {
   type EgovSsoPort,
   type EgovSsoToken,
 } from "../ports/index.js";
+import { mapSsoCitizenProfile } from "./sso-profile.js";
 
 export type ExchangeSsoTokenDeps = {
   readonly sso: EgovSsoPort;
@@ -41,5 +42,5 @@ export async function getSsoCitizenProfile(
 ): Promise<Result<EgovSsoCitizenProfile>> {
   const profile = await deps.sso.authenticatePartner(input.accessToken);
   if (!profile.ok) return profile;
-  return ok(profile.value);
+  return ok(mapSsoCitizenProfile(profile.value.raw));
 }

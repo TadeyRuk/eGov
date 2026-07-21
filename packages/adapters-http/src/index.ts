@@ -189,11 +189,17 @@ export type BangonHttpDeps = ConfirmCitizenIdentityDeps &
 export type BangonHttpHandlers = {
   confirmIdentity(body: {
     token: string;
-    payload: Record<string, unknown>;
-    /** Preferred: Face Liveness API session token from createSession. */
+    /** Face Liveness API session token from createSession. */
     sessionToken?: string;
-    /** Alias for sessionToken (legacy Android / docs wording). */
+    /** Alias for sessionToken. */
     sessionId?: string;
+    /** eVerify Face Liveness Web SDK `result.session_id`. */
+    faceLivenessSessionId: string;
+    firstName: string;
+    lastName: string;
+    birthDate: string;
+    middleName?: string;
+    suffix?: string;
   }): Promise<HttpResponse>;
   findMatches(body: {
     citizenId: string;
@@ -204,8 +210,8 @@ export type BangonHttpHandlers = {
     matchId: string,
     body: {
       amount: number;
-      redirectUrl: string;
-      callbackUrl: string;
+      redirectUrl?: string;
+      callbackUrl?: string;
       txnid?: string;
       currency?: string;
     },
@@ -267,8 +273,15 @@ export function createBangonHttpHandlers(
       if (!liveness.ok) return toHttpResponse(liveness);
       const profile = await confirmCitizenIdentity(deps, {
         token: body.token,
-        payload: body.payload,
         liveness: liveness.value,
+        faceLivenessSessionId: body.faceLivenessSessionId,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        birthDate: body.birthDate,
+        ...(body.middleName !== undefined
+          ? { middleName: body.middleName }
+          : {}),
+        ...(body.suffix !== undefined ? { suffix: body.suffix } : {}),
       });
       return toHttpResponse(profile);
     },
@@ -303,8 +316,12 @@ export function createBangonHttpHandlers(
         citizenId: loaded.value.match.citizenId,
         benefit: loaded.value.benefit,
         amount: body.amount,
-        redirectUrl: body.redirectUrl,
-        callbackUrl: body.callbackUrl,
+        ...(body.redirectUrl !== undefined
+          ? { redirectUrl: body.redirectUrl }
+          : {}),
+        ...(body.callbackUrl !== undefined
+          ? { callbackUrl: body.callbackUrl }
+          : {}),
         ...(body.txnid !== undefined ? { txnid: body.txnid } : {}),
         ...(body.currency !== undefined ? { currency: body.currency } : {}),
       });

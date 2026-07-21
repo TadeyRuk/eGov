@@ -109,14 +109,9 @@ const SEED_BENEFITS: readonly Benefit[] = [
     rule: { minAge: 60, vitalStatusIn: ["ALIVE"] },
     fundCheck: {
       dataset: "SAAODB",
-      // Official GET /api/v1/records/saaodb required params (entityName optional filter).
-      query: {
-        reportYear: 2026,
-        period: "FY",
-        page: 1,
-        limit: 100,
-        entityName: "Social Security",
-      },
+      mode: "dashboard",
+      // National summary cascade — allotments > 0 ⇒ treat as fundable for hackathon demo.
+      query: { reportYear: 2026, sheetScope: "summary" },
     },
   },
   {

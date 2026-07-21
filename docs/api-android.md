@@ -92,10 +92,21 @@ Fetch the citizen profile for an SSO access token (`POST {{sso_base}}/api/partne
 **200:**
 
 ```json
-{ "raw": {} }
+{
+  "raw": {},
+  "uniqid": "…",
+  "fullName": "…",
+  "firstName": "…",
+  "middleName": "…",
+  "lastName": "…",
+  "birthdate": "…",
+  "address": "…",
+  "email": "…",
+  "contactNumber": "…"
+}
 ```
 
-Expect profile fields suitable for sync: name, birthdate, address, email, contact number, `uniqid` (exact JSON keys as returned by the platform — map in the client/server from `raw`).
+Typed fields are filled only when present in the platform JSON (aliases like `uniqid` / `uniqueId`, `birth_date` / `birthdate`, etc.). `raw` is always the untyped platform body.
 
 ---
 
@@ -202,25 +213,23 @@ Poll until terminal status. Server proxies `GET /v1/liveness/result/:token`.
 
 ### `POST /bangon/confirm-identity`
 
-Two distinct liveness concepts — do not conflate:
+Dual path (both required):
 
-1. **Face Liveness API** (`FaceLivenessPort`): start via `POST /bangon/liveness/session`, then server loads result via `sessionToken` (`faceLiveness.getResult`). Pass = `SUCCEEDED` + confidence ≥ 95.0. **Do not** send client-invented confidence scores.
-2. **eVerify Tier Web SDK**: `result.session_id` must be placed in eVerify verify payload as **`face_liveness_session_id`** (see [platform-apis.md §2](./platform-apis.md#2-everify)). That field belongs in `payload`, not as a substitute for the API gate token unless product explicitly unifies the flows.
+1. **Face Liveness API** — `sessionToken` from `POST /bangon/liveness/session`; server polls result; pass = `SUCCEEDED` + confidence ≥ 95.0.
+2. **eVerify Tier Web SDK** — `faceLivenessSessionId` (= SDK `result.session_id`) plus demographics; server builds official `/api/query` body including `face_liveness_session_id`.
 
 **Body:**
 
 ```json
 {
   "token": "<eVerify Bearer access_token from POST /api/auth>",
-  "payload": {
-    "first_name": "Juan",
-    "middle_name": "Santos",
-    "last_name": "Dela Cruz",
-    "suffix": "JR",
-    "birth_date": "1989-09-12",
-    "face_liveness_session_id": "<Web SDK result.session_id>"
-  },
-  "sessionToken": "<Face Liveness API token from /bangon/liveness/session>"
+  "sessionToken": "<Face Liveness API token from /bangon/liveness/session>",
+  "faceLivenessSessionId": "<Web SDK result.session_id>",
+  "firstName": "Juan",
+  "middleName": "Santos",
+  "lastName": "Dela Cruz",
+  "suffix": "JR",
+  "birthDate": "1989-09-12"
 }
 ```
 
@@ -231,12 +240,12 @@ Two distinct liveness concepts — do not conflate:
 ```json
 {
   "dateOfBirth": "1950-01-01T00:00:00.000Z",
-  "civilStatus": "widowed",
-  "vitalStatus": "alive"
+  "civilStatus": "WIDOWED",
+  "vitalStatus": "ALIVE"
 }
 ```
 
-**400:** missing `sessionToken` / `sessionId`  
+**400:** missing Face Liveness API token, Tier session id, or demographics  
 **403:** Face Liveness API gate did not pass (`SUCCEEDED` + confidence ≥ 95.0)
 
 ### `POST /bangon/matches`
@@ -266,17 +275,29 @@ Persists matches server-side; use returned `id` values for later steps.
 
 ### `POST /bangon/matches/:matchId/disburse`
 
-No body. Financial benefits only.
+**Body:**
+
+```json
+{
+  "amount": 1000,
+  "redirectUrl": "https://…/pay/return",
+  "callbackUrl": "https://…/pay/callback",
+  "txnid": "optional-merchant-id",
+  "currency": "PHP"
+}
+```
+
+`redirectUrl` / `callbackUrl` may be omitted when `EGOVPAY_REDIRECT_URL` / `EGOVPAY_CALLBACK_URL` are set on the server. Financial benefits only.
 
 **200:** `{ "transactionId": "…" }` (transactionId optional)  
-**400:** benefit not financial  
+**400:** benefit not financial or missing Pay URLs  
 **404:** match/benefit missing
 
 ### `POST /bangon/matches/:matchId/anchor`
 
-No body. Anchors a hash of `{ citizenId, benefitId, matchedAt }` on eGovChain.
+No body. Computes SHA-256 of `{ citizenId, benefitId, matchedAt }`. Submits to eGovChain **only** when `EGOVCHAIN_ANCHOR_METHOD` is set to a dashboard-documented JSON-RPC method.
 
-**200:** `{ "hash": "<hex>" }`  
+**200:** `{ "hash": "<hex>", "chainSubmitted": false }`  
 **404:** match missing
 
 ### `POST /bangon/matches/:matchId/explain`
@@ -320,8 +341,8 @@ Citizen-initiated eReport complaint. Maps to eReport `submit_complaint` with rep
 1. eGovPH callback (`…/egovph/sso?exchange_code=…`) → Android → `POST /auth/sso/exchange` with `SSO_AUTHENTICATION` → store `accessToken`.
 2. Optional: `POST /auth/sso/profile` → sync name / birthdate / address / email / contact / `uniqid`; auto-login; no local profile edit.
 3. Face Liveness API gate: `POST /bangon/liveness/session` → open returned `url` → poll `GET /bangon/liveness/result/:token` until `passed` (or fail). Keep `token` as `sessionToken`.
-4. Optional eVerify Tier Web SDK → put `result.session_id` in confirm payload as `face_liveness_session_id`.
-5. eVerify `access_token` + demographics (+ Web SDK field when using Tier) → `POST /bangon/confirm-identity` with `sessionToken` → eligibility profile.
+4. eVerify Tier Web SDK → `faceLivenessSessionId` (= `result.session_id`).
+5. eVerify `access_token` + demographics + both session ids → `POST /bangon/confirm-identity`.
 6. `POST /bangon/matches` → list of match ids.
 7. Per match: `notify` / `disburse` / `anchor` / `explain` as needed.
 8. If unpaid/undelivered: `POST /bangon/report-non-delivery`.

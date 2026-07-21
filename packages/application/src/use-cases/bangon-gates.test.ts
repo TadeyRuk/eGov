@@ -105,7 +105,9 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     async authenticate() {
       return ok({ token: "tok", raw: {} });
     },
-    async verifyPersonalInfo() {
+    async verifyPersonalInfo(input) {
+      assert.equal(input.payload.face_liveness_session_id, "sdk-session-1");
+      assert.equal(input.payload.first_name, "Juan");
       return ok({
         raw: {
           date_of_birth: "1950-01-01",
@@ -122,12 +124,19 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     },
   };
 
+  const baseInput = {
+    token: "t",
+    faceLivenessSessionId: "sdk-session-1",
+    firstName: "Juan",
+    lastName: "Dela Cruz",
+    birthDate: "1950-01-01",
+  };
+
   it("rejects when liveness did not pass", async () => {
     const result = await confirmCitizenIdentity(
       { eVerify },
       {
-        token: "t",
-        payload: {},
+        ...baseInput,
         liveness: {
           status: "FAILED",
           confidence: 99,
@@ -141,12 +150,30 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     assert.equal(result.error.code, "FORBIDDEN");
   });
 
+  it("rejects when Tier faceLivenessSessionId is missing", async () => {
+    const result = await confirmCitizenIdentity(
+      { eVerify },
+      {
+        ...baseInput,
+        faceLivenessSessionId: "  ",
+        liveness: {
+          status: "SUCCEEDED",
+          confidence: 97.5,
+          passed: true,
+          raw: {},
+        },
+      },
+    );
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.error.code, "VALIDATION");
+  });
+
   it("returns uppercase profile when liveness passed", async () => {
     const result = await confirmCitizenIdentity(
       { eVerify },
       {
-        token: "t",
-        payload: {},
+        ...baseInput,
         liveness: {
           status: "SUCCEEDED",
           confidence: 97.5,
@@ -178,8 +205,7 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     const result = await confirmCitizenIdentity(
       { eVerify: badDob },
       {
-        token: "t",
-        payload: {},
+        ...baseInput,
         liveness: {
           status: "SUCCEEDED",
           confidence: 99,

@@ -36,6 +36,15 @@ const bangon = createBangonHttpHandlers({
   hash: persistence.hash,
   egovAi: platform.egovAi,
   eReport: platform.eReport,
+  ...(process.env.EGOVPAY_REDIRECT_URL
+    ? { defaultRedirectUrl: process.env.EGOVPAY_REDIRECT_URL }
+    : {}),
+  ...(process.env.EGOVPAY_CALLBACK_URL
+    ? { defaultCallbackUrl: process.env.EGOVPAY_CALLBACK_URL }
+    : {}),
+  ...(process.env.EGOVCHAIN_ANCHOR_METHOD
+    ? { chainAnchorMethod: process.env.EGOVCHAIN_ANCHOR_METHOD }
+    : {}),
 });
 
 const auth = createAuthHttpHandlers({
@@ -166,9 +175,14 @@ const server = createServer(async (req, res) => {
     if (method === "POST" && url.pathname === "/bangon/confirm-identity") {
       const body = (await readJson(req)) as {
         token: string;
-        payload: Record<string, unknown>;
         sessionToken?: string;
         sessionId?: string;
+        faceLivenessSessionId: string;
+        firstName: string;
+        lastName: string;
+        birthDate: string;
+        middleName?: string;
+        suffix?: string;
       };
       const result = await bangon.confirmIdentity(body);
       send(res, result.status, result.body);
@@ -204,8 +218,8 @@ const server = createServer(async (req, res) => {
       if (action === "disburse") {
         const body = (await readJson(req)) as {
           amount: number;
-          redirectUrl: string;
-          callbackUrl: string;
+          redirectUrl?: string;
+          callbackUrl?: string;
           txnid?: string;
           currency?: string;
         };

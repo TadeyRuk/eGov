@@ -13,6 +13,7 @@ import {
   type BenefitCatalogPort,
   type BenefitMatchRepository,
   type Clock,
+  type DbmCompassParams,
   type DbmCompassPort,
   type EgovAiPort,
   type EgovChainPort,
@@ -22,15 +23,11 @@ import {
   type EVerifyPort,
   type FaceLivenessResult,
   type HashPort,
+  type PlatformJson,
 } from "../ports/index.js";
+import { isFundedFromDbmResult } from "./dbm-fund.js";
 
 // ─── findEligibleBenefits ───────────────────────────────────────────────────
-//
-// Fund-check runs first, independent of any one citizen: only benefits whose
-// DBM Compass check confirms funding are candidates. Eligibility matching is
-// then scoped to that fundable list. This ordering means a citizen is never
-// told they're eligible for a benefit that turns out unfunded — see
-// docs/architecture.md "Product Vision" BANGON section.
 
 export type FindEligibleBenefitsDeps = {
   readonly benefits: BenefitCatalogPort;
@@ -44,6 +41,49 @@ export type FindEligibleBenefitsInput = {
   readonly profile: CitizenEligibilityProfile;
 };
 
+function asQueryParams(query: Record<string, unknown>): DbmCompassParams {
+  const out: Record<string, string | number | boolean> = {};
+  for (const [key, value] of Object.entries(query)) {
+    if (
+      typeof value === "string" ||
+      typeof value === "number" ||
+      typeof value === "boolean"
+    ) {
+      out[key] = value;
+    }
+  }
+  return out;
+}
+
+async function runFundCheck(
+  dbm: DbmCompassPort,
+  benefit: Benefit,
+): Promise<Result<PlatformJson>> {
+  const params = asQueryParams(benefit.fundCheck.query);
+  if (
+    benefit.fundCheck.dataset === "SAAODB" &&
+    benefit.fundCheck.mode === "dashboard"
+  ) {
+    const reportYear = Number(params.reportYear);
+    const sheetScope = String(params.sheetScope ?? "summary");
+    if (!Number.isFinite(reportYear)) {
+      return err(
+        appError(
+          "VALIDATION",
+          `Benefit ${benefit.id} SAAODB dashboard fundCheck requires reportYear`,
+        ),
+      );
+    }
+    return dbm.getSaaodbDashboard({ reportYear, sheetScope });
+  }
+  const res = await dbm.query({
+    dataset: benefit.fundCheck.dataset,
+    query: params,
+  });
+  if (!res.ok) return res;
+  return ok(res.value.raw);
+}
+
 async function fundableBenefits(
   deps: Pick<FindEligibleBenefitsDeps, "benefits" | "dbmCompass">,
 ): Promise<Result<readonly Benefit[]>> {
@@ -52,14 +92,12 @@ async function fundableBenefits(
 
   const fundable: Benefit[] = [];
   for (const benefit of all.value) {
-    const fundCheck = await deps.dbmCompass.query({
-      dataset: benefit.fundCheck.dataset,
-      query: benefit.fundCheck.query as Record<string, string | number | boolean>,
-    });
-    // Fail closed on transport/auth errors. `ok` means the GET /api/v1/records/*
-    // call succeeded — interpreting cascade/totals for "enough budget" can be
-    // tightened once seed fundCheck params are agency-specific.
-    if (fundCheck.ok) fundable.push(benefit);
+    const fundCheck = await runFundCheck(deps.dbmCompass, benefit);
+    // Fail closed on transport/auth/validation errors.
+    if (!fundCheck.ok) return fundCheck;
+    if (isFundedFromDbmResult(benefit.fundCheck.dataset, fundCheck.value)) {
+      fundable.push(benefit);
+    }
   }
   return ok(fundable);
 }
@@ -90,11 +128,6 @@ export async function findEligibleBenefits(
 }
 
 // ─── notifyEligibility ──────────────────────────────────────────────────────
-//
-// eMessage is a plain sender (see docs/platform-apis.md and
-// packages/adapters-egov-platform/src/emessage.ts) — no links, no OTPs.
-// This use case only sends the in-app-redirect style message; it does not
-// carry the benefit decision itself.
 
 export type NotifyEligibilityDeps = {
   readonly eMessage: EMessagePort;
@@ -118,23 +151,21 @@ export async function notifyEligibility(
 }
 
 // ─── disburseBenefit ────────────────────────────────────────────────────────
-//
-// Only called for financial benefits, only after eligibility + fund-check
-// have already passed. This use case does not re-verify eligibility — the
-// caller composes findEligibleBenefits -> disburseBenefit in order.
 
 export type DisburseBenefitDeps = {
   readonly eGovPay: EgovPayPort;
+  /** From EGOVPAY_REDIRECT_URL when HTTP body omits redirectUrl. */
+  readonly defaultRedirectUrl?: string;
+  /** From EGOVPAY_CALLBACK_URL when HTTP body omits callbackUrl. */
+  readonly defaultCallbackUrl?: string;
 };
 
 export type DisburseBenefitInput = {
   readonly citizenId: CitizenId;
   readonly benefit: Benefit;
-  /** Total amount for eGovPay `amount` + default line item. */
   readonly amount: number;
-  readonly redirectUrl: string;
-  readonly callbackUrl: string;
-  /** Merchant txn id; defaults to a bangon-scoped unique string. */
+  readonly redirectUrl?: string;
+  readonly callbackUrl?: string;
   readonly txnid?: string;
   readonly currency?: string;
   readonly items?: readonly { readonly name: string; readonly amount: number }[];
@@ -152,6 +183,18 @@ export async function disburseBenefit(
       ),
     );
   }
+  const redirectUrl =
+    input.redirectUrl?.trim() || deps.defaultRedirectUrl?.trim() || "";
+  const callbackUrl =
+    input.callbackUrl?.trim() || deps.defaultCallbackUrl?.trim() || "";
+  if (!redirectUrl || !callbackUrl) {
+    return err(
+      appError(
+        "VALIDATION",
+        "disburse requires redirectUrl and callbackUrl (body or EGOVPAY_REDIRECT_URL / EGOVPAY_CALLBACK_URL)",
+      ),
+    );
+  }
   const txnid =
     input.txnid?.trim() ||
     `bangon-${input.citizenId}-${input.benefit.id}-${Date.now()}`;
@@ -162,8 +205,8 @@ export async function disburseBenefit(
     payload: {
       items,
       amount: input.amount,
-      redirect_url: input.redirectUrl,
-      callback_url: input.callbackUrl,
+      redirect_url: redirectUrl,
+      callback_url: callbackUrl,
       txnid,
       ...(input.currency ? { currency: input.currency } : {}),
     },
@@ -178,11 +221,8 @@ export async function disburseBenefit(
 
 // ─── confirmCitizenIdentity ─────────────────────────────────────────────────
 //
-// Gated on Face Liveness API first: eVerify is never called unless the supplied
-// FaceLivenessResult already passed (SUCCEEDED + confidence >= 95.0, per
-// isFaceLivenessPassed). Callers should also put eVerify Tier Web SDK
-// `face_liveness_session_id` (and demographics) inside `payload` for `/api/query`
-// — that field is distinct from the Face Liveness API session used for this gate.
+// Dual path: Face Liveness API gate (SUCCEEDED + confidence >= 95) AND eVerify
+// Tier Web SDK session id on POST /api/query as face_liveness_session_id.
 
 export type ConfirmCitizenIdentityDeps = {
   readonly eVerify: EVerifyPort;
@@ -190,8 +230,15 @@ export type ConfirmCitizenIdentityDeps = {
 
 export type ConfirmCitizenIdentityInput = {
   readonly token: string;
-  readonly payload: Record<string, unknown>;
   readonly liveness: FaceLivenessResult;
+  /** eVerify Face Liveness Web SDK `result.session_id`. */
+  readonly faceLivenessSessionId: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  /** ISO `YYYY-MM-DD`. */
+  readonly birthDate: string;
+  readonly middleName?: string;
+  readonly suffix?: string;
 };
 
 export async function confirmCitizenIdentity(
@@ -209,14 +256,38 @@ export async function confirmCitizenIdentity(
     );
   }
 
+  const faceLivenessSessionId = input.faceLivenessSessionId.trim();
+  const firstName = input.firstName.trim();
+  const lastName = input.lastName.trim();
+  const birthDate = input.birthDate.trim();
+  if (!faceLivenessSessionId || !firstName || !lastName || !birthDate) {
+    return err(
+      appError(
+        "VALIDATION",
+        "confirm-identity requires faceLivenessSessionId, firstName, lastName, birthDate",
+      ),
+    );
+  }
+
+  const payload: PlatformJson = {
+    first_name: firstName,
+    last_name: lastName,
+    birth_date: birthDate,
+    face_liveness_session_id: faceLivenessSessionId,
+  };
+  const middle = input.middleName?.trim();
+  if (middle) payload.middle_name = middle;
+  const suffix = input.suffix?.trim();
+  if (suffix) payload.suffix = suffix;
+
   const verified = await deps.eVerify.verifyPersonalInfo({
     token: input.token,
-    payload: input.payload,
+    payload,
   });
   if (!verified.ok) return verified;
 
   const raw = verified.value.raw;
-  const dob = raw.date_of_birth ?? raw.dateOfBirth;
+  const dob = raw.date_of_birth ?? raw.dateOfBirth ?? birthDate;
   if (typeof dob !== "string") {
     return err(
       appError("VALIDATION", "eVerify response missing date of birth"),
@@ -230,7 +301,6 @@ export async function confirmCitizenIdentity(
   }
   return ok({
     dateOfBirth,
-    // Uppercase so seed rules ("ALIVE") match eVerify casing variants.
     civilStatus: String(raw.civil_status ?? raw.civilStatus ?? "")
       .trim()
       .toUpperCase(),
@@ -242,22 +312,15 @@ export async function confirmCitizenIdentity(
 
 // ─── anchorBenefitMatch ─────────────────────────────────────────────────────
 //
-// Anchors a hash of {citizenId, benefitId, matchedAt} on eGovChain — not the
-// raw match record — matching docs/architecture.md's existing pattern
-// ("a cryptographic proof (hash) is anchored... state validation is publicly
-// verifiable... no agency can alter audit logs retroactively"). Uses the
-// generic JSON-RPC `call`, not an eth_* helper, since none of the documented
-// eth_* helpers (eth_call, eth_sendRawTransaction, eth_getTransactionReceipt,
-// eth_blockNumber, eth_getBalance) are a write-anchor primitive by
-// themselves — the exact anchoring RPC method is platform-specific and not
-// enumerated in docs/platform-apis.md, so this calls a placeholder method
-// name that must be confirmed against the dashboard's OpenAPI before this
-// is used against the live chain (see docs/tasks.md Phase 0.5 "Align
-// adapter path maps with live OpenAPI from the dashboard").
+// Local SHA-256 of {citizenId, benefitId, matchedAt}. Optional live chain
+// submit only when EGOVCHAIN_ANCHOR_METHOD is set (dashboard-documented RPC).
+// Never invents method names like egov_anchorHash.
 
 export type AnchorBenefitMatchDeps = {
   readonly eGovChain: EgovChainPort;
   readonly hash: HashPort;
+  /** From env EGOVCHAIN_ANCHOR_METHOD — omit to hash-only. */
+  readonly chainAnchorMethod?: string;
 };
 
 export type AnchorBenefitMatchInput = {
@@ -267,7 +330,7 @@ export type AnchorBenefitMatchInput = {
 export async function anchorBenefitMatch(
   deps: AnchorBenefitMatchDeps,
   input: AnchorBenefitMatchInput,
-): Promise<Result<{ hash: string }>> {
+): Promise<Result<{ hash: string; chainSubmitted: boolean }>> {
   const hash = await deps.hash.sha256Hex(
     JSON.stringify({
       citizenId: input.match.citizenId,
@@ -276,19 +339,20 @@ export async function anchorBenefitMatch(
     }),
   );
 
+  const method = deps.chainAnchorMethod?.trim();
+  if (!method) {
+    return ok({ hash, chainSubmitted: false });
+  }
+
   const anchored = await deps.eGovChain.call({
-    method: "egov_anchorHash",
+    method,
     params: [hash],
   });
   if (!anchored.ok) return anchored;
-  return ok({ hash });
+  return ok({ hash, chainSubmitted: true });
 }
 
 // ─── explainEligibility ─────────────────────────────────────────────────────
-//
-// Called strictly AFTER a match is already decided by isEligibleForBenefit —
-// cosmetic/side-effect only, per confirmed decision. This never influences
-// the eligibility outcome; a failure here does not undo or block the match.
 
 export type ExplainEligibilityDeps = {
   readonly egovAi: EgovAiPort;
@@ -313,22 +377,6 @@ export async function explainEligibility(
 }
 
 // ─── reportBenefitNonDelivery ───────────────────────────────────────────────
-//
-// Explicit, citizen-initiated complaint: "I was matched but never received
-// this benefit." Same eReport port/mechanism as the existing corruption/
-// discrepancy reporting (Workflow 2 in the pitch doc) — not a separate
-// system. No automatic/time-based trigger.
-//
-// eReport's fixed report-type catalog (crime, red_tape, scam, child_abuse,
-// women_abuse, overpricing, fire, accident, gas_station_concerns) has no
-// exact "benefit not delivered" category. Mapped to "red_tape" — the closest
-// fit for a government-service delay/failure — a judgment call, not an
-// officially sanctioned category; revisit if eReport ever adds one.
-//
-// Submit Complaint's own auth is the integration access_token only; the
-// separate OTP -> report_view_token flow is only required to list/view
-// report history afterward, not to submit one — so this use case does not
-// depend on OTP.
 
 const NON_DELIVERY_REPORT_TYPE = "red_tape";
 

@@ -166,6 +166,11 @@ export type Benefit = {
   /** Which DBM Compass dataset + query proves this benefit is currently funded. */
   readonly fundCheck: {
     readonly dataset: DbmDataset;
+    /**
+     * `dashboard` → SAAODB GET `/api/v1/records/saaodb/dashboard` (cascade).
+     * Default / `records` → GET `/api/v1/records/{dataset}`.
+     */
+    readonly mode?: "records" | "dashboard";
     readonly query: Record<string, unknown>;
   };
 };

@@ -692,7 +692,9 @@ Includes at least: `uuid`, `refno`, `txnid`, `environment_type`, `items`, `amoun
 | JSON-RPC 2.0 `POST` to base URL | As required by platform | Generic `call(method, params)` |
 | Convenience methods (examples) | — | `eth_call`, `eth_sendRawTransaction`, `eth_getTransactionReceipt`, `eth_blockNumber`, `eth_getBalance` |
 
-**Env placeholders:** `EGOVCHAIN_RPC_URL`, `EGOVCHAIN_CHAIN_ID=13371`
+BANGON `anchorBenefitMatch` hashes locally and only calls `EgovChainPort.call` when `EGOVCHAIN_ANCHOR_METHOD` is set to a **dashboard-documented** method. Do not invent names such as `egov_anchorHash`.
+
+**Env placeholders:** `EGOVCHAIN_RPC_URL`, `EGOVCHAIN_CHAIN_ID=13371`, optional `EGOVCHAIN_ANCHOR_METHOD`
 
 ---
 
