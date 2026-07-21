@@ -1,0 +1,4 @@
+<resources>
+    <!-- Placeholder parent only. Palette/typography owned by design/UI teammate — do not extend here. -->
+    <style name="Theme.Bangon" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

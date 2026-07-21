@@ -13,7 +13,7 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] Add platform ports + `@egov/adapters-egov-platform` (env-backed fetch)
 - [x] Add root scripts: `hygiene`, `smoke:platform` (credential + safe probes)
 - [x] Add root `test` suite beyond platform smoke (`node:test` via `pnpm test` — `--if-present` across workspace; builds then runs `packages/application` + `packages/adapters-persistence` test files — 12 tests)
-- [ ] Add CI workflow for typecheck on PR
+- [~] Add CI workflow for typecheck on PR — **SKIPPED (2026-07-22):** not needed for hackathon judging; local `pnpm typecheck` / `hygiene` / `test` is enough. Revisit only if multi-contributor PR safety becomes a real pain (Phase 5).
 
 ## Phase 0.5 — Platform verticals
 
@@ -85,7 +85,7 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [ ] Environment config via ports (no secrets in repo)
 - [ ] Structured logging and health/readiness probes
 - [ ] Fallback drills documented and scheduled
-- [ ] Criteria suite green in CI
+- [ ] Criteria suite green in CI — **deferred with Phase 0 CI skip**; local typecheck/tests until post-hackathon
 - [ ] Deployment runbook (host, containers, or platform of choice)
 - [ ] Observability: metrics for case latency, agent task outcomes, adapter errors
 

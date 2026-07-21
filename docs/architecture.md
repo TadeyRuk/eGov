@@ -166,7 +166,7 @@ BANGON is the flagship product feature: instead of a citizen applying for benefi
 - **Adapter** (`packages/adapters-persistence/src/index.ts`): `createInMemoryBenefitCatalog` (3 seed benefits), `createInMemoryBenefitMatchRepository`, `createNodeHashAdapter`.
 - **Tests:** `node:test` contract + gate suites (`repositories.test.ts`, `bangon-gates.test.ts`) — 12 passing via root `pnpm test`.
 
-See [`tasks.md`](./tasks.md) **Phase 1 — Core domain vertical** / **Phase 0.5** for remaining open items (CI, live smokes; chain method via env).
+See [`tasks.md`](./tasks.md) **Phase 1 — Core domain vertical** / **Phase 0.5** for remaining open items (live smokes; chain method via env). CI intentionally skipped for hackathon — see Phase 0 note in tasks.md.
 
 ### High-scale target (100M+ transactions/week)
 
