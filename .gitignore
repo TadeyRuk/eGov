@@ -15,3 +15,4 @@ AGENTS.md
 postman/*.local.postman_environment.json
 
 .pnpm-store/
+.vercel
