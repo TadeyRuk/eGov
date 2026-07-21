@@ -18,3 +18,5 @@ secrets/
 
 .pnpm-store/
 .vercel
+.local/
+AGENTS.md
