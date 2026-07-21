@@ -105,3 +105,9 @@ The payment contract rejected plaintext individual fields, and the document cont
 | Total orchestration | 45,686.11 ms |
 
 The provider's Credits endpoint reported 200 before and after this run. Prompts, generated responses, tokens, and credentials are excluded from the saved KPI report.
+
+## Live Vercel/system KPI
+
+**Result: PASS — 8/8 measured checks, 100% availability; 1 optional API-health check skipped** because `apps/api` has no deployed `EGOV_API_URL` yet. The stable production alias passed the SSO page/config/validation, card-ledger read, eGovChain chain ID, public-project lookup, transparency page, and synthetic analytics JSON checks under the 3,000 ms warm-response target.
+
+Chrome CDP independently rendered the live transparency route with six KPI cards, three project cards, three review-signal rows, and the synthetic-data disclaimer. The first post-deployment cold homepage request took 3,198.39 ms and missed the target by 198.39 ms; the immediate warm verification passed at 2,540.59 ms. This cold-start observation is retained rather than hidden.
