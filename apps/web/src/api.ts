@@ -62,7 +62,11 @@ export const api = {
   findMatches: (input: {
     citizenId: string;
     profile: { dateOfBirth: string; civilStatus: string; vitalStatus: string };
-  }) => post<{ matches: Array<{ id: string; benefitId: string }> }>("/bangon/matches", input),
+  }) =>
+    post<Array<{ id: string; benefitId: string; citizenId?: string; matchedAt?: string }>>(
+      "/bangon/matches",
+      input,
+    ),
 
   notify: (matchId: string, citizenPhone: string) =>
     post<{ delivered: boolean }>(`/bangon/matches/${matchId}/notify`, { citizenPhone }),

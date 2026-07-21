@@ -347,7 +347,7 @@ export default function App() {
 
   const loadBenefitMatches = async (citizen: string) => {
     try {
-      const found = await api.findMatches({
+      const matches = await api.findMatches({
         citizenId: citizen,
         profile: {
           dateOfBirth: profile.current.birthDate,
@@ -355,9 +355,9 @@ export default function App() {
           vitalStatus: profile.current.vitalStatus,
         },
       });
-      matchIds.current = found.matches.map((m) => m.id);
-      setBenefits(enrichMatches(found.matches));
-      return found.matches;
+      matchIds.current = matches.map((m) => m.id);
+      setBenefits(enrichMatches(matches));
+      return matches;
     } catch (err) {
       if (!isDemoSession(accessToken.current)) throw err;
       const fallback = demoFallbackMatches();
@@ -611,7 +611,7 @@ export default function App() {
             </span>
           </div>
         )}
-        <div style={{ flex: 1, paddingBottom: 96, position: "relative", overflow: "hidden" }}>
+        <div style={{ flex: 1, minHeight: 0, paddingBottom: 96, position: "relative", overflow: "hidden" }}>
           <div key={screen} className={`screen-pane screen-pane-${navDir}`}>
             {screen === 0 && <OnboardingScreen onStart={next} onGoTo={goTo} />}
             {screen === 1 && (
@@ -975,7 +975,10 @@ export default function App() {
           min-height:100dvh;
         }
         .screen-pane{
-          min-height:100%;
+          height:100%;
+          min-height:0;
+          overflow:auto;
+          -webkit-overflow-scrolling:touch;
           will-change:transform,opacity;
         }
         .screen-pane-forward{
@@ -1951,9 +1954,26 @@ function TransparencyScreen({
 }) {
   const submitBg = reportCategory && reportText.trim() ? "#0F766E" : "#B7C2BE";
   return (
-    <div style={{ display: "flex", flexDirection: "column", minHeight: "100%", position: "relative" }}>
+    <div
+      style={{
+        display: "flex",
+        flexDirection: "column",
+        height: "100%",
+        minHeight: 0,
+        position: "relative",
+        overflow: "hidden",
+      }}
+    >
       <BackHeader title="Transparency sa Proyekto" onBack={onBack} />
-      <div style={{ padding: "18px 18px 90px" }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: "auto",
+          WebkitOverflowScrolling: "touch",
+          padding: "18px 18px 96px",
+        }}
+      >
         <div style={{ fontSize: 12, color: "#64748B", marginBottom: 12, lineHeight: 1.45 }}>
           Live mula sa DBM Compass LGSF
           {reportYear ? ` · FY ${reportYear}` : ""}.
@@ -2029,7 +2049,16 @@ function TransparencyScreen({
           </div>
         ))}
       </div>
-      <div style={{ position: "absolute", bottom: 18, left: 18, right: 18 }}>
+      <div
+        style={{
+          position: "absolute",
+          bottom: 18,
+          left: 18,
+          right: 18,
+          zIndex: 5,
+          pointerEvents: "none",
+        }}
+      >
         <button
           style={{
             width: "100%",
@@ -2042,6 +2071,7 @@ function TransparencyScreen({
             fontWeight: 700,
             cursor: "pointer",
             boxShadow: "0 8px 20px rgba(220,38,38,0.3)",
+            pointerEvents: "auto",
           }}
           onClick={onOpenReport}
         >
