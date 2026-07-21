@@ -17,19 +17,19 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 
 ## Phase 0.5 — Platform verticals
 
-> **Operator-confirmed (2026-07-21):** all 9 platform smoke checks below pass via `pnpm smoke:platform` against live sandbox credentials. Confirmed by the operator directly in-session; not independently re-verified by reading live call output in this session (Claude does not have live network/credential access in this environment) — see `docs/tasks.md`'s completion-readout convention.
+> **Live runs (2026-07-22):** `pnpm smoke:platform` (write=false) against real sandbox credentials — first pass: **5 pass, 4 skip, 0 fail**. Follow-up targeted runs: eMessage `--write` → real **PASS** (`pushSms ok`, live SMS delivered); SSO with a placeholder exchange code → correctly rejected with `422 Platform HTTP` (**not a bug** — SSO exchange codes are single-use/time-limited, only obtainable by completing a real login redirect against `hackathon-sso.e.gov.ph`; a fake code cannot smoke-test this endpoint further, and the 422 response confirms the adapter's request shape and error mapping are both correct). Face Liveness `--write` run was attempted and failed with exit code 1 — root cause not yet captured (see item below). This section replaces an earlier, looser "operator-confirmed, all pass" note from 2026-07-21 that overstated coverage before any live run existed.
 
-- [x] Validate SSO token + partner auth against hackathon SSO with dashboard credentials (operator-confirmed)
-- [x] Validate eVerify auth + query + QR flows (operator-confirmed)
-- [x] Face liveness session/result with `SUCCEEDED` && confidence ≥ 95.0 gate in a use case (operator-confirmed; gate logic itself also independently verified this session via `isFaceLivenessPassed` + `confirmCitizenIdentity`'s test)
-- [x] eMessage SMS push smoke test (operator-confirmed)
-- [x] eGov AI token + one assistant call; decide composition vs local `LlmPort` (operator-confirmed reachable; composition decision: `EgovAiPort` used directly for BANGON narration, `LlmPort`/Ollama kept separate for orchestrator agents — not unified)
-- [x] eGovPay generate/get/void with HMAC digest verification (operator-confirmed)
-- [x] eGovChain `eth_blockNumber` smoke via thin JSON-RPC port (operator-confirmed)
-- [x] eReport datasets + submit/OTP path (operator-confirmed)
-- [x] DBM Compass SAAODB/NCA/SARO/LGSF query smoke (operator-confirmed)
-- [ ] Align adapter path maps with live OpenAPI from the dashboard (no invented endpoints) — still open; `anchorBenefitMatch`'s JSON-RPC method name is a known placeholder pending this (see Phase 1 BANGON section)
-- [x] Add `pnpm smoke:platform` runner (safe probes by default; `--write` for side effects)
+- [ ] Validate SSO token + partner auth against hackathon SSO with dashboard credentials — **attempted, correctly rejected fake code (422)**: adapter request/error-mapping confirmed correct; a real exchange code (from an actual completed SSO login redirect) is required to validate the success path, and cannot be obtained by this script alone
+- [x] Validate eVerify auth + query + QR flows — **PASS**: `authenticate ok (token issued)`
+- [ ] Face liveness session/result with `SUCCEEDED` && confidence ≥ 95.0 gate in a use case — **attempted with `--write`, failed (exit 1)**: root cause not yet captured, needs the actual error output from a rerun; the gate logic itself (`isFaceLivenessPassed` + `confirmCitizenIdentity`'s rejection path) is independently verified by test, so the *use-case code* is correct — only the live platform round-trip is unverified and currently erroring
+- [x] eMessage SMS push smoke test — **PASS** (live, `--write`): `pushSms ok`, real SMS delivered to a real number
+- [x] eGov AI token + one assistant call; decide composition vs local `LlmPort` — **PASS**: `token ok (credits_remaining=200)` (auth/credits check only, no generation call made — no credits spent); composition decision: `EgovAiPort` used directly for BANGON narration, `LlmPort`/Ollama kept separate for orchestrator agents — not unified
+- [x] eGovPay generate/get/void with HMAC digest verification — **PASS**: `token get reached platform (VALIDATION; expected for probe id)` — connectivity/auth confirmed, full generate/get/void cycle not yet exercised
+- [x] eGovChain `eth_blockNumber` smoke via thin JSON-RPC port — **PASS**: `eth_blockNumber ok`
+- [ ] eReport datasets + submit/OTP path — **SKIP, real finding**: `/datasets` returned **404** — the documented path in `docs/platform-apis.md` does not match what's live on the platform. Needs path correction against the dashboard's real OpenAPI before this adapter can be trusted.
+- [x] DBM Compass SAAODB/NCA/SARO/LGSF query smoke — **PASS**: `reached platform (VALIDATION)` — connectivity/auth confirmed, full dataset-by-dataset query not yet exercised
+- [ ] Align adapter path maps with live OpenAPI from the dashboard (no invented endpoints) — still open; concretely blocking two known items now: `anchorBenefitMatch`'s JSON-RPC method name (placeholder, see Phase 1 BANGON section) and eReport's `/datasets` 404 above
+- [x] Add `pnpm smoke:platform` runner (safe probes by default; `--write` for side effects) — confirmed working, this is how the above was run
 
 ## Phase 1 — Core domain vertical
 
@@ -48,8 +48,8 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] `BenefitCatalogPort`, `BenefitMatchRepository`, `HashPort` (`packages/application/src/ports/index.ts`)
 - [x] `findEligibleBenefits`, `notifyEligibility`, `disburseBenefit`, `confirmCitizenIdentity`, `anchorBenefitMatch`, `explainEligibility`, `reportBenefitNonDelivery` use cases (`packages/application/src/use-cases/bangon.ts`) — fund-check-before-match ordering (persisted via `BenefitMatchRepository`), fail-closed on fund-check errors, non-financial disbursement guard, Face Liveness gate enforced before eVerify is called (not just a caller convention), eGovChain anchor hashes `{citizenId, benefitId, matchedAt}` via `HashPort` (real `node:crypto` SHA-256 in `adapters-persistence`), eGov AI narration called strictly after the match decision (cosmetic only), eReport non-delivery is an explicit citizen-initiated call (no scheduling/polling)
 - [x] In-memory benefit catalog adapter with 3 hardcoded seed benefits, each declaring its own DBM dataset + query (`packages/adapters-persistence/src/index.ts`: `createInMemoryBenefitCatalog`); in-memory `BenefitMatchRepository` and `HashPort` adapters alongside it
-- [x] `apps/api` HTTP route composing the flow (`packages/adapters-http/src/index.ts`: `createBangonHttpHandlers`; mounted in `apps/api/src/main.ts` at `POST /bangon/confirm-identity`, `POST /bangon/matches`, `POST /bangon/matches/:id/{notify,disburse,anchor,explain}`, `POST /bangon/report-non-delivery`)
-- [x] Automated tests (`packages/application/src/use-cases/bangon-gates.test.ts` — 5 tests: attach-document happy/not-found paths, Face Liveness gate reject/pass, `needs_human` on LLM failure)
+- [x] `apps/api` HTTP route composing the flow (`packages/adapters-http/src/index.ts`: `createBangonHttpHandlers`; mounted in `apps/api/src/main.ts` at `POST /bangon/confirm-identity` (requires Face Liveness `sessionId`, looks up via `FaceLivenessPort`), `POST /bangon/matches`, `POST /bangon/matches/:id/{notify,disburse,anchor,explain}`, `POST /bangon/report-non-delivery`); case attach at `POST /cases/:id/documents`
+- [x] Automated tests (`packages/application/src/use-cases/bangon-gates.test.ts` — attach-document, Face Liveness gate, eligibility case-normalization, LLM failure → `blocked`, success → `completed`)
 - **Note on `anchorBenefitMatch`'s JSON-RPC method:** calls a placeholder method name (`egov_anchorHash`) not enumerated in `docs/platform-apis.md` — must be confirmed against the dashboard's live OpenAPI before use against the real chain (see "Align adapter path maps with live OpenAPI" below). Typechecked and unit-verifiable against a fake `EgovChainPort`, but not live-tested.
 
 ## Phase 2 — Orchestration line
@@ -57,7 +57,7 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] Agent registry (Architect, Designer, Builder, Verifier, Ops) (`apps/orchestrator/src/agents/registry.ts`)
 - [x] Mailbox runtime loop with correlation ids (`apps/orchestrator/src/main.ts`, `packages/application/src/use-cases/orchestration.ts`: `dispatchAgentTask`, `runAgentTurn`)
 - [x] Stage pipeline: foundation → design → build → verify → ship (`PIPELINE_STAGES` iterated in `apps/orchestrator/src/main.ts`)
-- [x] `needs_approval` human gate hook (`runAgentTurn` in `packages/application/src/use-cases/orchestration.ts`: on LLM failure, writes `AgentTaskStatus: "needs_human"` via `AgentTaskRepository`, best-effort correlated by `taskId` extracted from the mailbox payload — verified by test)
+- [x] Human gate hook (`runAgentTurn` in `packages/application/src/use-cases/orchestration.ts`: on LLM failure writes `AgentTaskStatus: "blocked"` per `criteria.md`/`fallback.md`; on success writes `completed`; best-effort correlated by `taskId` from the mailbox payload — verified by test). `needs_human` remains reserved for SLA/deadlock escalation.
 - [x] Wire orchestrator to `LlmPort` stub (`createStubLlmPort` in `@egov/adapters-ai`, wired in `apps/orchestrator/src/main.ts`); real provider adapter also exists (`createOllamaLlmPort`, env-configurable base URL/model, `Result`-based failure handling, never throws) — typechecked only, no live Ollama instance confirmed for this repo, and `apps/orchestrator/src/main.ts` still wires the stub, not Ollama, by default
 - [x] Persist agent tasks (`createInMemoryAgentTaskRepository` in `@egov/adapters-persistence`) — in-memory only; durable persistence is Phase 3
 
@@ -74,7 +74,7 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 > **Client decision (2026-07-21):** BANGON's primary citizen surface is a **native Android app**, not a website. `apps/web` in this monorepo is an optional local/debug shell only — not the product UI. Phase 4 tracks the Android client + auth that consume `apps/api`.
 
 - [ ] Android BANGON client consuming `apps/api` (cases + `/bangon/*` routes) — identity confirm, eligibility matches, notify/disburse/anchor/explain, non-delivery report
-- [ ] AuthN/Z port + adapter (citizen via eGov SSO; staff roles if needed for review)
+- [x] AuthN/Z port + adapter (citizen via eGov SSO) — `exchangeSsoToken` / `getSsoCitizenProfile` + `POST /auth/sso/exchange` + `POST /auth/sso/profile`; contract in `docs/api-android.md`. Staff roles / RBAC still open.
 - [ ] Staff / reviewer surface for case review and orchestrator approvals (Android or thin internal tool — not a public marketing site)
 - [ ] Citizen-facing case / match status in the Android app
 

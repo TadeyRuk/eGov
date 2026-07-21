@@ -1,28 +1,34 @@
 import {
   advanceCaseStatus,
   anchorBenefitMatch,
+  attachDocument,
   confirmCitizenIdentity,
   disburseBenefit,
+  exchangeSsoToken,
   explainEligibility,
   findEligibleBenefits,
   getServiceCase,
+  getSsoCitizenProfile,
   notifyEligibility,
   reportBenefitNonDelivery,
   submitServiceCase,
   type AdvanceServiceCaseDeps,
   type AnchorBenefitMatchDeps,
+  type AttachDocumentDeps,
   type BenefitCatalogPort,
   type BenefitMatchRepository,
   type ConfirmCitizenIdentityDeps,
   type DisburseBenefitDeps,
+  type ExchangeSsoTokenDeps,
   type ExplainEligibilityDeps,
+  type FaceLivenessPort,
   type FindEligibleBenefitsDeps,
   type GetServiceCaseDeps,
+  type GetSsoCitizenProfileDeps,
   type NotifyEligibilityDeps,
   type ReportBenefitNonDeliveryDeps,
   type SubmitServiceCaseDeps,
 } from "@egov/application";
-import { isFaceLivenessPassed } from "@egov/application";
 import type {
   BenefitId,
   BenefitMatchId,
@@ -72,10 +78,22 @@ export type CaseHttpHandlers = {
     caseId: string,
     body: { nextStatus: ServiceCaseStatus },
   ): Promise<HttpResponse>;
+  attachDocument(
+    caseId: string,
+    body: {
+      fileName: string;
+      contentType: string;
+      /** Base64-encoded file bytes */
+      contentBase64: string;
+    },
+  ): Promise<HttpResponse>;
 };
 
 export function createCaseHttpHandlers(
-  deps: SubmitServiceCaseDeps & GetServiceCaseDeps & AdvanceServiceCaseDeps,
+  deps: SubmitServiceCaseDeps &
+    GetServiceCaseDeps &
+    AdvanceServiceCaseDeps &
+    AttachDocumentDeps,
 ): CaseHttpHandlers {
   return {
     async submit(body) {
@@ -104,7 +122,37 @@ export function createCaseHttpHandlers(
         }),
       );
     },
+    async attachDocument(caseId, body) {
+      let content: Uint8Array;
+      try {
+        content = decodeBase64(body.contentBase64);
+      } catch {
+        return {
+          status: 400,
+          body: {
+            error: {
+              code: "VALIDATION",
+              message: "contentBase64 must be valid base64",
+            },
+          },
+        };
+      }
+      const result = await attachDocument(deps, {
+        caseId: createId<"ServiceCaseId">(caseId) as ServiceCaseId,
+        fileName: body.fileName,
+        contentType: body.contentType,
+        content,
+      });
+      if (result.ok) {
+        return { status: 201, body: result.value };
+      }
+      return toHttpResponse(result);
+    },
   };
+}
+
+function decodeBase64(input: string): Uint8Array {
+  return Uint8Array.from(Buffer.from(input, "base64"));
 }
 
 export function healthResponse(): HttpResponse {
@@ -129,20 +177,31 @@ export type BangonHttpDeps = ConfirmCitizenIdentityDeps &
   ReportBenefitNonDeliveryDeps & {
     readonly benefits: BenefitCatalogPort;
     readonly matches: BenefitMatchRepository;
+    /** Server-side liveness lookup — never trust client-supplied scores. */
+    readonly faceLiveness: FaceLivenessPort;
   };
 
 export type BangonHttpHandlers = {
   confirmIdentity(body: {
     token: string;
     payload: Record<string, unknown>;
-    liveness: { status: string; confidence: number | null; raw: Record<string, unknown> };
+    sessionId: string;
   }): Promise<HttpResponse>;
   findMatches(body: {
     citizenId: string;
     profile: { dateOfBirth: string; civilStatus: string; vitalStatus: string };
   }): Promise<HttpResponse>;
   notify(matchId: string, body: { citizenPhone: string }): Promise<HttpResponse>;
-  disburse(matchId: string): Promise<HttpResponse>;
+  disburse(
+    matchId: string,
+    body: {
+      amount: number;
+      redirectUrl: string;
+      callbackUrl: string;
+      txnid?: string;
+      currency?: string;
+    },
+  ): Promise<HttpResponse>;
   anchor(matchId: string): Promise<HttpResponse>;
   explain(matchId: string): Promise<HttpResponse>;
   reportNonDelivery(body: {
@@ -157,31 +216,29 @@ async function loadMatchAndBenefit(
   deps: Pick<BangonHttpDeps, "matches" | "benefits">,
   matchId: string,
 ) {
-  const match = await deps.matches.getById(createId<"BenefitMatchId">(matchId) as BenefitMatchId);
+  const match = await deps.matches.getById(
+    createId<"BenefitMatchId">(matchId) as BenefitMatchId,
+  );
   if (!match.ok) return match;
   const benefit = await deps.benefits.getById(match.value.benefitId);
   if (!benefit.ok) return benefit;
-  return { ok: true as const, value: { match: match.value, benefit: benefit.value } };
+  return {
+    ok: true as const,
+    value: { match: match.value, benefit: benefit.value },
+  };
 }
 
-export function createBangonHttpHandlers(deps: BangonHttpDeps): BangonHttpHandlers {
+export function createBangonHttpHandlers(
+  deps: BangonHttpDeps,
+): BangonHttpHandlers {
   return {
     async confirmIdentity(body) {
+      const liveness = await deps.faceLiveness.getResult(body.sessionId);
+      if (!liveness.ok) return toHttpResponse(liveness);
       const profile = await confirmCitizenIdentity(deps, {
         token: body.token,
         payload: body.payload,
-        liveness: {
-          status: body.liveness.status,
-          confidence: body.liveness.confidence,
-          // Recomputed here (and independently re-verified inside
-          // confirmCitizenIdentity via isFaceLivenessPassed) rather than
-          // trusting a client-supplied boolean.
-          passed: isFaceLivenessPassed(
-            body.liveness.status,
-            body.liveness.confidence,
-          ),
-          raw: body.liveness.raw,
-        },
+        liveness: liveness.value,
       });
       return toHttpResponse(profile);
     },
@@ -209,12 +266,17 @@ export function createBangonHttpHandlers(deps: BangonHttpDeps): BangonHttpHandle
       return toHttpResponse(result);
     },
 
-    async disburse(matchId) {
+    async disburse(matchId, body) {
       const loaded = await loadMatchAndBenefit(deps, matchId);
       if (!loaded.ok) return toHttpResponse(loaded);
       const result = await disburseBenefit(deps, {
         citizenId: loaded.value.match.citizenId,
         benefit: loaded.value.benefit,
+        amount: body.amount,
+        redirectUrl: body.redirectUrl,
+        callbackUrl: body.callbackUrl,
+        ...(body.txnid !== undefined ? { txnid: body.txnid } : {}),
+        ...(body.currency !== undefined ? { currency: body.currency } : {}),
       });
       return toHttpResponse(result);
     },
@@ -222,7 +284,9 @@ export function createBangonHttpHandlers(deps: BangonHttpDeps): BangonHttpHandle
     async anchor(matchId) {
       const loaded = await loadMatchAndBenefit(deps, matchId);
       if (!loaded.ok) return toHttpResponse(loaded);
-      const result = await anchorBenefitMatch(deps, { match: loaded.value.match });
+      const result = await anchorBenefitMatch(deps, {
+        match: loaded.value.match,
+      });
       return toHttpResponse(result);
     },
 
@@ -244,6 +308,39 @@ export function createBangonHttpHandlers(deps: BangonHttpDeps): BangonHttpHandle
         description: body.description,
       });
       return toHttpResponse(result);
+    },
+  };
+}
+
+// ─── Auth (citizen SSO) ───────────────────────────────────────────────────
+
+export type AuthHttpDeps = ExchangeSsoTokenDeps & GetSsoCitizenProfileDeps;
+
+export type AuthHttpHandlers = {
+  exchangeSso(body: {
+    exchangeCode: string;
+    /** Defaults to `SSO_AUTHENTICATION` in `exchangeSsoToken`. */
+    scope?: string;
+  }): Promise<HttpResponse>;
+  ssoProfile(body: { accessToken: string }): Promise<HttpResponse>;
+};
+
+export function createAuthHttpHandlers(deps: AuthHttpDeps): AuthHttpHandlers {
+  return {
+    async exchangeSso(body) {
+      return toHttpResponse(
+        await exchangeSsoToken(deps, {
+          exchangeCode: body.exchangeCode,
+          ...(body.scope !== undefined ? { scope: body.scope } : {}),
+        }),
+      );
+    },
+    async ssoProfile(body) {
+      return toHttpResponse(
+        await getSsoCitizenProfile(deps, {
+          accessToken: body.accessToken,
+        }),
+      );
     },
   };
 }

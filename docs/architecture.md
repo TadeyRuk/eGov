@@ -58,13 +58,13 @@ A first-class **orchestration layer** coordinates multiple AI agents across the 
 
 Credentials: [platforms.e.gov.ph/dashboard](https://platforms.e.gov.ph/dashboard). Catalog: [platform-apis.md](./platform-apis.md).
 
-| Port | Platform service | Base URL |
-|------|------------------|----------|
-| `EgovSsoPort` | eGov SSO | `https://hackathon-sso.e.gov.ph` |
-| `EVerifyPort` | eVerify | `https://hackathon-everify-api.e.gov.ph` |
-| `FaceLivenessPort` | Face Liveness | `https://hackathon-face-liveness-api.e.gov.ph` |
+| Port | Platform service | Base URL / notes |
+|------|------------------|------------------|
+| `EgovSsoPort` | eGov SSO | `https://hackathon-sso.e.gov.ph` — scope `SSO_AUTHENTICATION`; partner callback must accept `?exchange_code=` (see [platform-apis.md](./platform-apis.md#1-egov-sso)) |
+| `EVerifyPort` | eVerify (NIDAS) | `https://hackathon-everify-api.e.gov.ph` — auth nests `data.access_token`; Tier verify uses Web SDK `face_liveness_session_id` (see [platform-apis.md](./platform-apis.md#2-everify)) |
+| `FaceLivenessPort` | Face Liveness **API** | `https://hackathon-face-liveness-api.e.gov.ph` — pass = `SUCCEEDED` ∧ confidence ≥ 95; distinct from eVerify Web SDK |
 | `EMessagePort` | eMessage | `https://ws-message.e.gov.ph` |
-| `EgovAiPort` | eGov AI | `https://egov-ai-core-ws.oueg.info` |
+| `EgovAiPort` | eGov AI | `https://egov-ai-core-ws.oueg.info` — `access_code` → Bearer; paths under `/api/v1/egov/integration/` (see [platform-apis.md](./platform-apis.md#4-egov-ai)) |
 | `EgovPayPort` | eGovPay | `https://egovpay-pgi-ws-dev.oueg.info` |
 | `EgovChainPort` | eGovChain JSON-RPC | `https://hackathon-blockchain.e.gov.ph` (chain `13371`) |
 | `EReportPort` | eReport | `https://stg-ereport-ws.oueg.info` |
@@ -88,9 +88,11 @@ Dependency rule: **adapters depend inward; domain never imports adapters.**
 
 HTTP composition root. Constructs adapters, injects them into use cases, mounts HTTP routes. This is the primary runtime entry for government service APIs — **including everything the Android BANGON client calls**.
 
+Citizen SSO login is exposed over HTTP (`POST /auth/sso/exchange`, `POST /auth/sso/profile`) via `EgovSsoPort` — partner secrets stay in env; Android only sends `exchangeCode` / `accessToken`. Contract: [`docs/api-android.md`](./api-android.md). Staff RBAC is not wired in this pass.
+
 ### Citizen client — Android (BANGON)
 
-Primary product UI. Lives outside the TypeScript package graph (native Android). Consumes only `apps/api` HTTP contracts (`/health`, `/cases`, `/bangon/*`). Must not call eGov platform base URLs or embed domain rules — those stay server-side behind ports.
+Primary product UI. Lives outside the TypeScript package graph (native Android). Consumes only `apps/api` HTTP contracts (`/health`, `/auth/sso/*`, `/cases`, `/bangon/*`). Must not call eGov platform base URLs or embed domain rules — those stay server-side behind ports.
 
 ### `apps/web`
 

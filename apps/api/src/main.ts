@@ -1,4 +1,5 @@
 import {
+  createAuthHttpHandlers,
   createBangonHttpHandlers,
   createCaseHttpHandlers,
   healthResponse,
@@ -18,10 +19,12 @@ const cases = createCaseHttpHandlers({
   cases: persistence.cases,
   events,
   clock,
+  documents: persistence.documents,
 });
 
 const bangon = createBangonHttpHandlers({
   eVerify: platform.everify,
+  faceLiveness: platform.faceLiveness,
   benefits: persistence.benefits,
   dbmCompass: platform.dbmCompass,
   clock,
@@ -33,6 +36,16 @@ const bangon = createBangonHttpHandlers({
   egovAi: platform.egovAi,
   eReport: platform.eReport,
 });
+
+const auth = createAuthHttpHandlers({
+  sso: platform.sso,
+});
+
+const CORS_HEADERS = {
+  "access-control-allow-origin": "*",
+  "access-control-allow-methods": "GET,POST,OPTIONS",
+  "access-control-allow-headers": "content-type,authorization",
+} as const;
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
   const chunks: Buffer[] = [];
@@ -48,6 +61,7 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(payload),
+    ...CORS_HEADERS,
   });
   res.end(payload);
 }
@@ -57,9 +71,33 @@ const server = createServer(async (req, res) => {
   const method = req.method ?? "GET";
 
   try {
+    if (method === "OPTIONS") {
+      res.writeHead(204, { ...CORS_HEADERS });
+      res.end();
+      return;
+    }
+
     if (method === "GET" && url.pathname === "/health") {
       const health = healthResponse();
       send(res, health.status, health.body);
+      return;
+    }
+
+    // ─── Auth (citizen SSO) ─────────────────────────────────────────────
+    if (method === "POST" && url.pathname === "/auth/sso/exchange") {
+      const body = (await readJson(req)) as {
+        exchangeCode: string;
+        scope?: string;
+      };
+      const result = await auth.exchangeSso(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/auth/sso/profile") {
+      const body = (await readJson(req)) as { accessToken: string };
+      const result = await auth.ssoProfile(body);
+      send(res, result.status, result.body);
       return;
     }
 
@@ -85,16 +123,24 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    const documentsMatch = url.pathname.match(/^\/cases\/([^/]+)\/documents$/);
+    if (method === "POST" && documentsMatch?.[1]) {
+      const body = (await readJson(req)) as {
+        fileName: string;
+        contentType: string;
+        contentBase64: string;
+      };
+      const result = await cases.attachDocument(documentsMatch[1], body);
+      send(res, result.status, result.body);
+      return;
+    }
+
     // ─── BANGON ───────────────────────────────────────────────────────────
     if (method === "POST" && url.pathname === "/bangon/confirm-identity") {
       const body = (await readJson(req)) as {
         token: string;
         payload: Record<string, unknown>;
-        liveness: {
-          status: string;
-          confidence: number | null;
-          raw: Record<string, unknown>;
-        };
+        sessionId: string;
       };
       const result = await bangon.confirmIdentity(body);
       send(res, result.status, result.body);
@@ -128,7 +174,14 @@ const server = createServer(async (req, res) => {
         return;
       }
       if (action === "disburse") {
-        const result = await bangon.disburse(matchId);
+        const body = (await readJson(req)) as {
+          amount: number;
+          redirectUrl: string;
+          callbackUrl: string;
+          txnid?: string;
+          currency?: string;
+        };
+        const result = await bangon.disburse(matchId, body);
         send(res, result.status, result.body);
         return;
       }
