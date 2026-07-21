@@ -12,7 +12,7 @@ The primary goal of the **eGov PH SuperApp** is to fully digitalize public servi
 
 ### Key Objectives:
 1. **Zero-Redundancy Onboarding (target):** Eliminate repeated registration processes across separate government agencies. If a citizen's data (Name, Age, Date of Birth, Civil Status, Religion, Vital/Alive status) is recorded in the Philippine Statistics Authority (PSA) via PhilSys National ID, it is meant to serve as the single source of truth across all agencies. **Current build status:** the domain model (`ServiceCase`) is a single-agency case tracker today — no agency field, no cross-agency cascade logic yet. Multi-agency propagation is the long-term product goal, out of scope for the hackathon build (see §5). This is a separate goal from BANGON below — cascade is about *keeping records in sync*, BANGON is about *proactively finding benefits*.
-2. **BANGON — Proactive Benefit Matching:** Instead of citizens applying for benefits one by one, the SuperApp scans a verified citizen and proactively finds which benefits they already qualify for across agencies, checks the issuing agency has sufficient funds, and notifies them in-app. See Workflow 1 (§4) for the full flow. This uses **Face Liveness** (live-person check) and **eVerify** (identity match) as its verification layer.
+2. **BANGON — Proactive Benefit Matching:** Instead of citizens applying for benefits one by one, the SuperApp first checks (via DBM Compass) which agency benefits currently have sufficient funds, then scans a verified citizen and proactively matches them only against that fundable list, and notifies them in-app. See Workflow 1 (§4) for the full flow. This uses **Face Liveness** (live-person check) and **eVerify** (identity match) as its verification layer.
 3. **High-Scale Performance (target):** Architected with a hexagonal ports/adapters structure so that asynchronous processing, optimized JSON-RPC caching, and state anchoring can be added later without a rewrite — with a longer-term target of **100,000,000+ transactions per week**. This figure is a design goal, not a verified capacity of the current hackathon-sandbox platform (see §5).
 4. **Complete Inclusivity:** Universal accessibility designed for all demographics, specifically eliminating physical branch queuing for senior citizens, low-connectivity rural populations, and daily wage earners.
 5. **Strict API Adherence:** Built strictly using **only the 9 official eGov PH APIs** without third-party external API dependencies.
@@ -135,6 +135,17 @@ All AI capabilities strictly follow a 2-step execution lifecycle:
 **BANGON** is the flagship feature of the SuperApp: instead of a citizen having to know which benefits exist and apply agency-by-agency, the app scans the citizen once and proactively finds what they already qualify for.
 
 ```
+                                [ DBM Compass fund check ]
+                  (runs first, independent of any one citizen —
+                   which departments/benefits currently have
+                   sufficient funds to cover eligible claimants?)
+                                               │
+                                               ▼
+                             [ Fundable-benefit list ]
+                    (only benefits with confirmed funding are
+                     candidates for matching — an unfunded
+                     benefit is never shown to a citizen)
+                                               │
 [ Citizen ] ──(Scan in via SuperApp)──> [ Existing ID read ]
                                               │
                           ┌───────────────────┴───────────────────┐
@@ -144,16 +155,12 @@ All AI capabilities strictly follow a 2-step execution lifecycle:
                           └───────────────────┬───────────────────┘
                                                ▼
                               [ Benefit-eligibility search ]
-                          (checks this citizen against agency
-                           benefit criteria — SSS, PhilHealth, etc.)
-                                               │
-                                               ▼
-                                [ DBM Compass fund check ]
-                        (does the issuing agency have sufficient
-                         funds to cover all eligible citizens?)
+                    (checks this citizen against agency benefit
+                     criteria, scoped to the fundable-benefit
+                     list above — SSS, PhilHealth, etc.)
                                                │
                                     ┌──────────┴──────────┐
-                                    ▼ funded & eligible    ▼ not funded / not eligible
+                                    ▼ eligible match found  ▼ no match
                           [ eMessage: eligibility alert ]   (no notification sent)
                           "You're eligible — open BANGON
                            to proceed"
@@ -171,6 +178,8 @@ All AI capabilities strictly follow a 2-step execution lifecycle:
   citizen files a complaint via [ eReport ] — same reporting
   mechanism as Workflow 2, not a separate system.
 ```
+
+> **Why DBM Compass runs first:** fund status is a property of the *department/benefit*, not the citizen — checking it once, before matching, means a citizen is never told "you're eligible" for something that turns out to be unfunded. The old ordering (match first, check funds after) could produce a dead-end "eligible but not actually payable" result with no path forward.
 
 > **Hackathon scope note:** the eGovChain anchor step is a single synchronous JSON-RPC call — no batching, no async fallback. That's sufficient for a 1-day demo. Handling eGovChain latency/downtime gracefully (retry, async anchor queue) is a post-hackathon concern, not part of the day-1 build.
 
