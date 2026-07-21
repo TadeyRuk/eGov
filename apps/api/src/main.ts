@@ -1,12 +1,14 @@
 import { createCaseHttpHandlers, healthResponse } from "@egov/adapters-http";
 import { createInMemoryEventBus } from "@egov/adapters-messaging";
 import { createInMemoryPersistence } from "@egov/adapters-persistence";
+import { createEgovSsoAdapter, processEnv } from "@egov/adapters-egov-platform";
 import type { Clock } from "@egov/application";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 
 const clock: Clock = { now: () => new Date() };
 const persistence = createInMemoryPersistence();
 const events = createInMemoryEventBus();
+const egovSso = createEgovSsoAdapter(processEnv());
 
 const cases = createCaseHttpHandlers({
   cases: persistence.cases,
@@ -32,11 +34,37 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
+function ssoProfile(raw: Record<string, unknown>): Record<string, unknown> {
+  const data = raw.data && typeof raw.data === "object" && !Array.isArray(raw.data)
+    ? raw.data as Record<string, unknown>
+    : raw;
+  return Object.fromEntries(["uniqid", "email", "first_name", "last_name", "mobile"].flatMap((key) =>
+    data[key] === undefined ? [] : [[key, data[key]]],
+  ));
+}
+
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   const method = req.method ?? "GET";
 
   try {
+    if (method === "OPTIONS") {
+      res.writeHead(204, { "access-control-allow-origin": process.env.EGOV_WEB_ORIGIN ?? "http://localhost:5173", "access-control-allow-methods": "POST, OPTIONS", "access-control-allow-headers": "content-type" });
+      res.end();
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/auth/egov/exchange") {
+      const body = (await readJson(req)) as { exchangeCode?: string };
+      if (!body.exchangeCode?.trim()) { send(res, 400, { error: "exchangeCode is required" }); return; }
+      const token = await egovSso.exchangeToken({ exchangeCode: body.exchangeCode.trim(), scope: process.env.EGOV_SSO_SCOPE ?? "" });
+      if (!token.ok || !token.value.accessToken) { send(res, 401, { error: "eGov token exchange failed" }); return; }
+      const profile = await egovSso.authenticatePartner(token.value.accessToken);
+      if (!profile.ok) { send(res, 401, { error: "eGov profile request failed" }); return; }
+      res.setHeader("access-control-allow-origin", process.env.EGOV_WEB_ORIGIN ?? "http://localhost:5173");
+      send(res, 200, { authenticated: true, profile: ssoProfile(profile.value.raw) });
+      return;
+    }
     if (method === "GET" && url.pathname === "/health") {
       const health = healthResponse();
       send(res, health.status, health.body);
