@@ -97,7 +97,7 @@ Seed catalog (hackathon stub — no live agency benefit API among the 9 services
 
 Ground truth: [docs/architecture.md](docs/architecture.md) · [Tolvaris ledger model](docs/tolvaris-ledgers.md) · [Verified test results](docs/test-results.md) · Product Vision · B.A.N.G.O.N.
 
-Latest showcase verification (2026-07-22): **41/41 automated tests passed** and the Tolvaris DBM Compass duplicate-detection KPI passed **7/7 checks**. Exact-key lookup p95 was **206.69 ms** and contextual-fingerprint lookup p95 was **207.76 ms** against a 2,000 ms target. See [docs/test-results.md](docs/test-results.md) for transaction evidence and rerun commands.
+Latest showcase verification (2026-07-22): **44/44 automated tests passed** and the Tolvaris DBM Compass duplicate-detection KPI passed **7/7 checks**. Exact-key lookup p95 was **206.69 ms** and contextual-fingerprint lookup p95 was **207.76 ms** across the documented 15-iteration showcase run, against a 2,000 ms target. See [docs/test-results.md](docs/test-results.md) for transaction evidence and rerun commands.
 
 ## System Architecture
 

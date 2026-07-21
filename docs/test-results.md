@@ -49,7 +49,7 @@ Synthetic card transaction: `0x29d1706704679f47d0a62f4a4509f0c966401d84ee837be4e
 
 | Check | Result |
 |---|---:|
-| Monorepo automated tests | PASS — 41/41 |
+| Monorepo automated tests | PASS — 44/44 |
 | TypeScript build/typecheck | PASS |
 | Repository hygiene/secret check | PASS |
 | Java Android debug APK build | PASS |
