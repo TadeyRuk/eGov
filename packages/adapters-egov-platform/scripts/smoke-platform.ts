@@ -81,6 +81,13 @@ function errMsg(error: { message?: string; code?: string; cause?: unknown }): st
   const base = `${error.code ?? "ERR"}: ${error.message ?? "unknown"}`;
   if (error.cause instanceof Error) return `${base} (${error.cause.message})`;
   if (typeof error.cause === "string") return `${base} (${error.cause})`;
+  if (error.cause != null && typeof error.cause === "object") {
+    try {
+      return `${base} (${JSON.stringify(error.cause)})`;
+    } catch {
+      return base;
+    }
+  }
   return base;
 }
 
