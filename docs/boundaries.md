@@ -18,7 +18,7 @@ apps → adapters → application → domain
 | `adapters-*` | `application` (ports), `domain` (types), `shared` | other apps; unrelated adapters unless via shared events |
 | `apps/*` | any package (composition root) | — |
 | Android BANGON client | `apps/api` HTTP only | persistence, ai, messaging, egov-platform, domain packages |
-| `web` (debug shell only) | API contracts / shared DTOs only | persistence, ai, messaging adapters; must not be treated as product UI |
+| `web` (Vercel SSO test client) | Its serverless SSO config/exchange functions | partner secrets in browser code; persistence, AI, messaging, or eligibility rules |
 
 ### Forbidden patterns
 
@@ -28,7 +28,7 @@ apps → adapters → application → domain
 - “Shared” dumping ground for domain entities  
 - Hardcoding partner secrets, API keys, or HMAC secrets (use env from the dashboard only)  
 - Inventing fake government APIs when an official platform service exists ([platform-apis.md](./platform-apis.md))
-- Building the citizen product as a public website in `apps/web` (Android is primary; see [tasks.md](./tasks.md) Phase 4)
+- Treating the limited public SSO test page in `apps/web` as the complete BANGON citizen product (Android remains primary; see [tasks.md](./tasks.md) Phase 4)
 
 ## Runtime boundaries
 
@@ -40,7 +40,7 @@ apps → adapters → application → domain
 | `@egov/adapters-egov-platform` | Implement platform ports with `fetch` + env | Own business rules or store secrets in code |
 | Orchestrator agent | Propose via mailbox / draft artifacts | Approve cases or write citizen PII as truth without a use case + human gate |
 | Android BANGON client | Call `apps/api` | Hold platform partner secrets, call eGov platform URLs directly, or embed domain eligibility rules |
-| `apps/web` debug shell | Call API for local probing | Act as the citizen product UI |
+| `apps/web` SSO test client | Render the official widget and call its same-origin serverless exchange | Hold partner secrets or implement BANGON eligibility/business rules |
 
 ## Data boundaries
 

@@ -3,9 +3,13 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
+  "dependencies": {
+    "ethers": "6.17.0"
+  },
   "scripts": {
-    "dev": "node ./src/dev-server.mjs",
-    "typecheck": "node -e \"console.log('@egov/web: optional debug shell only — citizen UI is Android (Phase 4)')\"",
-    "build": "node -e \"console.log('@egov/web: no product build — Android is the citizen client')\""
+    "dev": "bash -c 'set -a; source ../../.env; if [ -f ../../.local/tolvaris-registry.env ]; then source ../../.local/tolvaris-registry.env; fi; set +a; exec node ./src/dev-server.mjs'",
+    "test": "node --test ./lib/*.test.js",
+    "typecheck": "node --check ./src/dev-server.mjs && node --check ./api/config.js && node --check ./api/cards.js && node --check ./api/auth/egov/exchange.js && node --check ./lib/tolvaris.js",
+    "build": "node --check ./src/dev-server.mjs && node --check ./api/config.js && node --check ./api/cards.js && node --check ./api/auth/egov/exchange.js && node --check ./lib/tolvaris.js"
   }
 }

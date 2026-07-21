@@ -1,0 +1,80 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="egov-environment" content="STAGING" />
+    <meta name="egov-client-id" content="" />
+    <meta name="egov-sso-onsuccess" content="onEgovSsoSuccess" />
+    <title>eGovPH SSO Test</title>
+  </head>
+  <body>
+    <h1>eGovPH SSO Test</h1>
+    <p id="status">Loading SSO configuration…</p>
+    <p id="environment-warning" hidden></p>
+    <div id="egov-sso-widget-button"></div>
+    <div id="egov-sso-widget-portal"></div>
+    <pre id="profile" hidden></pre>
+
+    <script>
+      async function onEgovSsoSuccess(exchangeCode) {
+        const status = document.querySelector("#status");
+        if (typeof exchangeCode !== "string" || !exchangeCode) {
+          status.textContent = "Sign-in did not return an exchange code.";
+          return;
+        }
+
+        status.textContent = "Sign-in successful. Verifying with the backend…";
+        const response = await fetch("/api/auth/egov/exchange", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            code: exchangeCode,
+            anchorCards: window.confirm(
+              "Anchor detected card types to the Tolvaris blockchain ledger? No name or card number will be written on-chain.",
+            ),
+          }),
+        });
+        const body = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          status.textContent = "The widget succeeded but the backend exchange failed.";
+          return;
+        }
+
+        status.textContent = "eGovPH profile authentication completed.";
+        const profile = document.querySelector("#profile");
+        profile.hidden = false;
+        profile.textContent = JSON.stringify({
+          user: body.profile || {},
+          tolvarisLedger: body.ledger || {},
+        }, null, 2);
+      }
+
+      async function loadWidget() {
+        const response = await fetch("/api/config", { cache: "no-store" });
+        const config = await response.json();
+        if (!response.ok || !config.clientId) throw new Error("Missing SSO configuration");
+
+        document.querySelector('meta[name="egov-environment"]').content =
+          String(config.environment || "STAGING").toUpperCase();
+        document.querySelector('meta[name="egov-client-id"]').content = config.clientId;
+        document.querySelector("#status").textContent = "Use the official eGovPH widget to sign in.";
+        if (String(config.environment || "STAGING").toUpperCase() === "STAGING") {
+          const warning = document.querySelector("#environment-warning");
+          warning.hidden = false;
+          warning.textContent = "Warning: staging mode is active. The widget is visible for integration testing and may not work with production citizen accounts.";
+        }
+
+        const script = document.createElement("script");
+        script.src = "https://widgets.e.gov.ph/egov-hackathon-sso-widget.js";
+        script.async = true;
+        script.defer = true;
+        document.body.append(script);
+      }
+
+      loadWidget().catch(() => {
+        document.querySelector("#status").textContent = "SSO configuration is unavailable.";
+      });
+    </script>
+  </body>
+</html>

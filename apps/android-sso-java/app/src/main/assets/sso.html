@@ -1,0 +1,25 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="egov-environment" content="STAGING" />
+    <meta name="egov-client-id" content="__EGOV_SSO_CLIENT_ID__" />
+    <meta name="egov-sso-onsuccess" content="onEgovSsoSuccess" />
+    <title>eGovPH SSO Test</title>
+  </head>
+  <body>
+    <h1>eGovPH SSO Test</h1>
+    <p><strong>Warning:</strong> staging mode is active. This widget may not work with production citizen accounts.</p>
+    <p>Use the official widget to sign in.</p>
+    <div id="egov-sso-widget-button"></div>
+    <div id="egov-sso-widget-portal"></div>
+
+    <script>
+      function onEgovSsoSuccess(exchangeCode) {
+        AndroidSso.onExchangeCode(exchangeCode || "");
+      }
+    </script>
+    <script async defer src="https://widgets.e.gov.ph/egov-hackathon-sso-widget.js"></script>
+  </body>
+</html>

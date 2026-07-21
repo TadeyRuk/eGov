@@ -91,9 +91,13 @@ Seed catalog (hackathon stub — no live agency benefit API among the 9 services
 | Face gate inside `confirmCitizenIdentity` | Built (`isFaceLivenessPassed`) |
 | eGovChain / eGov AI / eReport B.A.N.G.O.N use cases | Built (`anchorBenefitMatch`, `explainEligibility`, `reportBenefitNonDelivery`) |
 | Android B.A.N.G.O.N citizen client | Not yet (Phase 4 — primary UI) |
+| Java eGovPH SSO test APK (`apps/android-sso-java`) | Built as a separate standalone client |
+| Tolvaris on-chain card-type registry | Built; pseudonymous owner commitment + plaintext card type + card fingerprint |
 | Multi-agency PSA cascade / barangay rollout | Vision only |
 
-Ground truth: [docs/architecture.md](docs/architecture.md) · Product Vision · B.A.N.G.O.N.
+Ground truth: [docs/architecture.md](docs/architecture.md) · [Tolvaris ledger model](docs/tolvaris-ledgers.md) · [Verified test results](docs/test-results.md) · Product Vision · B.A.N.G.O.N.
+
+Latest showcase verification (2026-07-22): **41/41 automated tests passed** and the Tolvaris DBM Compass duplicate-detection KPI passed **7/7 checks**. Exact-key lookup p95 was **206.69 ms** and contextual-fingerprint lookup p95 was **207.76 ms** against a 2,000 ms target. See [docs/test-results.md](docs/test-results.md) for transaction evidence and rerun commands.
 
 ## System Architecture
 
@@ -120,7 +124,7 @@ flowchart TB
 | Domain | `@egov/domain` | Benefit / eligibility invariants |
 | Application | `@egov/application` | Ports + B.A.N.G.O.N / case / orchestration use cases |
 | Adapters | `@egov/adapters-*` | Persistence, HTTP, AI, messaging, **egov-platform** |
-| Apps | `apps/api`, `apps/orchestrator` | Composition roots (`apps/web` = optional debug only) |
+| Apps | `apps/api`, `apps/orchestrator`, `apps/web` | API/orchestrator roots plus a self-contained Vercel SSO test site |
 | Client | Android B.A.N.G.O.N | Primary citizen UI — HTTP to `apps/api` only |
 
 ## Official Platform APIs

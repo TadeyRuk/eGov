@@ -10,9 +10,18 @@
     "smoke:platform": "pnpm hygiene && pnpm --filter @egov/shared build && pnpm --filter @egov/application build && pnpm --filter @egov/adapters-egov-platform smoke",
     "dev:api": "pnpm --filter @egov/api dev",
     "dev:orchestrator": "pnpm --filter @egov/orchestrator dev",
-    "dev:web": "pnpm --filter @egov/web dev"
+    "dev:web": "pnpm --filter @egov/web dev",
+    "build:android-sso-java": "bash -c 'set -a; source .env; set +a; export ANDROID_HOME=\"$PWD/.local/android-sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; cd apps/android-sso-java && ./gradlew assembleDebug -PssoClientId=\"${EGOV_SSO_CLIENT_ID:-$EGOV_SSO_PARTNER_CODE}\" -PssoApiBaseUrl=\"$EGOV_SSO_API_BASE_URL\"'",
+    "install:android-sso-java": "bash -c '.local/android-sdk/platform-tools/adb install -r apps/android-sso-java/app/build/outputs/apk/debug/app-debug.apk'",
+    "deploy:tolvaris-card": "node tooling/deploy-tolvaris-registry.mjs",
+    "deploy:tolvaris-transparency": "node tooling/deploy-tolvaris-transparency-registry.mjs",
+    "kpi:tolvaris-transparency": "node tooling/test-tolvaris-transparency-kpi.mjs"
   },
   "engines": {
     "node": ">=20"
+  },
+  "devDependencies": {
+    "ethers": "6.17.0",
+    "solc": "0.8.36"
   }
 }

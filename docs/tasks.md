@@ -73,7 +73,7 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 
 ## Phase 4 — Android client and auth
 
-> **Client decision (2026-07-21):** BANGON's primary citizen surface is a **native Android app**, not a website. `apps/web` in this monorepo is an optional local/debug shell only — not the product UI. Phase 4 tracks the Android client + auth that consume `apps/api`.
+> **Client decision (updated 2026-07-22):** BANGON's primary citizen surface remains native Android. `apps/web` is now a limited Vercel-hosted eGovPH SSO test companion, with Vercel Root Directory `apps/web`; it is not the full BANGON product UI.
 
 - [~] Android BANGON client consuming `apps/api` (cases + `/bangon/*` routes) — identity confirm, eligibility matches, notify/disburse/anchor/explain, non-delivery report. Scaffold only (2026-07-22): `apps/android/` Gradle+Hilt+Compose skeleton, Retrofit `BangonApi` covering every route in `docs/api-android.md`, typed models/error envelope. No screens/NavHost/theme yet — owned by UI teammate; `gradle-wrapper.jar` binary still needs generating locally (`gradle wrapper`).
 - [x] AuthN/Z port + adapter (citizen via eGov SSO) — `exchangeSsoToken` / `getSsoCitizenProfile` + `POST /auth/sso/exchange` + `POST /auth/sso/profile`; contract in `docs/api-android.md`. Staff roles / RBAC still open.

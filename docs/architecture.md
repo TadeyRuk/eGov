@@ -96,7 +96,7 @@ Primary product UI. Lives outside the TypeScript package graph (native Android).
 
 ### `apps/web`
 
-**Not the product UI.** Optional local/debug HTML shell only (placeholder until removed or demoted). Do not treat Vite/React work here as Phase 4 completion.
+Self-contained Vercel-hosted eGovPH SSO test client. It contains the static widget page and its serverless config/exchange functions. The full BANGON citizen product remains Android-first; this web surface is an authentication/integration test companion, not Phase 4 completion.
 
 ### `apps/orchestrator`
 
