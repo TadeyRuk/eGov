@@ -1,0 +1,1316 @@
+{
+  "schemaVersion": "1.0",
+  "generatedAt": "2026-07-21T20:45:34.875Z",
+  "datasetId": "tolvaris-synthetic-government-demo-2026",
+  "isSynthetic": true,
+  "disclaimer": "All people, agencies, businesses, projects, payments, reports, documents, amounts, anomalies, identifiers, and transactions represented as test data are synthetic hackathon demonstrations. They are not claims about real government activity.",
+  "privacy": {
+    "secretsIncluded": false,
+    "personalDataIncluded": false,
+    "omitted": [
+      "API credentials and access tokens",
+      "private keys and test public keys",
+      "request signatures",
+      "SSO profile values",
+      "raw biometric/document content",
+      "local environment configuration"
+    ]
+  },
+  "verificationSummary": {
+    "automatedTests": {
+      "result": "PASS",
+      "passed": 55,
+      "total": 55
+    },
+    "typecheckAndBuild": {
+      "result": "PASS"
+    },
+    "repositoryHygiene": {
+      "result": "PASS",
+      "trackedFilesChecked": 163
+    },
+    "aiOrchestration": {
+      "result": "PASS",
+      "score": "9/9"
+    },
+    "accountabilityReadBack": {
+      "result": "PASS",
+      "passed": 10,
+      "total": 10
+    },
+    "systemKpi": {
+      "result": "PASS",
+      "passed": 8,
+      "failed": 0,
+      "skipped": 1,
+      "availabilityPercent": 100
+    },
+    "platformSmoke": {
+      "result": "PASS_WITH_SAFE_SKIPS",
+      "passed": 6,
+      "skipped": 3,
+      "failed": 0
+    }
+  },
+  "simulatedInput": {
+    "schemaVersion": "1.0.0",
+    "datasetId": "tolvaris-synthetic-government-demo-2026",
+    "isSynthetic": true,
+    "disclaimer": "All agencies, projects, amounts, documents, signatures, anomalies, and transactions in this dataset are synthetic hackathon demonstration data. They are not claims about real government activity.",
+    "currency": "PHP",
+    "amountUnit": "centavos",
+    "agencies": [
+      {
+        "code": "DPWH-MOCK",
+        "name": "Public Works Demonstration Agency (Synthetic)",
+        "signerKeyId": "dpwh-mock-ed25519-2026"
+      },
+      {
+        "code": "DOH-MOCK",
+        "name": "Public Health Demonstration Agency (Synthetic)",
+        "signerKeyId": "doh-mock-ed25519-2026"
+      },
+      {
+        "code": "DSWD-MOCK",
+        "name": "Social Welfare Demonstration Agency (Synthetic)",
+        "signerKeyId": "dswd-mock-ed25519-2026"
+      }
+    ],
+    "projects": [
+      {
+        "dataset": "LGSF",
+        "sourceRecordId": "MOCK-LGSF-DPWH-001",
+        "title": "Synthetic Flood Resilience Upgrade",
+        "location": "Demo Province, Philippines",
+        "agencyCode": "DPWH-MOCK",
+        "implementingUnit": "Synthetic Regional Engineering Office",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "budget": {
+          "fiscalYear": 2026,
+          "asOfDate": "2026-07-22",
+          "appropriationsCentavos": "10000000000",
+          "allotmentsCentavos": "8000000000",
+          "obligationsCentavos": "7200000000",
+          "disbursementsCentavos": "6500000000",
+          "status": "ONGOING"
+        }
+      },
+      {
+        "dataset": "LGSF",
+        "sourceRecordId": "MOCK-LGSF-DOH-001",
+        "title": "Synthetic Rural Health Equipment Program",
+        "location": "Demo Health District, Philippines",
+        "agencyCode": "DOH-MOCK",
+        "implementingUnit": "Synthetic Health Facilities Office",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "budget": {
+          "fiscalYear": 2026,
+          "asOfDate": "2026-07-22",
+          "appropriationsCentavos": "5000000000",
+          "allotmentsCentavos": "4500000000",
+          "obligationsCentavos": "4700000000",
+          "disbursementsCentavos": "4300000000",
+          "status": "FOR_REVIEW"
+        }
+      },
+      {
+        "dataset": "LGSF",
+        "sourceRecordId": "MOCK-LGSF-DSWD-001",
+        "title": "Synthetic Emergency Livelihood Support",
+        "location": "Demo Social Protection Region, Philippines",
+        "agencyCode": "DSWD-MOCK",
+        "implementingUnit": "Synthetic Livelihood Program Office",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "budget": {
+          "fiscalYear": 2026,
+          "asOfDate": "2026-07-22",
+          "appropriationsCentavos": "3000000000",
+          "allotmentsCentavos": "2500000000",
+          "obligationsCentavos": "2000000000",
+          "disbursementsCentavos": "2700000000",
+          "status": "FOR_REVIEW"
+        }
+      }
+    ],
+    "journalEntries": [
+      {
+        "agencyCode": "DPWH-MOCK",
+        "entryId": "MOCK-DPWH-OPENING-001",
+        "postingDate": "2026-01-01",
+        "description": "Synthetic opening fund balance",
+        "sourceDocumentId": "MOCK-OPENING-DPWH-2026",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "lines": [
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "fundCode": "101",
+            "programCode": "OPENING",
+            "projectSourceRecordId": "",
+            "debitCentavos": "10000000000",
+            "creditCentavos": "0"
+          },
+          {
+            "accountCode": "30101010-MOCK",
+            "accountName": "Synthetic Government Equity",
+            "accountType": "EQUITY",
+            "fundCode": "101",
+            "programCode": "OPENING",
+            "projectSourceRecordId": "",
+            "debitCentavos": "0",
+            "creditCentavos": "10000000000"
+          }
+        ]
+      },
+      {
+        "agencyCode": "DPWH-MOCK",
+        "entryId": "MOCK-DPWH-DISBURSE-001",
+        "postingDate": "2026-07-22",
+        "description": "Synthetic flood resilience project disbursement",
+        "sourceDocumentId": "MOCK-DV-DPWH-001",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "lines": [
+          {
+            "accountCode": "50213050-MOCK",
+            "accountName": "Synthetic Infrastructure Project Expense",
+            "accountType": "EXPENSE",
+            "fundCode": "101",
+            "programCode": "FLOOD-RESILIENCE",
+            "projectSourceRecordId": "MOCK-LGSF-DPWH-001",
+            "debitCentavos": "6500000000",
+            "creditCentavos": "0"
+          },
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "fundCode": "101",
+            "programCode": "FLOOD-RESILIENCE",
+            "projectSourceRecordId": "MOCK-LGSF-DPWH-001",
+            "debitCentavos": "0",
+            "creditCentavos": "6500000000"
+          }
+        ]
+      },
+      {
+        "agencyCode": "DOH-MOCK",
+        "entryId": "MOCK-DOH-OPENING-001",
+        "postingDate": "2026-01-01",
+        "description": "Synthetic opening fund balance",
+        "sourceDocumentId": "MOCK-OPENING-DOH-2026",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "lines": [
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "fundCode": "101",
+            "programCode": "OPENING",
+            "projectSourceRecordId": "",
+            "debitCentavos": "5000000000",
+            "creditCentavos": "0"
+          },
+          {
+            "accountCode": "30101010-MOCK",
+            "accountName": "Synthetic Government Equity",
+            "accountType": "EQUITY",
+            "fundCode": "101",
+            "programCode": "OPENING",
+            "projectSourceRecordId": "",
+            "debitCentavos": "0",
+            "creditCentavos": "5000000000"
+          }
+        ]
+      },
+      {
+        "agencyCode": "DOH-MOCK",
+        "entryId": "MOCK-DOH-DISBURSE-001",
+        "postingDate": "2026-07-22",
+        "description": "Synthetic rural health equipment disbursement",
+        "sourceDocumentId": "MOCK-DV-DOH-001",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "lines": [
+          {
+            "accountCode": "50203010-MOCK",
+            "accountName": "Synthetic Medical Equipment Expense",
+            "accountType": "EXPENSE",
+            "fundCode": "101",
+            "programCode": "RURAL-HEALTH",
+            "projectSourceRecordId": "MOCK-LGSF-DOH-001",
+            "debitCentavos": "4300000000",
+            "creditCentavos": "0"
+          },
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "fundCode": "101",
+            "programCode": "RURAL-HEALTH",
+            "projectSourceRecordId": "MOCK-LGSF-DOH-001",
+            "debitCentavos": "0",
+            "creditCentavos": "4300000000"
+          }
+        ]
+      },
+      {
+        "agencyCode": "DSWD-MOCK",
+        "entryId": "MOCK-DSWD-OPENING-001",
+        "postingDate": "2026-01-01",
+        "description": "Synthetic opening fund balance",
+        "sourceDocumentId": "MOCK-OPENING-DSWD-2026",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "lines": [
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "fundCode": "101",
+            "programCode": "OPENING",
+            "projectSourceRecordId": "",
+            "debitCentavos": "3000000000",
+            "creditCentavos": "0"
+          },
+          {
+            "accountCode": "30101010-MOCK",
+            "accountName": "Synthetic Government Equity",
+            "accountType": "EQUITY",
+            "fundCode": "101",
+            "programCode": "OPENING",
+            "projectSourceRecordId": "",
+            "debitCentavos": "0",
+            "creditCentavos": "3000000000"
+          }
+        ]
+      },
+      {
+        "agencyCode": "DSWD-MOCK",
+        "entryId": "MOCK-DSWD-DISBURSE-001",
+        "postingDate": "2026-07-22",
+        "description": "Synthetic emergency livelihood support disbursement",
+        "sourceDocumentId": "MOCK-DV-DSWD-001",
+        "sourceUrl": "https://dbm.gov.ph/",
+        "lines": [
+          {
+            "accountCode": "50299010-MOCK",
+            "accountName": "Synthetic Livelihood Support Expense",
+            "accountType": "EXPENSE",
+            "fundCode": "101",
+            "programCode": "LIVELIHOOD",
+            "projectSourceRecordId": "MOCK-LGSF-DSWD-001",
+            "debitCentavos": "2700000000",
+            "creditCentavos": "0"
+          },
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "fundCode": "101",
+            "programCode": "LIVELIHOOD",
+            "projectSourceRecordId": "MOCK-LGSF-DSWD-001",
+            "debitCentavos": "0",
+            "creditCentavos": "2700000000"
+          }
+        ]
+      }
+    ]
+  },
+  "normalizedAnalytics": {
+    "generatedAt": "2026-07-21T19:51:31.695Z",
+    "datasetId": "tolvaris-synthetic-government-demo-2026",
+    "isSynthetic": true,
+    "disclaimer": "All agencies, projects, amounts, documents, signatures, anomalies, and transactions in this dataset are synthetic hackathon demonstration data. They are not claims about real government activity.",
+    "chain": {
+      "chainId": "13371",
+      "explorerBaseUrl": "https://hackathon-explorer.e.gov.ph",
+      "transparencyRegistryAddress": "0xF08239214177bE7ee21AFEBF61cd3FF31D7eD25A",
+      "generalLedgerAddress": "0x217AD680c000C66a84633Fc1c698C44c4a055B70",
+      "generalLedgerDeploymentTransactionHash": "0x0934aed7372e54c745120343336f2ee3aaeecb6ecc5803acd4bb56a6e448abb3"
+    },
+    "kpis": {
+      "agencies": 3,
+      "projects": 3,
+      "journalEntries": 6,
+      "journalLines": 12,
+      "totalDebitCentavos": "31500000000",
+      "totalCreditCentavos": "31500000000",
+      "trialBalanceDifferenceCentavos": "0",
+      "balancedJournalEntries": 6,
+      "anomalyCount": 3
+    },
+    "accountingEquation": {
+      "assetsCentavos": "4500000000",
+      "liabilitiesCentavos": "0",
+      "equityCentavos": "18000000000",
+      "revenueCentavos": "0",
+      "expenseCentavos": "13500000000",
+      "rightSideCentavos": "4500000000",
+      "differenceCentavos": "0",
+      "balanced": true
+    },
+    "projects": [
+      {
+        "projectKey": "0x407c75b218b12d700efeb7c901b1fb5c05d2ad3715e1807c9b01d98e4eaf0b30",
+        "dataset": "LGSF",
+        "sourceRecordId": "MOCK-LGSF-DPWH-001",
+        "title": "Synthetic Flood Resilience Upgrade",
+        "location": "Demo Province, Philippines",
+        "agencyCode": "DPWH-MOCK",
+        "fiscalYear": 2026,
+        "asOfDate": "2026-07-22",
+        "appropriationsCentavos": "10000000000",
+        "allotmentsCentavos": "8000000000",
+        "obligationsCentavos": "7200000000",
+        "disbursementsCentavos": "6500000000",
+        "utilizationPercent": 81.25,
+        "status": "ONGOING",
+        "sourcePayloadHash": "0x1bed320f683ba307974e8caa2d7f10544e221fd3136a10532d37228c0bf76a0d"
+      },
+      {
+        "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99",
+        "dataset": "LGSF",
+        "sourceRecordId": "MOCK-LGSF-DOH-001",
+        "title": "Synthetic Rural Health Equipment Program",
+        "location": "Demo Health District, Philippines",
+        "agencyCode": "DOH-MOCK",
+        "fiscalYear": 2026,
+        "asOfDate": "2026-07-22",
+        "appropriationsCentavos": "5000000000",
+        "allotmentsCentavos": "4500000000",
+        "obligationsCentavos": "4700000000",
+        "disbursementsCentavos": "4300000000",
+        "utilizationPercent": 95.55,
+        "status": "FOR_REVIEW",
+        "sourcePayloadHash": "0x36fc313bb9f603aa539ec800bc10b813e4ff1faf9a0e0b5799bd2bc8e74d58dd"
+      },
+      {
+        "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3",
+        "dataset": "LGSF",
+        "sourceRecordId": "MOCK-LGSF-DSWD-001",
+        "title": "Synthetic Emergency Livelihood Support",
+        "location": "Demo Social Protection Region, Philippines",
+        "agencyCode": "DSWD-MOCK",
+        "fiscalYear": 2026,
+        "asOfDate": "2026-07-22",
+        "appropriationsCentavos": "3000000000",
+        "allotmentsCentavos": "2500000000",
+        "obligationsCentavos": "2000000000",
+        "disbursementsCentavos": "2700000000",
+        "utilizationPercent": 108,
+        "status": "FOR_REVIEW",
+        "sourcePayloadHash": "0x362e2170b242772188844b1a2678309831bdf69220c948e7860369a5b1b32026"
+      }
+    ],
+    "journalEntries": [
+      {
+        "entryKey": "0x544c051f5f915c3c5daab0e23aafd9dd63257c24106884ad43b22727c099c892",
+        "agencyCode": "DPWH-MOCK",
+        "entryId": "MOCK-DPWH-OPENING-001",
+        "postingDate": "2026-01-01",
+        "description": "Synthetic opening fund balance",
+        "signerKeyId": "dpwh-mock-ed25519-2026",
+        "requestDigest": "0x18f1032e89513eff51861693472010bd412a5df096f872973b97d25c0ca041da",
+        "totalDebitCentavos": "10000000000",
+        "totalCreditCentavos": "10000000000",
+        "balanced": true,
+        "recordedAt": 1784663437,
+        "lines": [
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "debitCentavos": "10000000000",
+            "creditCentavos": "0",
+            "projectKey": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "accountCode": "30101010-MOCK",
+            "accountName": "Synthetic Government Equity",
+            "accountType": "EQUITY",
+            "debitCentavos": "0",
+            "creditCentavos": "10000000000",
+            "projectKey": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      },
+      {
+        "entryKey": "0xb6b281027b1e6fd84685b84ae8e73b9ed6d1e14115adbe4339cfc01e988d85aa",
+        "agencyCode": "DPWH-MOCK",
+        "entryId": "MOCK-DPWH-DISBURSE-001",
+        "postingDate": "2026-07-22",
+        "description": "Synthetic flood resilience project disbursement",
+        "signerKeyId": "dpwh-mock-ed25519-2026",
+        "requestDigest": "0xaac59eea11e66e85bfeab84e2df5cb6ba6f21a7fca2cdc2d2aad39c8545c1000",
+        "totalDebitCentavos": "6500000000",
+        "totalCreditCentavos": "6500000000",
+        "balanced": true,
+        "recordedAt": 1784663445,
+        "lines": [
+          {
+            "accountCode": "50213050-MOCK",
+            "accountName": "Synthetic Infrastructure Project Expense",
+            "accountType": "EXPENSE",
+            "debitCentavos": "6500000000",
+            "creditCentavos": "0",
+            "projectKey": "0x407c75b218b12d700efeb7c901b1fb5c05d2ad3715e1807c9b01d98e4eaf0b30"
+          },
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "debitCentavos": "0",
+            "creditCentavos": "6500000000",
+            "projectKey": "0x407c75b218b12d700efeb7c901b1fb5c05d2ad3715e1807c9b01d98e4eaf0b30"
+          }
+        ]
+      },
+      {
+        "entryKey": "0x5537a15a76558dd06c47e9c2783a7b137d4fd38d0ef56d34521c6d6e90648c12",
+        "agencyCode": "DOH-MOCK",
+        "entryId": "MOCK-DOH-OPENING-001",
+        "postingDate": "2026-01-01",
+        "description": "Synthetic opening fund balance",
+        "signerKeyId": "doh-mock-ed25519-2026",
+        "requestDigest": "0x0b5d26d5a31461b59414ec41ccbf80bc88122fdcf0f966faa5d9f7e4395ece78",
+        "totalDebitCentavos": "5000000000",
+        "totalCreditCentavos": "5000000000",
+        "balanced": true,
+        "recordedAt": 1784663453,
+        "lines": [
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "debitCentavos": "5000000000",
+            "creditCentavos": "0",
+            "projectKey": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "accountCode": "30101010-MOCK",
+            "accountName": "Synthetic Government Equity",
+            "accountType": "EQUITY",
+            "debitCentavos": "0",
+            "creditCentavos": "5000000000",
+            "projectKey": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      },
+      {
+        "entryKey": "0x2cdf9e46899a7200a3d23db1797ba034ec319b2aaa3dcc3b1665ac131c0a0ca2",
+        "agencyCode": "DOH-MOCK",
+        "entryId": "MOCK-DOH-DISBURSE-001",
+        "postingDate": "2026-07-22",
+        "description": "Synthetic rural health equipment disbursement",
+        "signerKeyId": "doh-mock-ed25519-2026",
+        "requestDigest": "0xef7dc26341edd79355176790ee7fcd174b78b35f1cae74c1050112bb1792c1e3",
+        "totalDebitCentavos": "4300000000",
+        "totalCreditCentavos": "4300000000",
+        "balanced": true,
+        "recordedAt": 1784663461,
+        "lines": [
+          {
+            "accountCode": "50203010-MOCK",
+            "accountName": "Synthetic Medical Equipment Expense",
+            "accountType": "EXPENSE",
+            "debitCentavos": "4300000000",
+            "creditCentavos": "0",
+            "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99"
+          },
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "debitCentavos": "0",
+            "creditCentavos": "4300000000",
+            "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99"
+          }
+        ]
+      },
+      {
+        "entryKey": "0xe1f5ca68bb5c98f415bab2f313dc3f880a934a4f9aeb1822c269e914ab33383c",
+        "agencyCode": "DSWD-MOCK",
+        "entryId": "MOCK-DSWD-OPENING-001",
+        "postingDate": "2026-01-01",
+        "description": "Synthetic opening fund balance",
+        "signerKeyId": "dswd-mock-ed25519-2026",
+        "requestDigest": "0x3859f6950caa9f1ff3c2432d80e46b362275f5f7cba3dcd97408de1f25e459fa",
+        "totalDebitCentavos": "3000000000",
+        "totalCreditCentavos": "3000000000",
+        "balanced": true,
+        "recordedAt": 1784663469,
+        "lines": [
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "debitCentavos": "3000000000",
+            "creditCentavos": "0",
+            "projectKey": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          },
+          {
+            "accountCode": "30101010-MOCK",
+            "accountName": "Synthetic Government Equity",
+            "accountType": "EQUITY",
+            "debitCentavos": "0",
+            "creditCentavos": "3000000000",
+            "projectKey": "0x0000000000000000000000000000000000000000000000000000000000000000"
+          }
+        ]
+      },
+      {
+        "entryKey": "0xea68efc8d44bab83f6fd9a8176255ee23f3f5d667870f1f0c60fa73a593000f0",
+        "agencyCode": "DSWD-MOCK",
+        "entryId": "MOCK-DSWD-DISBURSE-001",
+        "postingDate": "2026-07-22",
+        "description": "Synthetic emergency livelihood support disbursement",
+        "signerKeyId": "dswd-mock-ed25519-2026",
+        "requestDigest": "0x36608e9f3309282f0abf0a23eade4ef0184a530d749c316fcf484936491383af",
+        "totalDebitCentavos": "2700000000",
+        "totalCreditCentavos": "2700000000",
+        "balanced": true,
+        "recordedAt": 1784663477,
+        "lines": [
+          {
+            "accountCode": "50299010-MOCK",
+            "accountName": "Synthetic Livelihood Support Expense",
+            "accountType": "EXPENSE",
+            "debitCentavos": "2700000000",
+            "creditCentavos": "0",
+            "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3"
+          },
+          {
+            "accountCode": "10104040-MOCK",
+            "accountName": "Cash - Synthetic Treasury Account",
+            "accountType": "ASSET",
+            "debitCentavos": "0",
+            "creditCentavos": "2700000000",
+            "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3"
+          }
+        ]
+      }
+    ],
+    "accountBalances": [
+      {
+        "agencyCode": "DPWH-MOCK",
+        "accountCode": "10104040-MOCK",
+        "accountName": "Cash - Synthetic Treasury Account",
+        "accountType": "ASSET",
+        "debitCentavos": "10000000000",
+        "creditCentavos": "6500000000",
+        "balanceCentavos": "3500000000"
+      },
+      {
+        "agencyCode": "DPWH-MOCK",
+        "accountCode": "30101010-MOCK",
+        "accountName": "Synthetic Government Equity",
+        "accountType": "EQUITY",
+        "debitCentavos": "0",
+        "creditCentavos": "10000000000",
+        "balanceCentavos": "10000000000"
+      },
+      {
+        "agencyCode": "DPWH-MOCK",
+        "accountCode": "50213050-MOCK",
+        "accountName": "Synthetic Infrastructure Project Expense",
+        "accountType": "EXPENSE",
+        "debitCentavos": "6500000000",
+        "creditCentavos": "0",
+        "balanceCentavos": "6500000000"
+      },
+      {
+        "agencyCode": "DOH-MOCK",
+        "accountCode": "10104040-MOCK",
+        "accountName": "Cash - Synthetic Treasury Account",
+        "accountType": "ASSET",
+        "debitCentavos": "5000000000",
+        "creditCentavos": "4300000000",
+        "balanceCentavos": "700000000"
+      },
+      {
+        "agencyCode": "DOH-MOCK",
+        "accountCode": "30101010-MOCK",
+        "accountName": "Synthetic Government Equity",
+        "accountType": "EQUITY",
+        "debitCentavos": "0",
+        "creditCentavos": "5000000000",
+        "balanceCentavos": "5000000000"
+      },
+      {
+        "agencyCode": "DOH-MOCK",
+        "accountCode": "50203010-MOCK",
+        "accountName": "Synthetic Medical Equipment Expense",
+        "accountType": "EXPENSE",
+        "debitCentavos": "4300000000",
+        "creditCentavos": "0",
+        "balanceCentavos": "4300000000"
+      },
+      {
+        "agencyCode": "DSWD-MOCK",
+        "accountCode": "10104040-MOCK",
+        "accountName": "Cash - Synthetic Treasury Account",
+        "accountType": "ASSET",
+        "debitCentavos": "3000000000",
+        "creditCentavos": "2700000000",
+        "balanceCentavos": "300000000"
+      },
+      {
+        "agencyCode": "DSWD-MOCK",
+        "accountCode": "30101010-MOCK",
+        "accountName": "Synthetic Government Equity",
+        "accountType": "EQUITY",
+        "debitCentavos": "0",
+        "creditCentavos": "3000000000",
+        "balanceCentavos": "3000000000"
+      },
+      {
+        "agencyCode": "DSWD-MOCK",
+        "accountCode": "50299010-MOCK",
+        "accountName": "Synthetic Livelihood Support Expense",
+        "accountType": "EXPENSE",
+        "debitCentavos": "2700000000",
+        "creditCentavos": "0",
+        "balanceCentavos": "2700000000"
+      }
+    ],
+    "anomalies": [
+      {
+        "severity": "high",
+        "rule": "OBLIGATION_EXCEEDS_ALLOTMENT",
+        "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99",
+        "sourceRecordId": "MOCK-LGSF-DOH-001",
+        "detail": "Obligations are greater than allotments in the published snapshot.",
+        "legalStatus": "REVIEW_SIGNAL_NOT_A_LEGAL_FINDING"
+      },
+      {
+        "severity": "high",
+        "rule": "DISBURSEMENT_EXCEEDS_OBLIGATION",
+        "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3",
+        "sourceRecordId": "MOCK-LGSF-DSWD-001",
+        "detail": "Disbursements are greater than obligations in the published snapshot.",
+        "legalStatus": "REVIEW_SIGNAL_NOT_A_LEGAL_FINDING"
+      },
+      {
+        "severity": "high",
+        "rule": "DISBURSEMENT_EXCEEDS_ALLOTMENT",
+        "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3",
+        "sourceRecordId": "MOCK-LGSF-DSWD-001",
+        "detail": "Disbursements are greater than allotments in the published snapshot.",
+        "legalStatus": "REVIEW_SIGNAL_NOT_A_LEGAL_FINDING"
+      }
+    ],
+    "provenance": {
+      "projectTransactions": [
+        {
+          "sourceRecordId": "MOCK-LGSF-DPWH-001",
+          "projectKey": "0x407c75b218b12d700efeb7c901b1fb5c05d2ad3715e1807c9b01d98e4eaf0b30",
+          "transactionHash": "0xd06e96dae1f2b020b5aa5ae4e6e56ff1cd7526995f3370b70409800116583555",
+          "blockNumber": 157952,
+          "snapshotTransactionHash": "0x7b3e0a942130b422cf431cc698d328a21e17fd074e940e1a7125704f44d45128",
+          "snapshotBlockNumber": 157956,
+          "alreadyExisted": false
+        },
+        {
+          "sourceRecordId": "MOCK-LGSF-DOH-001",
+          "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99",
+          "transactionHash": "0xcc4b625ee3590de9b0c3bae20109e95eb9117ec08d409a404776d17be0dd66e2",
+          "blockNumber": 157960,
+          "snapshotTransactionHash": "0x8b17b5bd255f7fc49241c5ec943dee3fa872d8cca6ccb73242006e875b2e3973",
+          "snapshotBlockNumber": 157964,
+          "alreadyExisted": false
+        },
+        {
+          "sourceRecordId": "MOCK-LGSF-DSWD-001",
+          "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3",
+          "transactionHash": "0xb2c115cdbff2e1370d585e52be5f65c36914428823c037a4965350cef79d3172",
+          "blockNumber": 157968,
+          "snapshotTransactionHash": "0x18451eb6fe9b53fbc9febd606aa151fc7d58995e57be39b680d31011bfd28f0f",
+          "snapshotBlockNumber": 157972,
+          "alreadyExisted": false
+        }
+      ],
+      "journalTransactions": [
+        {
+          "agencyCode": "DPWH-MOCK",
+          "entryId": "MOCK-DPWH-OPENING-001",
+          "entryKey": "0x544c051f5f915c3c5daab0e23aafd9dd63257c24106884ad43b22727c099c892",
+          "requestDigest": "0x18f1032e89513eff51861693472010bd412a5df096f872973b97d25c0ca041da",
+          "transactionHash": "0x6668cff4bc9eb24be13f65eacbd0573f7b0d93f5c628cc938d7c5cb4aa5f1e8d",
+          "blockNumber": 157976
+        },
+        {
+          "agencyCode": "DPWH-MOCK",
+          "entryId": "MOCK-DPWH-DISBURSE-001",
+          "entryKey": "0xb6b281027b1e6fd84685b84ae8e73b9ed6d1e14115adbe4339cfc01e988d85aa",
+          "requestDigest": "0xaac59eea11e66e85bfeab84e2df5cb6ba6f21a7fca2cdc2d2aad39c8545c1000",
+          "transactionHash": "0x687e3185346fae3bab2ebb44d31aacdc7bbdc14eac522dccfc120db3bcd56e27",
+          "blockNumber": 157980
+        },
+        {
+          "agencyCode": "DOH-MOCK",
+          "entryId": "MOCK-DOH-OPENING-001",
+          "entryKey": "0x5537a15a76558dd06c47e9c2783a7b137d4fd38d0ef56d34521c6d6e90648c12",
+          "requestDigest": "0x0b5d26d5a31461b59414ec41ccbf80bc88122fdcf0f966faa5d9f7e4395ece78",
+          "transactionHash": "0xba6e649141d976601e43f9b5753567c6aafde5c4bb2f59da3fa0dae4ed4e4717",
+          "blockNumber": 157984
+        },
+        {
+          "agencyCode": "DOH-MOCK",
+          "entryId": "MOCK-DOH-DISBURSE-001",
+          "entryKey": "0x2cdf9e46899a7200a3d23db1797ba034ec319b2aaa3dcc3b1665ac131c0a0ca2",
+          "requestDigest": "0xef7dc26341edd79355176790ee7fcd174b78b35f1cae74c1050112bb1792c1e3",
+          "transactionHash": "0x80e1566579a4decc296e3a443e972b7df73ce9fa3f1f5b7abababede7bba0bfa",
+          "blockNumber": 157988
+        },
+        {
+          "agencyCode": "DSWD-MOCK",
+          "entryId": "MOCK-DSWD-OPENING-001",
+          "entryKey": "0xe1f5ca68bb5c98f415bab2f313dc3f880a934a4f9aeb1822c269e914ab33383c",
+          "requestDigest": "0x3859f6950caa9f1ff3c2432d80e46b362275f5f7cba3dcd97408de1f25e459fa",
+          "transactionHash": "0xfca7d4fe871607529e206c4cd9de4bf48f4a1eca87349026418d01c38fa67940",
+          "blockNumber": 157992
+        },
+        {
+          "agencyCode": "DSWD-MOCK",
+          "entryId": "MOCK-DSWD-DISBURSE-001",
+          "entryKey": "0xea68efc8d44bab83f6fd9a8176255ee23f3f5d667870f1f0c60fa73a593000f0",
+          "requestDigest": "0x36608e9f3309282f0abf0a23eade4ef0184a530d749c316fcf484936491383af",
+          "transactionHash": "0x6b2479880876bfb33d0802e1613741d07df286e35be78544691ddb649d914a91",
+          "blockNumber": 157996
+        }
+      ],
+      "checks": {
+        "unbalancedEntryRejected": true
+      }
+    }
+  },
+  "blockchain": {
+    "generalLedgerAndProjects": {
+      "generatedAt": "2026-07-21T19:51:21.956Z",
+      "chainId": "13371",
+      "explorerBaseUrl": "https://hackathon-explorer.e.gov.ph",
+      "contracts": {
+        "transparencyRegistryAddress": "0xF08239214177bE7ee21AFEBF61cd3FF31D7eD25A",
+        "generalLedgerAddress": "0x217AD680c000C66a84633Fc1c698C44c4a055B70",
+        "generalLedgerDeploymentTransactionHash": "0x0934aed7372e54c745120343336f2ee3aaeecb6ecc5803acd4bb56a6e448abb3"
+      },
+      "checks": {
+        "unbalancedEntryRejected": true
+      },
+      "agencyTransactions": [
+        {
+          "agencyCode": "DPWH-MOCK",
+          "transactionHash": "0x131f8689617d46beaf793615789544aadf3a39c279ef961ec4121a41fc76dfbc",
+          "blockNumber": 157940
+        },
+        {
+          "agencyCode": "DOH-MOCK",
+          "transactionHash": "0x1ef5da6649d0d3898e65ec3c8f6d81d887386b0a3b241caedc89b98bd3c01bd0",
+          "blockNumber": 157944
+        },
+        {
+          "agencyCode": "DSWD-MOCK",
+          "transactionHash": "0x4c14b627cdf4d4b83593dc3ffae6fb24434a4108f3607d42e6a31b1c9880e70d",
+          "blockNumber": 157948
+        }
+      ],
+      "projectTransactions": [
+        {
+          "sourceRecordId": "MOCK-LGSF-DPWH-001",
+          "projectKey": "0x407c75b218b12d700efeb7c901b1fb5c05d2ad3715e1807c9b01d98e4eaf0b30",
+          "transactionHash": "0xd06e96dae1f2b020b5aa5ae4e6e56ff1cd7526995f3370b70409800116583555",
+          "blockNumber": 157952,
+          "snapshotTransactionHash": "0x7b3e0a942130b422cf431cc698d328a21e17fd074e940e1a7125704f44d45128",
+          "snapshotBlockNumber": 157956,
+          "alreadyExisted": false
+        },
+        {
+          "sourceRecordId": "MOCK-LGSF-DOH-001",
+          "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99",
+          "transactionHash": "0xcc4b625ee3590de9b0c3bae20109e95eb9117ec08d409a404776d17be0dd66e2",
+          "blockNumber": 157960,
+          "snapshotTransactionHash": "0x8b17b5bd255f7fc49241c5ec943dee3fa872d8cca6ccb73242006e875b2e3973",
+          "snapshotBlockNumber": 157964,
+          "alreadyExisted": false
+        },
+        {
+          "sourceRecordId": "MOCK-LGSF-DSWD-001",
+          "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3",
+          "transactionHash": "0xb2c115cdbff2e1370d585e52be5f65c36914428823c037a4965350cef79d3172",
+          "blockNumber": 157968,
+          "snapshotTransactionHash": "0x18451eb6fe9b53fbc9febd606aa151fc7d58995e57be39b680d31011bfd28f0f",
+          "snapshotBlockNumber": 157972,
+          "alreadyExisted": false
+        }
+      ],
+      "journalTransactions": [
+        {
+          "agencyCode": "DPWH-MOCK",
+          "entryId": "MOCK-DPWH-OPENING-001",
+          "entryKey": "0x544c051f5f915c3c5daab0e23aafd9dd63257c24106884ad43b22727c099c892",
+          "requestDigest": "0x18f1032e89513eff51861693472010bd412a5df096f872973b97d25c0ca041da",
+          "transactionHash": "0x6668cff4bc9eb24be13f65eacbd0573f7b0d93f5c628cc938d7c5cb4aa5f1e8d",
+          "blockNumber": 157976
+        },
+        {
+          "agencyCode": "DPWH-MOCK",
+          "entryId": "MOCK-DPWH-DISBURSE-001",
+          "entryKey": "0xb6b281027b1e6fd84685b84ae8e73b9ed6d1e14115adbe4339cfc01e988d85aa",
+          "requestDigest": "0xaac59eea11e66e85bfeab84e2df5cb6ba6f21a7fca2cdc2d2aad39c8545c1000",
+          "transactionHash": "0x687e3185346fae3bab2ebb44d31aacdc7bbdc14eac522dccfc120db3bcd56e27",
+          "blockNumber": 157980
+        },
+        {
+          "agencyCode": "DOH-MOCK",
+          "entryId": "MOCK-DOH-OPENING-001",
+          "entryKey": "0x5537a15a76558dd06c47e9c2783a7b137d4fd38d0ef56d34521c6d6e90648c12",
+          "requestDigest": "0x0b5d26d5a31461b59414ec41ccbf80bc88122fdcf0f966faa5d9f7e4395ece78",
+          "transactionHash": "0xba6e649141d976601e43f9b5753567c6aafde5c4bb2f59da3fa0dae4ed4e4717",
+          "blockNumber": 157984
+        },
+        {
+          "agencyCode": "DOH-MOCK",
+          "entryId": "MOCK-DOH-DISBURSE-001",
+          "entryKey": "0x2cdf9e46899a7200a3d23db1797ba034ec319b2aaa3dcc3b1665ac131c0a0ca2",
+          "requestDigest": "0xef7dc26341edd79355176790ee7fcd174b78b35f1cae74c1050112bb1792c1e3",
+          "transactionHash": "0x80e1566579a4decc296e3a443e972b7df73ce9fa3f1f5b7abababede7bba0bfa",
+          "blockNumber": 157988
+        },
+        {
+          "agencyCode": "DSWD-MOCK",
+          "entryId": "MOCK-DSWD-OPENING-001",
+          "entryKey": "0xe1f5ca68bb5c98f415bab2f313dc3f880a934a4f9aeb1822c269e914ab33383c",
+          "requestDigest": "0x3859f6950caa9f1ff3c2432d80e46b362275f5f7cba3dcd97408de1f25e459fa",
+          "transactionHash": "0xfca7d4fe871607529e206c4cd9de4bf48f4a1eca87349026418d01c38fa67940",
+          "blockNumber": 157992
+        },
+        {
+          "agencyCode": "DSWD-MOCK",
+          "entryId": "MOCK-DSWD-DISBURSE-001",
+          "entryKey": "0xea68efc8d44bab83f6fd9a8176255ee23f3f5d667870f1f0c60fa73a593000f0",
+          "requestDigest": "0x36608e9f3309282f0abf0a23eade4ef0184a530d749c316fcf484936491383af",
+          "transactionHash": "0x6b2479880876bfb33d0802e1613741d07df286e35be78544691ddb649d914a91",
+          "blockNumber": 157996
+        }
+      ]
+    },
+    "accountabilityDeployment": {
+      "generatedAt": "2026-07-21T20:06:37.912Z",
+      "isSynthetic": true,
+      "disclaimer": "All records and entities are synthetic hackathon demonstration data, not claims about real people, businesses, or government activity.",
+      "chainId": "13371",
+      "explorerBaseUrl": "https://hackathon-explorer.e.gov.ph",
+      "registries": {
+        "benefit": {
+          "address": "0xcebC4bEaF86A06534644fbae7a776757dB98F098",
+          "deploymentTransactionHash": "0x97123f1b5366f1439de0263525a958ce292bf9e07c5d7ab14ccca261eb517e6e",
+          "blockNumber": 158412
+        },
+        "report": {
+          "address": "0x41F18fEA3BAd560bDfd8d8cB9E1e8f368e84095c",
+          "deploymentTransactionHash": "0x5875a0fd9133845903fa07c8aabaa82a01844c2b39f43c2fde1a3998498bc832",
+          "blockNumber": 158416
+        },
+        "payment": {
+          "address": "0x7E996e277505deab7deCf211e2e5C52268C18F19",
+          "deploymentTransactionHash": "0x75f86b36bc4d4402d17d14aa823800a2a99f8ae1f03bf4ff74bc6b043a15c3e3",
+          "blockNumber": 158420
+        },
+        "documentProof": {
+          "address": "0xb65D9982683b834a307a143Dd33C2c6CC96aC7e6",
+          "deploymentTransactionHash": "0x3c9b3506b77675996b52f7f8e5fb0c4e49acfc81e5f58f7e4d23f3fcb60425b1",
+          "blockNumber": 158424
+        }
+      },
+      "records": {
+        "benefitProgram": {
+          "key": "0x03d9c7a36392386ee218c26c3f1b2eb77e1df13da727b029d039e11f801e9151",
+          "transactionHash": "0xaf6efebd992b3e871c336c40c408b47291cc7c1134309eed1887f0ea08d1ce08"
+        },
+        "eligibility": {
+          "key": "0x6e16422ce442c95506f6e67dde5144f04698f6e1d02b022010e7701ca6fa050a",
+          "transactionHash": "0x9b03035af082e23076b7e753dc3a2310cbe14d6f26e8961cd10df64945fa87d0"
+        },
+        "notification": {
+          "transactionHash": "0xb921fc318413cad5fe8db9ae419cc66a03f5d28ae5078336608507fb5c87b5f7"
+        },
+        "report": {
+          "reportId": "0x4b225dda36d31a6dd7b55bad2353fc3b3ac2e7bb1ac0df317fb67313ec90caa0",
+          "transactionHash": "0xd540f51617f81ddbfc3d6e264f7072c8cee2fada63cb86dd00d3a47b3ea944c2"
+        },
+        "mediaSignal": {
+          "signalId": "0x6baf4018b5e8d5b28359c5e1b369d65377f11f624a963f0ea7216d929a90a58f",
+          "transactionHash": "0x88cfaf65cc371f25cb584b0fc81b737e2d6ebfd7671ae734e439461081b8f9eb"
+        },
+        "individualPayment": {
+          "proofId": "0x61c67ac90078bab49309f9b0c662db78ea6d242ece36f4c92e78b8ea406fb370",
+          "transactionHash": "0x7a543a2bafffbff5fbc4bf8d1665a9e271c9ab006b096d024ca7b18df368bea3"
+        },
+        "businessPayment": {
+          "proofId": "0x3765cf76174dc2828ae5545f22af4f8f139975de68356e2100f1a2504ec27f96",
+          "transactionHash": "0x8b65189c2b00e636faf140f369da7c3dc7e942d239d1b8d55b759468d26e2ac4"
+        },
+        "document": {
+          "documentId": "0xd86d6b5032b25a0af348c378c5d58e720daf96947000b385b5696b9cacd25820",
+          "transactionHash": "0x0641eedd1bd729eed9d24058771047b2c9c79cd0684e3dc73f95196be16eff44"
+        }
+      },
+      "checks": {
+        "individualPlaintextRejected": true,
+        "privateDocumentPlaintextRejected": true
+      }
+    },
+    "accountabilityReadBack": {
+      "generatedAt": "2026-07-21T20:07:10.158Z",
+      "kind": "accountability-registry-kpi",
+      "result": "PASS",
+      "chainId": "13371",
+      "durationMs": 205.72,
+      "summary": {
+        "passed": 10,
+        "total": 10
+      },
+      "checks": {
+        "benefitProgramReadable": true,
+        "eligibilityPseudonymous": true,
+        "notificationReceiptReadable": true,
+        "reportCommitmentReadable": true,
+        "mediaSignalMarkedUnverified": true,
+        "individualPaymentPrivate": true,
+        "businessPaymentPublic": true,
+        "publicDocumentReadable": true,
+        "individualPlaintextRejected": true,
+        "privateDocumentPlaintextRejected": true
+      },
+      "registries": {
+        "benefit": {
+          "address": "0xcebC4bEaF86A06534644fbae7a776757dB98F098",
+          "deploymentTransactionHash": "0x97123f1b5366f1439de0263525a958ce292bf9e07c5d7ab14ccca261eb517e6e",
+          "blockNumber": 158412
+        },
+        "report": {
+          "address": "0x41F18fEA3BAd560bDfd8d8cB9E1e8f368e84095c",
+          "deploymentTransactionHash": "0x5875a0fd9133845903fa07c8aabaa82a01844c2b39f43c2fde1a3998498bc832",
+          "blockNumber": 158416
+        },
+        "payment": {
+          "address": "0x7E996e277505deab7deCf211e2e5C52268C18F19",
+          "deploymentTransactionHash": "0x75f86b36bc4d4402d17d14aa823800a2a99f8ae1f03bf4ff74bc6b043a15c3e3",
+          "blockNumber": 158420
+        },
+        "documentProof": {
+          "address": "0xb65D9982683b834a307a143Dd33C2c6CC96aC7e6",
+          "deploymentTransactionHash": "0x3c9b3506b77675996b52f7f8e5fb0c4e49acfc81e5f58f7e4d23f3fcb60425b1",
+          "blockNumber": 158424
+        }
+      },
+      "disclaimer": "All records and entities are synthetic hackathon demonstration data, not claims about real people, businesses, or government activity."
+    },
+    "earlierSyntheticEvidence": {
+      "markerRoundTrip": {
+        "result": "PASS",
+        "chainId": "13371",
+        "blockNumber": 155752,
+        "value": "0",
+        "gasPrice": "0",
+        "transactionHash": "0xf42d1748343b901e35da9285ac5892642599d93469a72e56534c8c295ffdf278",
+        "marker": "EGOV_CHAIN_ROUNDTRIP_V1:2026-07-21T18:36:26.426Z:12015e2ed6d3",
+        "retrievedWith": "eth_getTransactionByHash"
+      },
+      "citizenCardRegistry": {
+        "result": "PASS",
+        "cardType": "NATIONAL_ID",
+        "privacyMode": "pseudonymous owner commitment + HMAC card fingerprint; no raw card or identity values",
+        "deploymentTransactionHash": "0xdf42c6b312b1a79985bdaf415fec29767d3f6f92c07fd945832030a6c623b9bc",
+        "syntheticCardTransactionHash": "0x29d1706704679f47d0a62f4a4509f0c966401d84ee837be4e01181fd5f78b4bc",
+        "syntheticCardBlockNumber": 156644
+      },
+      "publicProjectDuplicateKpi": {
+        "result": "PASS",
+        "correctness": {
+          "passed": 7,
+          "total": 7,
+          "iterations": 15
+        },
+        "exactLookupMs": {
+          "average": 124.83,
+          "p95": 206.69
+        },
+        "contextualFingerprintLookupMs": {
+          "average": 129.64,
+          "p95": 207.76
+        },
+        "p95TargetMs": 2000,
+        "deploymentTransactionHash": "0x5251e403a5bb3b628d9cd71352519226c6a30c67d6552a52faa7b13dad871210",
+        "syntheticProjectTransactionHash": "0x68cd5cf35ad8e71f5a39e6913aa3c4159582c6fd7672904eeef3c14f7cae60d1",
+        "syntheticProjectBlockNumber": 157008,
+        "syntheticSnapshotTransactionHash": "0xd7ce21477cdd5d6a0e64f1cd5640247f13c2c5d5be7bbe51338db9e9c87fb1d1",
+        "syntheticSnapshotBlockNumber": 157012
+      }
+    }
+  },
+  "kpis": {
+    "aiOrchestration": {
+      "generatedAt": "2026-07-21T20:12:26.875Z",
+      "kind": "egov-ai-live-kpi",
+      "result": "PASS",
+      "score": "9/9",
+      "checks": {
+        "orchestrationCompleted": true,
+        "assistantReturnedAnswer": true,
+        "assistantSelectedTranslator": true,
+        "assistantSelectedSpeech": true,
+        "lawsSelected": true,
+        "lawsReturnedOutput": true,
+        "translatorReturnedOutput": true,
+        "speechReturnedOutput": true,
+        "allSelectedToolsSucceeded": true
+      },
+      "orchestrationStatus": "ok",
+      "metrics": {
+        "totalDurationMs": 45686.11,
+        "tools": [
+          {
+            "tool": "token",
+            "status": "ok",
+            "durationMs": 140.51
+          },
+          {
+            "tool": "assistant",
+            "status": "ok",
+            "durationMs": 9179.48
+          },
+          {
+            "tool": "laws",
+            "status": "ok",
+            "durationMs": 12490.72
+          },
+          {
+            "tool": "translator",
+            "status": "ok",
+            "durationMs": 11607.01
+          },
+          {
+            "tool": "speech",
+            "status": "ok",
+            "durationMs": 12265.58
+          }
+        ]
+      },
+      "credits": {
+        "before": 200,
+        "after": 200,
+        "consumed": 0
+      }
+    },
+    "system": {
+      "generatedAt": "2026-07-21T20:15:12.195Z",
+      "kind": "system-kpi",
+      "result": "PASS",
+      "responseTimeTargetMs": 3000,
+      "summary": {
+        "passed": 8,
+        "failed": 0,
+        "skipped": 1,
+        "availabilityPercent": 100
+      },
+      "rows": [
+        {
+          "name": "website-home",
+          "status": "pass",
+          "durationMs": 2540.59,
+          "targetMs": 3000,
+          "detail": "Vercel page and SSO mount point available"
+        },
+        {
+          "name": "website-config",
+          "status": "pass",
+          "durationMs": 675.7,
+          "targetMs": 3000,
+          "detail": "STAGING widget configuration available"
+        },
+        {
+          "name": "website-transparency-dashboard",
+          "status": "pass",
+          "durationMs": 354.03,
+          "targetMs": 3000,
+          "detail": "synthetic transparency dashboard available"
+        },
+        {
+          "name": "website-transparency-data",
+          "status": "pass",
+          "durationMs": 63.61,
+          "targetMs": 3000,
+          "detail": "3 projects, 6 balanced-ledger entries, 3 review signals"
+        },
+        {
+          "name": "website-exchange-validation",
+          "status": "pass",
+          "durationMs": 309.71,
+          "targetMs": 3000,
+          "detail": "SSO exchange rejects missing one-time code"
+        },
+        {
+          "name": "website-card-ledger",
+          "status": "pass",
+          "durationMs": 1397.46,
+          "targetMs": 3000,
+          "detail": "card registry available (1 synthetic record)"
+        },
+        {
+          "name": "egovchain-rpc",
+          "status": "pass",
+          "durationMs": 259.1,
+          "targetMs": 3000,
+          "detail": "chain 13371 available"
+        },
+        {
+          "name": "tolvaris-transparency-lookup",
+          "status": "pass",
+          "durationMs": 210.58,
+          "targetMs": 3000,
+          "detail": "exact project hash index available"
+        },
+        {
+          "name": "application-api-health",
+          "status": "skip",
+          "durationMs": 0,
+          "targetMs": null,
+          "detail": "set EGOV_API_URL when the application API is deployed"
+        }
+      ]
+    },
+    "platformSmoke": {
+      "generatedAt": "2026-07-21T20:16:14.538Z",
+      "kind": "platform-smoke-kpi",
+      "writeEnabled": false,
+      "summary": {
+        "passed": 6,
+        "skipped": 3,
+        "failed": 0
+      },
+      "rows": [
+        {
+          "name": "sso",
+          "status": "skip",
+          "detail": "creds present; set SMOKE_SSO_EXCHANGE_CODE for live token exchange",
+          "durationMs": 0.21
+        },
+        {
+          "name": "everify",
+          "status": "pass",
+          "detail": "authenticate ok (token issued)",
+          "durationMs": 931.33
+        },
+        {
+          "name": "face-liveness",
+          "status": "skip",
+          "detail": "creds present; pass --write to createSession",
+          "durationMs": 0.14
+        },
+        {
+          "name": "emessage",
+          "status": "skip",
+          "detail": "creds present; pass --write and SMOKE_SMS_TO to push SMS",
+          "durationMs": 0.09
+        },
+        {
+          "name": "egov-ai",
+          "status": "pass",
+          "detail": "token ok (credits_remaining=200)",
+          "durationMs": 402.1
+        },
+        {
+          "name": "egov-pay",
+          "status": "pass",
+          "detail": "token get reached platform (VALIDATION; expected for probe id)",
+          "durationMs": 577.14
+        },
+        {
+          "name": "egov-chain",
+          "status": "pass",
+          "detail": "eth_blockNumber ok",
+          "durationMs": 189.65
+        },
+        {
+          "name": "ereport",
+          "status": "pass",
+          "detail": "token + getReportTypes ok (report_types=12)",
+          "durationMs": 838.14
+        },
+        {
+          "name": "dbm-compass",
+          "status": "pass",
+          "detail": "GET /api/v1/records/saaodb ok (year=2026)",
+          "durationMs": 546.9
+        }
+      ]
+    }
+  },
+  "historicalSanitizedIntegrationChecks": {
+    "executed_at": "2026-07-21",
+    "results": {
+      "egov_chain": {
+        "status": "passed",
+        "checks": [
+          "eth_chainId",
+          "eth_blockNumber"
+        ],
+        "side_effects": false
+      },
+      "egov_ai": {
+        "status": "passed",
+        "checks": [
+          "token",
+          "credits",
+          "one prior assistant generation"
+        ],
+        "assistant_response": "text and session_id; no tool-call fields observed"
+      },
+      "everify": {
+        "status": "authentication passed",
+        "http_status": 200,
+        "token_path": "data.access_token",
+        "identity_or_qr_query_sent": false,
+        "evidence": "everify-auth-sanitized-result.json"
+      },
+      "face_liveness": {
+        "status": "health passed; localhost camera bridge ready",
+        "health_http_status": 200,
+        "biometric_data_sent": false,
+        "positive_flow_validated": false,
+        "provider_upload_blocker": "The official dashboard upload/session contract is not available; the old /api/session guess returned 404.",
+        "evidence": "face-liveness-reachability-sanitized-result.json"
+      },
+      "ereport": {
+        "status": "credential configured; contract pending",
+        "token_value_saved": false,
+        "external_request_sent": false,
+        "reason": "Exact issuer, header, scope, expiry, and safe read-only endpoint are not confirmed by the available catalog."
+      },
+      "egovpay": {
+        "status": "blocked safely before network request",
+        "reason": "EGOVPAY_HMAC_SECRET is not configured; no payment was created."
+      },
+      "egov_sso": {
+        "status": "passed with designated hackathon test identity",
+        "checks": [
+          "portal exchange-code generation",
+          "POST /api/token",
+          "POST /api/partner/sso_authentication"
+        ],
+        "scope": "SSO_AUTHENTICATION",
+        "profile_values_saved": false,
+        "evidence": "egov-sso-auth-sanitized-result.json"
+      },
+      "emessage": {
+        "status": "not run",
+        "reason": "Requires a designated test recipient and creates a real notification."
+      },
+      "dbm_compass": {
+        "status": "not run",
+        "reason": "Exact documented dataset path and query parameters are still required."
+      }
+    },
+    "secrets_or_personal_data_in_file": false
+  }
+}
