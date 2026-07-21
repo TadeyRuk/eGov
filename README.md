@@ -1,4 +1,4 @@
-<h1 align="center">BANGON</h1>
+<h1 align="center">B.A.N.G.O.N</h1>
 
 <p align="center">
   <strong>Benefit Allocation &amp; Navigation for Government Opportunities Nationwide</strong>
@@ -23,17 +23,17 @@
 <p align="center">
   <img alt="eGov Platform" src="https://img.shields.io/badge/eGov_API_Platform-9_services-0F766E?style=flat-square" />
   <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Hexagonal-2563EB?style=flat-square" />
-  <img alt="BANGON core" src="https://img.shields.io/badge/BANGON_core-Eligibility_built-16A34A?style=flat-square" />
-  <img alt="HTTP compose" src="https://img.shields.io/badge/HTTP_BANGON_routes-Built-16A34A?style=flat-square" />
+  <img alt="B.A.N.G.O.N core" src="https://img.shields.io/badge/B.A.N.G.O.N_core-Eligibility_built-16A34A?style=flat-square" />
+  <img alt="HTTP compose" src="https://img.shields.io/badge/HTTP_B.A.N.G.O.N_routes-Built-16A34A?style=flat-square" />
   <img alt="Client" src="https://img.shields.io/badge/Citizen_client-Android-2563EB?style=flat-square" />
   <img alt="Monorepo" src="https://img.shields.io/badge/Monorepo-pnpm_TypeScript-334155?style=flat-square" />
 </p>
 
 ---
 
-## Why BANGON
+## Why B.A.N.G.O.N
 
-Citizens should not discover benefits by walking agency to agency. BANGON flips the model:
+Citizens should not discover benefits by walking agency to agency. B.A.N.G.O.N flips the model:
 
 1. Check which programs are **actually funded** (DBM Compass) — before promising anything.
 2. Verify the person is live and matches PhilSys (Face Liveness + eVerify).
@@ -85,13 +85,13 @@ Seed catalog (hackathon stub — no live agency benefit API among the 9 services
 | Use cases in `packages/application/src/use-cases/bangon.ts` | Built (composable, not one monolith) |
 | `BenefitCatalogPort` + in-memory seed catalog | Built |
 | All 9 eGov platform ports/adapters | Built (env-backed `fetch`) |
-| `apps/api` BANGON + case HTTP routes | Built |
+| `apps/api` B.A.N.G.O.N + case HTTP routes | Built |
 | Face gate inside `confirmCitizenIdentity` | Built (`isFaceLivenessPassed`) |
-| eGovChain / eGov AI / eReport BANGON use cases | Built (`anchorBenefitMatch`, `explainEligibility`, `reportBenefitNonDelivery`) |
-| Android BANGON citizen client | Not yet (Phase 4 — primary UI) |
+| eGovChain / eGov AI / eReport B.A.N.G.O.N use cases | Built (`anchorBenefitMatch`, `explainEligibility`, `reportBenefitNonDelivery`) |
+| Android B.A.N.G.O.N citizen client | Not yet (Phase 4 — primary UI) |
 | Multi-agency PSA cascade / barangay rollout | Vision only |
 
-Ground truth: [docs/architecture.md](docs/architecture.md) · Product Vision · BANGON.
+Ground truth: [docs/architecture.md](docs/architecture.md) · Product Vision · B.A.N.G.O.N.
 
 ## System Architecture
 
@@ -99,9 +99,9 @@ Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters
 
 ```mermaid
 flowchart TB
-  Client[Android BANGON client]
+  Client[Android B.A.N.G.O.N client]
   Api[apps/api]
-  UC[BANGON use cases]
+  UC[B.A.N.G.O.N use cases]
   Domain[domain Benefit rules]
   Catalog[BenefitCatalogPort]
   Platform[adapters-egov-platform]
@@ -116,10 +116,10 @@ flowchart TB
 | Layer | Package | Responsibility |
 |-------|---------|----------------|
 | Domain | `@egov/domain` | Benefit / eligibility invariants |
-| Application | `@egov/application` | Ports + BANGON / case / orchestration use cases |
+| Application | `@egov/application` | Ports + B.A.N.G.O.N / case / orchestration use cases |
 | Adapters | `@egov/adapters-*` | Persistence, HTTP, AI, messaging, **egov-platform** |
 | Apps | `apps/api`, `apps/orchestrator` | Composition roots (`apps/web` = optional debug only) |
-| Client | Android BANGON | Primary citizen UI — HTTP to `apps/api` only |
+| Client | Android B.A.N.G.O.N | Primary citizen UI — HTTP to `apps/api` only |
 
 ## Official Platform APIs
 
@@ -220,7 +220,7 @@ Optional smoke overrides: `SMOKE_SSO_EXCHANGE_CODE`, `SMOKE_SMS_TO`, `SMOKE_PAY_
 
 | Doc | Role |
 |-----|------|
-| [docs/architecture.md](docs/architecture.md) | Layers, ports, BANGON built vs vision |
+| [docs/architecture.md](docs/architecture.md) | Layers, ports, B.A.N.G.O.N built vs vision |
 | [eGov_PH_SuperApp_System_Architecture.md](eGov_PH_SuperApp_System_Architecture.md) | Hackathon pitch / SuperApp spec |
 | [docs/platform-apis.md](docs/platform-apis.md) | Official 9-service reference |
 | [docs/tasks.md](docs/tasks.md) | Backlog foundation → production |
