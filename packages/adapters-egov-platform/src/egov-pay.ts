@@ -14,6 +14,18 @@ import {
   type PlatformEnv,
 } from "./http.js";
 
+/**
+ * Live-verified (2026-07-22, dashboard "Test" tab): the platform strips a
+ * `test_` prefix from the API token before using it as the HMAC digest key,
+ * despite the docs saying the digest is "keyed by the API token" with no
+ * mention of stripping. Using the raw prefixed token returns 422
+ * "The digest is not valid." — confirmed by reproducing the failure via the
+ * dashboard's own request tester with a manually-verified-correct digest.
+ */
+export function eGovPayDigestKeyFromToken(token: string): string {
+  return token.replace(/^test_/, "");
+}
+
 export function createEgovPayAdapter(env: PlatformEnv): EgovPayPort {
   const base = () =>
     envOrDefault(env, "EGOVPAY_BASE_URL", DEFAULT_BASE_URLS.egovPay);
@@ -23,16 +35,15 @@ export function createEgovPayAdapter(env: PlatformEnv): EgovPayPort {
     return requireEnvAny(env, ["EGOVPAY_API_KEY", "EGOVPAY_TOKEN"]);
   }
 
-  /**
-   * Digest key: dashboard formula uses the API token.
-   * Optional `EGOVPAY_HMAC_SECRET` overrides when the dashboard issues a separate key.
-   */
-  function digestKey() {
-    return requireEnvAny(env, [
+  /** See `eGovPayDigestKeyFromToken` for why the `test_` prefix is stripped. */
+  function digestKey(): Result<string> {
+    const key = requireEnvAny(env, [
       "EGOVPAY_HMAC_SECRET",
       "EGOVPAY_API_KEY",
       "EGOVPAY_TOKEN",
     ]);
+    if (!key.ok) return key;
+    return ok(eGovPayDigestKeyFromToken(key.value));
   }
 
   function authHeaders(): Result<Record<string, string>> {
