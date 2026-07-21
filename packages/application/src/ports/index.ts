@@ -1,6 +1,8 @@
 import type {
   AgentRole,
   AgentTask,
+  Benefit,
+  BenefitId,
   CaseDocument,
   Citizen,
   CitizenId,
@@ -74,6 +76,13 @@ export type AdvanceCaseInput = {
 export type SubmitCaseInput = {
   readonly citizenId: CitizenId;
   readonly title: string;
+};
+
+/** Hardcoded-for-hackathon benefit catalog — see docs/architecture.md
+ * "Product Vision" BANGON section for why this isn't a live agency API. */
+export type BenefitCatalogPort = {
+  listAll(): Promise<Result<readonly Benefit[]>>;
+  getById(id: BenefitId): Promise<Result<Benefit>>;
 };
 
 export * from "./platform.js";

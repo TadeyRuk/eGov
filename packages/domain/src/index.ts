@@ -126,4 +126,88 @@ export type DomainEvent =
       readonly taskId: AgentTaskId;
       readonly stage: PipelineStage;
       readonly occurredAt: Date;
+    }
+  | {
+      readonly type: "BenefitMatchFound";
+      readonly matchId: BenefitMatchId;
+      readonly citizenId: CitizenId;
+      readonly benefitId: BenefitId;
+      readonly occurredAt: Date;
     };
+
+// ─── BANGON: benefit eligibility ────────────────────────────────────────────
+
+export type BenefitId = Id<"BenefitId">;
+export type BenefitMatchId = Id<"BenefitMatchId">;
+
+export type DbmDataset = "SAAODB" | "NCA" | "SARO" | "LGSF";
+
+/** Fields sourced from eVerify/PSA only — see docs/platform-apis.md.
+ * No employment, income, or region data is available today. */
+export type CitizenEligibilityProfile = {
+  readonly dateOfBirth: Date;
+  readonly civilStatus: string;
+  readonly vitalStatus: string;
+};
+
+export type EligibilityRule = {
+  readonly minAge?: number;
+  readonly maxAge?: number;
+  readonly civilStatusIn?: readonly string[];
+  readonly vitalStatusIn?: readonly string[];
+};
+
+export type Benefit = {
+  readonly id: BenefitId;
+  readonly title: string;
+  readonly agency: string;
+  readonly isFinancial: boolean;
+  readonly rule: EligibilityRule;
+  /** Which DBM Compass dataset + query proves this benefit is currently funded. */
+  readonly fundCheck: {
+    readonly dataset: DbmDataset;
+    readonly query: Record<string, unknown>;
+  };
+};
+
+export type BenefitMatch = {
+  readonly id: BenefitMatchId;
+  readonly citizenId: CitizenId;
+  readonly benefitId: BenefitId;
+  readonly matchedAt: Date;
+};
+
+function ageAt(dateOfBirth: Date, now: Date): number {
+  let age = now.getFullYear() - dateOfBirth.getFullYear();
+  const hasHadBirthdayThisYear =
+    now.getMonth() > dateOfBirth.getMonth() ||
+    (now.getMonth() === dateOfBirth.getMonth() &&
+      now.getDate() >= dateOfBirth.getDate());
+  if (!hasHadBirthdayThisYear) age -= 1;
+  return age;
+}
+
+/** Pure eligibility check — no I/O. Fund status is checked separately
+ * (DBM Compass) before a benefit is even offered as a match candidate. */
+export function isEligibleForBenefit(
+  profile: CitizenEligibilityProfile,
+  rule: EligibilityRule,
+  now: Date,
+): boolean {
+  const age = ageAt(profile.dateOfBirth, now);
+  if (rule.minAge !== undefined && age < rule.minAge) return false;
+  if (rule.maxAge !== undefined && age > rule.maxAge) return false;
+  if (
+    rule.civilStatusIn !== undefined &&
+    !rule.civilStatusIn.includes(profile.civilStatus)
+  ) {
+    return false;
+  }
+  if (
+    rule.vitalStatusIn !== undefined &&
+    !rule.vitalStatusIn.includes(profile.vitalStatus)
+  ) {
+    return false;
+  }
+  return true;
+}

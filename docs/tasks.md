@@ -40,6 +40,19 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] HTTP adapters for case endpoints (`packages/adapters-http/src/index.ts`: `createCaseHttpHandlers` — submit/get/advance)
 - [x] `apps/api` boots and serves health + case routes (`apps/api/src/main.ts`: `/health`, `POST /cases`, `GET /cases/:id`, `POST /cases/:id/advance`)
 
+### BANGON — benefit-eligibility matching (see `docs/architecture.md` Product Vision → BANGON section for full detail)
+
+- [x] `Benefit`, `EligibilityRule`, `BenefitMatch`, `CitizenEligibilityProfile` domain types + pure `isEligibleForBenefit` (`packages/domain/src/index.ts`) — eligibility fields limited to eVerify/PSA data only (DOB, civil status, vital status)
+- [x] `BenefitCatalogPort` (`packages/application/src/ports/index.ts`)
+- [x] `findEligibleBenefits`, `notifyEligibility`, `disburseBenefit`, `confirmCitizenIdentity` use cases (`packages/application/src/use-cases/bangon.ts`) — fund-check-before-match ordering, fail-closed on fund-check errors, non-financial disbursement guard
+- [x] In-memory benefit catalog adapter with 3 hardcoded seed benefits, each declaring its own DBM dataset + query (`packages/adapters-persistence/src/index.ts`: `createInMemoryBenefitCatalog`)
+- [ ] `apps/api` HTTP route composing the full flow — deferred until a client (Android) needs it
+- [ ] Wire Face Liveness gating (`isFaceLivenessPassed`) into the identity-confirm step before `confirmCitizenIdentity` is called
+- [ ] Wire `EgovChainPort` anchoring of the match/transaction
+- [ ] Wire `EgovAiPort` plain-language narration as a post-decision side effect
+- [ ] BANGON-specific trigger for `EReportPort` non-delivery complaints (port/mechanism already exists, no BANGON call site yet)
+- [ ] Automated tests for the above — verified manually via a scratch script this session (fund-check gating, non-financial guard, adapter-failure propagation all correct); no repo test framework exists yet (see the root `test` suite item above)
+
 ## Phase 2 — Orchestration line
 
 - [x] Agent registry (Architect, Designer, Builder, Verifier, Ops) (`apps/orchestrator/src/agents/registry.ts`)
