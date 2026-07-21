@@ -1,5 +1,10 @@
-import type { AgentRole, AgentTask, PipelineStage } from "@egov/domain";
-import { appError, err, newId, ok, type Result } from "@egov/shared";
+import type {
+  AgentRole,
+  AgentTask,
+  AgentTaskId,
+  PipelineStage,
+} from "@egov/domain";
+import { appError, createId, err, newId, ok, type Result } from "@egov/shared";
 import type {
   AgentMailbox,
   AgentTaskRepository,
@@ -93,6 +98,20 @@ export async function runAgentTurn(
   ]);
 
   if (!completion.ok) {
+    // Escalate per docs/fallback.md: LLM failure → needs_human.
+    // Best-effort: only when the mailbox payload carries a taskId
+    // (as dispatched by dispatchAgentTask).
+    const taskId = extractTaskId(received.value.payload);
+    if (taskId !== null) {
+      const existing = await deps.tasks.getById(taskId);
+      if (existing.ok) {
+        await deps.tasks.save({
+          ...existing.value,
+          status: "needs_human",
+          updatedAt: deps.clock.now(),
+        });
+      }
+    }
     return err(completion.error);
   }
 
@@ -105,4 +124,16 @@ export async function runAgentTurn(
   });
 
   return ok({ handled: true, reply: completion.value.content });
+}
+
+function extractTaskId(payload: string): AgentTaskId | null {
+  try {
+    const parsed = JSON.parse(payload) as { taskId?: unknown };
+    if (typeof parsed.taskId === "string" && parsed.taskId.length > 0) {
+      return createId<"AgentTaskId">(parsed.taskId);
+    }
+  } catch {
+    // Non-JSON payloads cannot be correlated to a task.
+  }
+  return null;
 }

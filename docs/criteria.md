@@ -66,6 +66,6 @@ A change is done when:
 ## Anti-criteria (do not accept)
 
 - “Works on my machine” without typecheck  
-- Domain rules only enforced in the UI  
+- Domain rules only enforced in the Android (or any) UI  
 - Agent chat used as the system of record  
 - Merging adapters that bypass ports “just for now” without a dated exception  

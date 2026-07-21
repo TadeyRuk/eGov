@@ -1,14 +1,19 @@
 import type {
   AgentTaskRepository,
   BenefitCatalogPort,
+  BenefitMatchRepository,
   CitizenRepository,
   DocumentStore,
+  HashPort,
   ServiceCaseRepository,
 } from "@egov/application";
+import { createHash } from "node:crypto";
 import type {
   AgentTask,
   Benefit,
   BenefitId,
+  BenefitMatch,
+  BenefitMatchId,
   CaseDocument,
   Citizen,
   CitizenId,
@@ -148,12 +153,38 @@ export function createInMemoryBenefitCatalog(
   };
 }
 
+export function createNodeHashAdapter(): HashPort {
+  return {
+    async sha256Hex(input) {
+      return createHash("sha256").update(input, "utf8").digest("hex");
+    },
+  };
+}
+
+export function createInMemoryBenefitMatchRepository(): BenefitMatchRepository {
+  const store = new Map<BenefitMatchId, BenefitMatch>();
+  return {
+    async getById(id) {
+      const found = store.get(id);
+      return found
+        ? ok(found)
+        : err(appError("NOT_FOUND", `Benefit match ${id} not found`));
+    },
+    async save(match) {
+      store.set(match.id, match);
+      return ok(match);
+    },
+  };
+}
+
 export type InMemoryPersistence = {
   readonly citizens: CitizenRepository;
   readonly cases: ServiceCaseRepository;
   readonly documents: DocumentStore;
   readonly tasks: AgentTaskRepository;
   readonly benefits: BenefitCatalogPort;
+  readonly hash: HashPort;
+  readonly matches: BenefitMatchRepository;
 };
 
 export function createInMemoryPersistence(): InMemoryPersistence {
@@ -163,5 +194,7 @@ export function createInMemoryPersistence(): InMemoryPersistence {
     documents: createInMemoryDocumentStore(),
     tasks: createInMemoryAgentTaskRepository(),
     benefits: createInMemoryBenefitCatalog(),
+    hash: createNodeHashAdapter(),
+    matches: createInMemoryBenefitMatchRepository(),
   };
 }

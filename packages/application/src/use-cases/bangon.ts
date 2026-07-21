@@ -1,18 +1,27 @@
 import {
   isEligibleForBenefit,
   type Benefit,
+  type BenefitId,
   type BenefitMatch,
   type CitizenEligibilityProfile,
   type CitizenId,
+  type EligibilityRule,
 } from "@egov/domain";
 import { appError, err, newId, ok, type Result } from "@egov/shared";
-import type {
-  BenefitCatalogPort,
-  Clock,
-  DbmCompassPort,
-  EgovPayPort,
-  EMessagePort,
-  EVerifyPort,
+import {
+  isFaceLivenessPassed,
+  type BenefitCatalogPort,
+  type BenefitMatchRepository,
+  type Clock,
+  type DbmCompassPort,
+  type EgovAiPort,
+  type EgovChainPort,
+  type EgovPayPort,
+  type EMessagePort,
+  type EReportPort,
+  type EVerifyPort,
+  type FaceLivenessResult,
+  type HashPort,
 } from "../ports/index.js";
 
 // ─── findEligibleBenefits ───────────────────────────────────────────────────
@@ -27,6 +36,7 @@ export type FindEligibleBenefitsDeps = {
   readonly benefits: BenefitCatalogPort;
   readonly dbmCompass: DbmCompassPort;
   readonly clock: Clock;
+  readonly matches: BenefitMatchRepository;
 };
 
 export type FindEligibleBenefitsInput = {
@@ -64,12 +74,15 @@ export async function findEligibleBenefits(
   const matches: BenefitMatch[] = [];
   for (const benefit of fundable.value) {
     if (isEligibleForBenefit(input.profile, benefit.rule, now)) {
-      matches.push({
+      const match: BenefitMatch = {
         id: newId("match"),
         citizenId: input.citizenId,
         benefitId: benefit.id,
         matchedAt: now,
-      });
+      };
+      const saved = await deps.matches.save(match);
+      if (!saved.ok) return saved;
+      matches.push(saved.value);
     }
   }
   return ok(matches);
@@ -147,10 +160,10 @@ export async function disburseBenefit(
 
 // ─── confirmCitizenIdentity ─────────────────────────────────────────────────
 //
-// Identity confirmation composes eVerify only. Face Liveness pass/fail is
-// evaluated by the caller via isFaceLivenessPassed (see
-// packages/application/src/ports/platform.ts) before this is invoked —
-// this use case does not re-derive that rule.
+// Gated on Face Liveness first: eVerify is never called unless the supplied
+// FaceLivenessResult already passed (SUCCEEDED + confidence >= 95.0, per
+// isFaceLivenessPassed). This makes the gate real rather than a caller
+// convention — a caller cannot skip liveness by forgetting to check it.
 
 export type ConfirmCitizenIdentityDeps = {
   readonly eVerify: EVerifyPort;
@@ -159,12 +172,24 @@ export type ConfirmCitizenIdentityDeps = {
 export type ConfirmCitizenIdentityInput = {
   readonly token: string;
   readonly payload: Record<string, unknown>;
+  readonly liveness: FaceLivenessResult;
 };
 
 export async function confirmCitizenIdentity(
   deps: ConfirmCitizenIdentityDeps,
   input: ConfirmCitizenIdentityInput,
 ): Promise<Result<CitizenEligibilityProfile>> {
+  if (
+    !isFaceLivenessPassed(input.liveness.status, input.liveness.confidence)
+  ) {
+    return err(
+      appError(
+        "FORBIDDEN",
+        "Face Liveness check did not pass (requires SUCCEEDED and confidence >= 95.0)",
+      ),
+    );
+  }
+
   const verified = await deps.eVerify.verifyPersonalInfo({
     token: input.token,
     payload: input.payload,
@@ -183,4 +208,114 @@ export async function confirmCitizenIdentity(
     civilStatus: String(raw.civil_status ?? raw.civilStatus ?? ""),
     vitalStatus: String(raw.vital_status ?? raw.vitalStatus ?? ""),
   });
+}
+
+// ─── anchorBenefitMatch ─────────────────────────────────────────────────────
+//
+// Anchors a hash of {citizenId, benefitId, matchedAt} on eGovChain — not the
+// raw match record — matching docs/architecture.md's existing pattern
+// ("a cryptographic proof (hash) is anchored... state validation is publicly
+// verifiable... no agency can alter audit logs retroactively"). Uses the
+// generic JSON-RPC `call`, not an eth_* helper, since none of the documented
+// eth_* helpers (eth_call, eth_sendRawTransaction, eth_getTransactionReceipt,
+// eth_blockNumber, eth_getBalance) are a write-anchor primitive by
+// themselves — the exact anchoring RPC method is platform-specific and not
+// enumerated in docs/platform-apis.md, so this calls a placeholder method
+// name that must be confirmed against the dashboard's OpenAPI before this
+// is used against the live chain (see docs/tasks.md Phase 0.5 "Align
+// adapter path maps with live OpenAPI from the dashboard").
+
+export type AnchorBenefitMatchDeps = {
+  readonly eGovChain: EgovChainPort;
+  readonly hash: HashPort;
+};
+
+export type AnchorBenefitMatchInput = {
+  readonly match: BenefitMatch;
+};
+
+export async function anchorBenefitMatch(
+  deps: AnchorBenefitMatchDeps,
+  input: AnchorBenefitMatchInput,
+): Promise<Result<{ hash: string }>> {
+  const hash = await deps.hash.sha256Hex(
+    JSON.stringify({
+      citizenId: input.match.citizenId,
+      benefitId: input.match.benefitId,
+      matchedAt: input.match.matchedAt.toISOString(),
+    }),
+  );
+
+  const anchored = await deps.eGovChain.call({
+    method: "egov_anchorHash",
+    params: [hash],
+  });
+  if (!anchored.ok) return anchored;
+  return ok({ hash });
+}
+
+// ─── explainEligibility ─────────────────────────────────────────────────────
+//
+// Called strictly AFTER a match is already decided by isEligibleForBenefit —
+// cosmetic/side-effect only, per confirmed decision. This never influences
+// the eligibility outcome; a failure here does not undo or block the match.
+
+export type ExplainEligibilityDeps = {
+  readonly egovAi: EgovAiPort;
+};
+
+export type ExplainEligibilityInput = {
+  readonly benefitTitle: string;
+  readonly rule: EligibilityRule;
+};
+
+export async function explainEligibility(
+  deps: ExplainEligibilityDeps,
+  input: ExplainEligibilityInput,
+): Promise<Result<{ explanation: string }>> {
+  const explained = await deps.egovAi.aiAssistant({
+    payload: {
+      prompt: `Explain in plain, simple language (suitable for a senior citizen) why someone qualifies for the benefit "${input.benefitTitle}". Eligibility rule: ${JSON.stringify(input.rule)}.`,
+    },
+  });
+  if (!explained.ok) return explained;
+
+  const raw = explained.value.raw;
+  const text = raw.data ?? raw.text ?? raw.content ?? "";
+  return ok({ explanation: String(text) });
+}
+
+// ─── reportBenefitNonDelivery ───────────────────────────────────────────────
+//
+// Explicit, citizen-initiated complaint: "I was matched but never received
+// this benefit." Same eReport port/mechanism as the existing corruption/
+// discrepancy reporting (Workflow 2 in the pitch doc) — not a separate
+// system. No automatic/time-based trigger.
+
+export type ReportBenefitNonDeliveryDeps = {
+  readonly eReport: EReportPort;
+};
+
+export type ReportBenefitNonDeliveryInput = {
+  readonly token: string;
+  readonly citizenId: CitizenId;
+  readonly benefitId: BenefitId;
+  readonly description: string;
+};
+
+export async function reportBenefitNonDelivery(
+  deps: ReportBenefitNonDeliveryDeps,
+  input: ReportBenefitNonDeliveryInput,
+): Promise<Result<{ raw: Record<string, unknown> }>> {
+  const submitted = await deps.eReport.submitComplaint({
+    token: input.token,
+    payload: {
+      citizen_id: input.citizenId,
+      benefit_id: input.benefitId,
+      category: "benefit_non_delivery",
+      description: input.description,
+    },
+  });
+  if (!submitted.ok) return submitted;
+  return ok({ raw: submitted.value.raw });
 }

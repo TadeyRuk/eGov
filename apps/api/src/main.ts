@@ -1,4 +1,9 @@
-import { createCaseHttpHandlers, healthResponse } from "@egov/adapters-http";
+import {
+  createBangonHttpHandlers,
+  createCaseHttpHandlers,
+  healthResponse,
+} from "@egov/adapters-http";
+import { createEgovPlatformAdapters } from "@egov/adapters-egov-platform";
 import { createInMemoryEventBus } from "@egov/adapters-messaging";
 import { createInMemoryPersistence } from "@egov/adapters-persistence";
 import type { Clock } from "@egov/application";
@@ -7,11 +12,26 @@ import { createServer, type IncomingMessage, type ServerResponse } from "node:ht
 const clock: Clock = { now: () => new Date() };
 const persistence = createInMemoryPersistence();
 const events = createInMemoryEventBus();
+const platform = createEgovPlatformAdapters();
 
 const cases = createCaseHttpHandlers({
   cases: persistence.cases,
   events,
   clock,
+});
+
+const bangon = createBangonHttpHandlers({
+  eVerify: platform.everify,
+  benefits: persistence.benefits,
+  dbmCompass: platform.dbmCompass,
+  clock,
+  matches: persistence.matches,
+  eMessage: platform.emessage,
+  eGovPay: platform.egovPay,
+  eGovChain: platform.egovChain,
+  hash: persistence.hash,
+  egovAi: platform.egovAi,
+  eReport: platform.eReport,
 });
 
 async function readJson(req: IncomingMessage): Promise<unknown> {
@@ -65,10 +85,85 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    // ─── BANGON ───────────────────────────────────────────────────────────
+    if (method === "POST" && url.pathname === "/bangon/confirm-identity") {
+      const body = (await readJson(req)) as {
+        token: string;
+        payload: Record<string, unknown>;
+        liveness: {
+          status: string;
+          confidence: number | null;
+          raw: Record<string, unknown>;
+        };
+      };
+      const result = await bangon.confirmIdentity(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/bangon/matches") {
+      const body = (await readJson(req)) as {
+        citizenId: string;
+        profile: {
+          dateOfBirth: string;
+          civilStatus: string;
+          vitalStatus: string;
+        };
+      };
+      const result = await bangon.findMatches(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
+    const bangonAction = url.pathname.match(
+      /^\/bangon\/matches\/([^/]+)\/(notify|disburse|anchor|explain)$/,
+    );
+    if (method === "POST" && bangonAction?.[1] && bangonAction[2]) {
+      const matchId = bangonAction[1];
+      const action = bangonAction[2];
+      if (action === "notify") {
+        const body = (await readJson(req)) as { citizenPhone: string };
+        const result = await bangon.notify(matchId, body);
+        send(res, result.status, result.body);
+        return;
+      }
+      if (action === "disburse") {
+        const result = await bangon.disburse(matchId);
+        send(res, result.status, result.body);
+        return;
+      }
+      if (action === "anchor") {
+        const result = await bangon.anchor(matchId);
+        send(res, result.status, result.body);
+        return;
+      }
+      if (action === "explain") {
+        const result = await bangon.explain(matchId);
+        send(res, result.status, result.body);
+        return;
+      }
+    }
+
+    if (method === "POST" && url.pathname === "/bangon/report-non-delivery") {
+      const body = (await readJson(req)) as {
+        token: string;
+        citizenId: string;
+        benefitId: string;
+        description: string;
+      };
+      const result = await bangon.reportNonDelivery(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
     send(res, 404, { error: { code: "NOT_FOUND", message: "Route not found" } });
   } catch (cause) {
     send(res, 500, {
-      error: { code: "INTERNAL", message: "Unexpected server error", cause: String(cause) },
+      error: {
+        code: "INTERNAL",
+        message: "Unexpected server error",
+        cause: String(cause),
+      },
     });
   }
 });

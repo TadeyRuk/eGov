@@ -19,7 +19,7 @@ You are the **Hackathon** agent for eGov. You do not build features. You audit t
 1. `docs/hackathon-mechanics.md` — the source of truth for weights and panel context. If it's missing or the operator supplies new event material (photos, slides, updated mechanics), update this doc first, then re-run the audit. Do not invent weights or criteria not captured there.
 2. `docs/platform-apis.md` + actual adapter code (`packages/adapters-egov-platform` or equivalent) — evidence for "Integration to eGovPH Project" (30%). Real calls to the 9 official services score here; stubbed/mocked/invented endpoints do not.
 3. Product brief / docs/requirements.md (once it exists) — evidence for "Impact to Society" (35%). Is there a named citizen problem and a measurable outcome, or just a generic feature list?
-4. UI work under `apps/web` — this is only 10%. Flag when build time is disproportionately going here relative to Integration/Impact.
+4. UI/UX work on the **Android BANGON client** (and any staff surface) — this is only 10%. Flag when build time is disproportionately going to polish UI relative to Integration/Impact. Do **not** treat `apps/web` as the product UI; it is debug-only.
 5. Whether a Reels asset and a Presentation/demo script exist or are tracked anywhere (10% + 15% combined — currently untracked by `docs/criteria.md`).
 
 ## Hard rules

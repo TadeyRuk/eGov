@@ -1,6 +1,7 @@
 import {
   advanceServiceCase,
   createServiceCase,
+  type CaseDocument,
   type ServiceCase,
   type ServiceCaseId,
 } from "@egov/domain";
@@ -8,6 +9,7 @@ import { err, newId, ok, type Result } from "@egov/shared";
 import type {
   AdvanceCaseInput,
   Clock,
+  DocumentStore,
   EventBus,
   ServiceCaseRepository,
   SubmitCaseInput,
@@ -82,4 +84,40 @@ export async function getServiceCase(
   caseId: ServiceCaseId,
 ): Promise<Result<ServiceCase>> {
   return deps.cases.getById(caseId);
+}
+
+export type AttachDocumentDeps = {
+  readonly cases: ServiceCaseRepository;
+  readonly documents: DocumentStore;
+  readonly clock: Clock;
+};
+
+export type AttachDocumentInput = {
+  readonly caseId: ServiceCaseId;
+  readonly fileName: string;
+  readonly contentType: string;
+  readonly content: Uint8Array;
+};
+
+/** Thin pass-through: validate the case exists, then store + associate.
+ * No content-type/size/virus-scan logic — that policy is explicitly
+ * undecided (see docs/design.md "Open design slots"). */
+export async function attachDocument(
+  deps: AttachDocumentDeps,
+  input: AttachDocumentInput,
+): Promise<Result<CaseDocument>> {
+  const existing = await deps.cases.getById(input.caseId);
+  if (!existing.ok) return existing;
+
+  const document: CaseDocument = {
+    id: newId("doc"),
+    caseId: input.caseId,
+    fileName: input.fileName,
+    contentType: input.contentType,
+    createdAt: deps.clock.now(),
+  };
+
+  const saved = await deps.documents.save(document, input.content);
+  if (!saved.ok) return saved;
+  return ok(saved.value);
 }

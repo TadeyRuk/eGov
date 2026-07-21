@@ -79,7 +79,7 @@ Definitions are the markdown files under **`.claude/agents/`** (source of truth)
 | `designer` | Domain models + API shapes | Design stage |
 | `tech-lead` | Slice sequencing / backlog | Implementation planning |
 | `builder` | Code against ports | Build stage |
-| `frontend` | `apps/web` UI | UI work |
+| `frontend` | Android BANGON client (primary UI) + optional `apps/web` debug shell | Citizen/staff UI work against `apps/api` |
 | `backend` | Domain + use cases + `apps/api` | Server/business rules |
 | `data` | Persistence / migrations | Schema, repos |
 | `api` | Inbound HTTP contracts | Endpoints, errors |
@@ -189,14 +189,14 @@ Constraints: CLAUDE.md + that agent’s .md hard rules; Handoff Packet output
 
 ### Snapshot
 
-- **Product name:** eGov (modular egovernment platform)
-- **One-liner:** Hexagonal monorepo integrating the official Philippine eGov API Platform + multi-agent delivery line
-- **Primary users / personas:** Citizens (via SSO/eVerify); staff (case review / approvals) — details TBD
-- **Core journeys:** TBD beyond platform verticals (SSO, verify, pay, message, AI, chain, report, face, DBM)
-- **Must-have features:** Platform ports/adapters; service-case domain; orchestrator pipeline
-- **Out of scope / non-goals:** Inventing alternate gov APIs; agents as system of record for PII
+- **Product name:** BANGON (Benefit Allocation & Navigation for Government Opportunities Nationwide) on the eGov platform monorepo
+- **One-liner:** Android citizen app + hexagonal TypeScript API integrating the official Philippine eGov API Platform + multi-agent delivery line
+- **Primary users / personas:** Citizens (Android BANGON app via SSO/eVerify); staff (case review / approvals) — details TBD
+- **Core journeys:** BANGON benefit-matching (fund-check → liveness → eVerify → match → notify/disburse/anchor); other platform verticals as supporting
+- **Must-have features:** Platform ports/adapters; BANGON + service-case domain; Android client; orchestrator pipeline
+- **Out of scope / non-goals:** Inventing alternate gov APIs; agents as system of record for PII; building the citizen product as a public website (`apps/web` is debug-only)
 - **Compliance / locality constraints:** PH eGov platform; secrets from dashboard only
-- **Preferred stack hints:** TypeScript, pnpm workspaces, hexagonal ports/adapters
+- **Preferred stack hints:** TypeScript API (pnpm, hexagonal); **Android** for citizen UI
 - **Success metrics:** Phase criteria in `docs/criteria.md`
 
 ### Raw paste

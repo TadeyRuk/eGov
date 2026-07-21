@@ -24,7 +24,8 @@
   <img alt="eGov Platform" src="https://img.shields.io/badge/eGov_API_Platform-9_services-0F766E?style=flat-square" />
   <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Hexagonal-2563EB?style=flat-square" />
   <img alt="BANGON core" src="https://img.shields.io/badge/BANGON_core-Eligibility_built-16A34A?style=flat-square" />
-  <img alt="HTTP compose" src="https://img.shields.io/badge/HTTP_E2E_compose-Not_yet-CA8A04?style=flat-square" />
+  <img alt="HTTP compose" src="https://img.shields.io/badge/HTTP_BANGON_routes-Built-16A34A?style=flat-square" />
+  <img alt="Client" src="https://img.shields.io/badge/Citizen_client-Android-2563EB?style=flat-square" />
   <img alt="Monorepo" src="https://img.shields.io/badge/Monorepo-pnpm_TypeScript-334155?style=flat-square" />
 </p>
 
@@ -70,9 +71,9 @@ flowchart LR
 | Match | `findEligibleBenefits` | Pure rules over fundable catalog only |
 | Notify | `notifyEligibility` → eMessage | SMS with no links / no OTPs |
 | Disburse | `disburseBenefit` → eGovPay | Financial benefits only |
-| Anchor | `EgovChainPort` | Tamper-evident record (wiring pending) |
-| Explain | `EgovAiPort` | Plain-language help (wiring pending) |
-| Escalate | `EReportPort` | Non-delivery complaints (port exists; BANGON trigger pending) |
+| Anchor | `anchorBenefitMatch` → eGovChain | Tamper-evident hash of match |
+| Explain | `explainEligibility` → eGov AI | Plain-language help (post-decision) |
+| Escalate | `reportBenefitNonDelivery` → eReport | Citizen-initiated non-delivery |
 
 Seed catalog (hackathon stub — no live agency benefit API among the 9 services): SSS senior pension, PhilHealth senior subsidy, DSWD widowed assistance.
 
@@ -84,9 +85,10 @@ Seed catalog (hackathon stub — no live agency benefit API among the 9 services
 | Use cases in `packages/application/src/use-cases/bangon.ts` | Built (composable, not one monolith) |
 | `BenefitCatalogPort` + in-memory seed catalog | Built |
 | All 9 eGov platform ports/adapters | Built (env-backed `fetch`) |
-| `apps/api` route that runs the full BANGON flow | Not yet |
-| Face gate enforced inside `confirmCitizenIdentity` | Caller must check `isFaceLivenessPassed` (not enforced yet) |
-| eGovChain / eGov AI / eReport BANGON triggers | Not wired |
+| `apps/api` BANGON + case HTTP routes | Built |
+| Face gate inside `confirmCitizenIdentity` | Built (`isFaceLivenessPassed`) |
+| eGovChain / eGov AI / eReport BANGON use cases | Built (`anchorBenefitMatch`, `explainEligibility`, `reportBenefitNonDelivery`) |
+| Android BANGON citizen client | Not yet (Phase 4 — primary UI) |
 | Multi-agency PSA cascade / barangay rollout | Vision only |
 
 Ground truth: [docs/architecture.md](docs/architecture.md) · Product Vision · BANGON.
@@ -97,7 +99,7 @@ Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters
 
 ```mermaid
 flowchart TB
-  Client[Client Android or web]
+  Client[Android BANGON client]
   Api[apps/api]
   UC[BANGON use cases]
   Domain[domain Benefit rules]
@@ -116,7 +118,8 @@ flowchart TB
 | Domain | `@egov/domain` | Benefit / eligibility invariants |
 | Application | `@egov/application` | Ports + BANGON / case / orchestration use cases |
 | Adapters | `@egov/adapters-*` | Persistence, HTTP, AI, messaging, **egov-platform** |
-| Apps | `apps/api`, `apps/web`, `apps/orchestrator` | Composition roots |
+| Apps | `apps/api`, `apps/orchestrator` | Composition roots (`apps/web` = optional debug only) |
+| Client | Android BANGON | Primary citizen UI — HTTP to `apps/api` only |
 
 ## Official Platform APIs
 
@@ -152,8 +155,8 @@ Full catalog: [docs/platform-apis.md](docs/platform-apis.md).
 
 ```
 apps/
-  api/                 # HTTP composition root
-  web/                 # UI shell
+  api/                 # HTTP composition root (Android client target)
+  web/                 # optional local/debug shell — NOT the product UI
   orchestrator/        # agent delivery pipeline
 packages/
   domain/              # Benefit + ServiceCase invariants

@@ -1,6 +1,6 @@
 /**
- * Placeholder UI shell. Phase 4 replaces this with Vite + React.
- * Keeps the app slot in the monorepo so boundaries stay clear from day one.
+ * Optional local/debug shell — NOT the BANGON product UI.
+ * Primary citizen client is Android (see docs/tasks.md Phase 4).
  */
 import { createServer } from "node:http";
 
@@ -8,21 +8,19 @@ const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>eGov</title>
+    <title>eGov — debug shell</title>
     <style>
-      :root { color-scheme: light; font-family: "IBM Plex Sans", "Segoe UI", sans-serif; }
-      body { margin: 0; min-height: 100vh; display: grid; place-items: center;
-        background: linear-gradient(160deg, #e8f1f5 0%, #f7faf8 45%, #eef2e8 100%); color: #143042; }
-      main { text-align: center; max-width: 36rem; padding: 2rem; }
-      h1 { font-family: "IBM Plex Serif", Georgia, serif; font-weight: 600; letter-spacing: -0.02em; font-size: 3rem; margin: 0 0 0.5rem; }
-      p { margin: 0; line-height: 1.5; opacity: 0.85; }
+      body { font-family: system-ui, sans-serif; margin: 2rem; max-width: 40rem; }
+      code { background: #f4f4f5; padding: 0.1rem 0.35rem; border-radius: 4px; }
     </style>
   </head>
   <body>
-    <main>
-      <h1>eGov</h1>
-      <p>Web shell placeholder. API and orchestrator packages own runtime behavior until Phase 4.</p>
-    </main>
+    <h1>eGov debug shell</h1>
+    <p>
+      This is <strong>not</strong> the citizen product. BANGON’s primary UI is the
+      <strong>Android</strong> app, which talks to <code>apps/api</code> only.
+    </p>
+    <p>API and orchestrator packages own runtime behavior. See <code>docs/tasks.md</code> Phase 4.</p>
   </body>
 </html>`;
 
@@ -31,5 +29,5 @@ createServer((_req, res) => {
   res.writeHead(200, { "content-type": "text/html; charset=utf-8" });
   res.end(html);
 }).listen(port, () => {
-  console.log(`eGov web shell on http://localhost:${port}`);
+  console.log(`eGov debug web shell on http://localhost:${port}`);
 });

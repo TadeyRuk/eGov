@@ -17,16 +17,18 @@ apps → adapters → application → domain
 | `application` | `domain`, `shared` | adapters, apps, frameworks |
 | `adapters-*` | `application` (ports), `domain` (types), `shared` | other apps; unrelated adapters unless via shared events |
 | `apps/*` | any package (composition root) | — |
-| `web` | API contracts / shared DTOs only | persistence, ai, messaging adapters |
+| Android BANGON client | `apps/api` HTTP only | persistence, ai, messaging, egov-platform, domain packages |
+| `web` (debug shell only) | API contracts / shared DTOs only | persistence, ai, messaging adapters; must not be treated as product UI |
 
 ### Forbidden patterns
 
-- Domain importing Express, React, Prisma, fetch, Ollama, or eGov platform URLs  
+- Domain importing Express, React/Android UI kits, Prisma, fetch, Ollama, or eGov platform URLs  
 - Use cases constructing `new PostgresCitizenRepository()` or calling `fetch("https://hackathon-…")`  
 - Circular imports between packages  
 - “Shared” dumping ground for domain entities  
 - Hardcoding partner secrets, API keys, or HMAC secrets (use env from the dashboard only)  
 - Inventing fake government APIs when an official platform service exists ([platform-apis.md](./platform-apis.md))
+- Building the citizen product as a public website in `apps/web` (Android is primary; see [tasks.md](./tasks.md) Phase 4)
 
 ## Runtime boundaries
 
@@ -37,7 +39,8 @@ apps → adapters → application → domain
 | Domain entity | Enforce invariants | Perform I/O |
 | `@egov/adapters-egov-platform` | Implement platform ports with `fetch` + env | Own business rules or store secrets in code |
 | Orchestrator agent | Propose via mailbox / draft artifacts | Approve cases or write citizen PII as truth without a use case + human gate |
-| Web UI | Call API | Hold platform partner secrets or bypass API |
+| Android BANGON client | Call `apps/api` | Hold platform partner secrets, call eGov platform URLs directly, or embed domain eligibility rules |
+| `apps/web` debug shell | Call API for local probing | Act as the citizen product UI |
 
 ## Data boundaries
 

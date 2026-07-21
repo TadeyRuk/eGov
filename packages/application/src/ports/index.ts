@@ -3,6 +3,8 @@ import type {
   AgentTask,
   Benefit,
   BenefitId,
+  BenefitMatch,
+  BenefitMatchId,
   CaseDocument,
   Citizen,
   CitizenId,
@@ -17,6 +19,12 @@ import type { Result } from "@egov/shared";
 
 export type Clock = {
   now(): Date;
+};
+
+/** Content hashing, kept behind a port like Clock — application must not
+ * import node:crypto directly (adapters own I/O and platform primitives). */
+export type HashPort = {
+  sha256Hex(input: string): Promise<string>;
 };
 
 export type CitizenRepository = {
@@ -83,6 +91,11 @@ export type SubmitCaseInput = {
 export type BenefitCatalogPort = {
   listAll(): Promise<Result<readonly Benefit[]>>;
   getById(id: BenefitId): Promise<Result<Benefit>>;
+};
+
+export type BenefitMatchRepository = {
+  getById(id: BenefitMatchId): Promise<Result<BenefitMatch>>;
+  save(match: BenefitMatch): Promise<Result<BenefitMatch>>;
 };
 
 export * from "./platform.js";

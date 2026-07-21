@@ -10,6 +10,7 @@
     "start": "node dist/main.js"
   },
   "dependencies": {
+    "@egov/adapters-egov-platform": "workspace:*",
     "@egov/adapters-http": "workspace:*",
     "@egov/adapters-messaging": "workspace:*",
     "@egov/adapters-persistence": "workspace:*",

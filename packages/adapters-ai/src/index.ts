@@ -6,7 +6,7 @@ export type StubLlmOptions = {
   readonly reply?: (messages: Parameters<LlmPort["complete"]>[0]) => string;
 };
 
-/** Deterministic stub LLM — replace with Ollama/gateway adapter later. */
+/** Deterministic stub LLM — use createOllamaLlmPort for a real provider. */
 export function createStubLlmPort(options: StubLlmOptions = {}): LlmPort {
   return {
     async complete(messages) {
@@ -23,6 +23,64 @@ export function createUnavailableLlmPort(): LlmPort {
   return {
     async complete() {
       return err(appError("UNAVAILABLE", "LLM provider unavailable"));
+    },
+  };
+}
+
+export type OllamaLlmOptions = {
+  /** Default: http://127.0.0.1:11434 — pass from OLLAMA_BASE_URL at composition root. */
+  readonly baseUrl?: string;
+  /** Default: qwen3.5:4b — pass from OLLAMA_MODEL at composition root. */
+  readonly model?: string;
+  readonly fetch?: typeof fetch;
+};
+
+/** Real Ollama chat adapter behind LlmPort. Reachability is not assumed —
+ * failures return Result err (UNAVAILABLE), never throw across the port. */
+export function createOllamaLlmPort(options: OllamaLlmOptions = {}): LlmPort {
+  const baseUrl = (options.baseUrl ?? "http://127.0.0.1:11434").replace(
+    /\/$/,
+    "",
+  );
+  const model = options.model ?? "qwen3.5:4b";
+  const fetchFn = options.fetch ?? globalThis.fetch;
+
+  return {
+    async complete(messages) {
+      try {
+        const response = await fetchFn(`${baseUrl}/api/chat`, {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({
+            model,
+            stream: false,
+            messages: messages.map((m) => ({
+              role: m.role,
+              content: m.content,
+            })),
+          }),
+        });
+        if (!response.ok) {
+          return err(
+            appError(
+              "UNAVAILABLE",
+              `Ollama HTTP ${response.status} from ${baseUrl}`,
+            ),
+          );
+        }
+        const data = (await response.json()) as {
+          message?: { content?: unknown };
+        };
+        const content = data.message?.content;
+        if (typeof content !== "string") {
+          return err(
+            appError("UNAVAILABLE", "Ollama response missing message.content"),
+          );
+        }
+        return ok({ content });
+      } catch (cause) {
+        return err(appError("UNAVAILABLE", "Ollama request failed", cause));
+      }
     },
   };
 }

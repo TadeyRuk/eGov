@@ -11,7 +11,8 @@ A first-class **orchestration layer** coordinates multiple AI agents across the 
 ```
 ┌─────────────────────────────────────────────────────────────┐
 │  Apps (composition roots)                                   │
-│  api · web · orchestrator                                   │
+│  api · orchestrator · (web = optional debug only)           │
+│  Citizen client: Android BANGON (primary product UI)        │
 └───────────────────────────┬─────────────────────────────────┘
                             │ wires
 ┌───────────────────────────▼─────────────────────────────────┐
@@ -85,11 +86,15 @@ Dependency rule: **adapters depend inward; domain never imports adapters.**
 
 ### `apps/api`
 
-HTTP composition root. Constructs adapters, injects them into use cases, mounts HTTP routes. This is the primary runtime entry for government service APIs.
+HTTP composition root. Constructs adapters, injects them into use cases, mounts HTTP routes. This is the primary runtime entry for government service APIs — **including everything the Android BANGON client calls**.
+
+### Citizen client — Android (BANGON)
+
+Primary product UI. Lives outside the TypeScript package graph (native Android). Consumes only `apps/api` HTTP contracts (`/health`, `/cases`, `/bangon/*`). Must not call eGov platform base URLs or embed domain rules — those stay server-side behind ports.
 
 ### `apps/web`
 
-Citizen / staff UI shell. Talks only to the API (or BFF), never to persistence or AI adapters directly.
+**Not the product UI.** Optional local/debug HTML shell only (placeholder until removed or demoted). Do not treat Vite/React work here as Phase 4 completion.
 
 ### `apps/orchestrator`
 
@@ -107,7 +112,7 @@ Agents do not own production data paths; they advise and draft through ports so 
 
 ```mermaid
 flowchart LR
-  Client[Client] --> Http[adapters-http]
+  Client[Android BANGON client] --> Http[adapters-http]
   Http --> UC[application use cases]
   UC --> Domain[domain]
   UC --> RepoPort[Repository ports]
@@ -125,7 +130,7 @@ flowchart LR
 
 ## Non-goals (architecture)
 
-- Domain logic inside React components or route handlers  
+- Domain logic inside Android UI, React (if any debug shell), or route handlers  
 - Direct DB or LLM or platform URL calls from use cases (always via ports)  
 - Inventing fake government APIs when an official platform service exists  
 - Cross-package circular imports  
@@ -149,17 +154,17 @@ The product goal is zero-redundancy onboarding: a PSA PhilSys update (marriage, 
 
 ### BANGON — proactive benefit-matching workflow
 
-BANGON is the flagship product feature: instead of a citizen applying for benefits agency-by-agency, the app scans a verified citizen and proactively finds which benefits they already qualify for. Full flow: `DbmCompassPort` (fund check, runs first and independent of any one citizen — which departments/benefits currently have sufficient funds) → citizen scan-in → `FaceLivenessPort` (live-person check) + `EVerifyPort` (identity match) → benefit-eligibility search (scoped only to the fundable-benefit list from the DBM Compass check) → `EMessagePort` (eligibility notification) → `EgovPayPort` (disbursement, if the benefit is financial) → `EgovChainPort` (anchor the match + transaction). Fund-checking runs before matching, not after, so a citizen is never told they're eligible for something that turns out unfunded. If a matched benefit is never received, the citizen can file via `EReportPort` — the same port/mechanism as the existing eReport usage (Workflow 2 in the pitch doc), not a separate one. `EgovAiPort` (Assistant, Laws & Regulations, Translator) is intended to explain eligibility in plain language after a match is decided — cosmetic/side-effect only, never part of the eligibility decision itself (not wired in yet, see below).
+BANGON is the flagship product feature: instead of a citizen applying for benefits agency-by-agency, the app scans a verified citizen and proactively finds which benefits they already qualify for. Full flow: `DbmCompassPort` (fund check, runs first and independent of any one citizen — which departments/benefits currently have sufficient funds) → citizen scan-in → `FaceLivenessPort` (live-person check) + `EVerifyPort` (identity match) → benefit-eligibility search (scoped only to the fundable-benefit list from the DBM Compass check) → `EMessagePort` (eligibility notification) → `EgovPayPort` (disbursement, if the benefit is financial) → `EgovChainPort` (anchor the match + transaction). Fund-checking runs before matching, not after, so a citizen is never told they're eligible for something that turns out unfunded. If a matched benefit is never received, the citizen can file via `EReportPort` — the same port/mechanism as the existing eReport usage (Workflow 2 in the pitch doc), not a separate one. `EgovAiPort` (Assistant, Laws & Regulations, Translator) explains eligibility in plain language after a match is decided — cosmetic/side-effect only, never part of the eligibility decision itself (`explainEligibility`).
 
-**Status: eligibility-matching core is built; full end-to-end composition and eGov AI narration are not.**
+**Status: BANGON application vertical is built** (use cases + HTTP composition + automated gate tests). Live OpenAPI confirmation for the chain anchor RPC method name remains open (Phase 0.5).
 
 - **Domain** (`packages/domain/src/index.ts`): `Benefit`, `EligibilityRule`, `BenefitMatch`, `CitizenEligibilityProfile` types, plus a pure `isEligibleForBenefit` function. Eligibility fields are restricted to what eVerify/PSA actually returns (date of birth → age, civil status, vital status) — no employment/income/region data, since no platform API provides it.
-- **Application** (`packages/application/src/ports/index.ts`): `BenefitCatalogPort`. (`packages/application/src/use-cases/bangon.ts`): `findEligibleBenefits` (fund-check-then-match, fails closed if a fund-check call errors), `notifyEligibility` (eMessage), `disburseBenefit` (eGovPay, rejects non-financial benefits with a `VALIDATION` error), `confirmCitizenIdentity` (eVerify → `CitizenEligibilityProfile`). Each is a small composable function per `docs/design.md`'s use-case pattern — not one monolithic flow — matching `orchestration.ts`'s style.
-- **Adapter** (`packages/adapters-persistence/src/index.ts`): `createInMemoryBenefitCatalog`, seeded with 3 hardcoded benefits (SSS senior pension, PhilHealth senior subsidy, DSWD widowed assistance), each declaring its own DBM dataset + query for the fund-check. This hardcoded list is a deliberate hackathon simplification — no live agency benefit-catalog API exists among the 9 platform services.
-- **Not yet built:** no `apps/api` HTTP route composes these into one callable flow (deferred until a client needs it — Android, per current direction); Face Liveness gating is not wired into `confirmCitizenIdentity` (the caller is expected to check `isFaceLivenessPassed` before calling it, not yet enforced in code); `EgovChainPort` anchoring of a match/transaction is not wired in; `EgovAiPort` plain-language narration is not wired in; `EReportPort` non-delivery complaint path reuses the existing eReport port but has no BANGON-specific trigger yet.
-- Verified by a manual script exercising `findEligibleBenefits`/`disburseBenefit`/`notifyEligibility` against fake ports (fund-check gating, non-financial guard, and adapter-failure propagation all confirmed correct) — no repo-wide test framework exists yet (`docs/tasks.md` Phase 0: "Add root `test` suite beyond platform smoke" still unchecked), so this is not a committed automated test.
+- **Application** (`packages/application/src/ports/index.ts`): `BenefitCatalogPort`, `BenefitMatchRepository`, `HashPort`. (`packages/application/src/use-cases/bangon.ts`): `findEligibleBenefits` (fund-check-then-match, persists matches, fails closed if a fund-check call errors), `notifyEligibility` (eMessage), `disburseBenefit` (eGovPay, rejects non-financial benefits), `confirmCitizenIdentity` (Face Liveness gate via `isFaceLivenessPassed`, then eVerify → `CitizenEligibilityProfile`), `anchorBenefitMatch` (hash of `{citizenId, benefitId, matchedAt}` via `HashPort` + `EgovChainPort.call` — placeholder method `egov_anchorHash` pending dashboard OpenAPI), `explainEligibility` (eGov AI, post-decision only), `reportBenefitNonDelivery` (citizen-initiated eReport).
+- **HTTP** (`packages/adapters-http` + `apps/api`): `createBangonHttpHandlers` mounted at `/bangon/confirm-identity`, `/bangon/matches`, `/bangon/matches/:id/{notify,disburse,anchor,explain}`, `/bangon/report-non-delivery`.
+- **Adapter** (`packages/adapters-persistence/src/index.ts`): `createInMemoryBenefitCatalog` (3 seed benefits), `createInMemoryBenefitMatchRepository`, `createNodeHashAdapter`.
+- **Tests:** `node:test` contract + gate suites (`repositories.test.ts`, `bangon-gates.test.ts`) — 12 passing via root `pnpm test`.
 
-See [`tasks.md`](./tasks.md) **Phase 1 — Core domain vertical** for where the remaining composition/wiring work is tracked.
+See [`tasks.md`](./tasks.md) **Phase 1 — Core domain vertical** / **Phase 0.5** for remaining open items (CI, OpenAPI alignment for `egov_anchorHash`).
 
 ### High-scale target (100M+ transactions/week)
 

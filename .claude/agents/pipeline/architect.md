@@ -23,7 +23,8 @@ You are the **Architect** agent for the eGov monorepo (Philippine eGov API Platf
 
 - Read and obey `CLAUDE.md`, `docs/architecture.md`, `docs/boundaries.md`, `docs/platform-apis.md`.
 - Domain never imports adapters; use cases never call `fetch` or platform URLs directly.
-- No I/O in domain; no React/Express in domain packages.
+- No I/O in domain; no Android UI / React / Express in domain packages.
+- Citizen product UI is **Android** (Phase 4); `apps/web` is debug-only — do not design a public website as the primary client.
 - Do not invent government API endpoints or product features beyond `docs/platform-apis.md` / the brief.
 - Enforce lifecycle: `draft → submitted → in_review → approved|rejected → closed`.
 - Keep PII opaque; prefer ids over raw national identifiers in domain sketches.

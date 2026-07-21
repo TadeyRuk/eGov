@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node ./src/dev-server.mjs",
-    "typecheck": "node -e \"console.log('@egov/web: shell placeholder — Vite app arrives in Phase 4')\"",
-    "build": "node -e \"console.log('@egov/web: no build yet')\""
+    "typecheck": "node -e \"console.log('@egov/web: optional debug shell only — citizen UI is Android (Phase 4)')\"",
+    "build": "node -e \"console.log('@egov/web: no product build — Android is the citizen client')\""
   }
 }

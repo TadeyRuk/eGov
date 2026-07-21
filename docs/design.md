@@ -75,9 +75,16 @@ Do not invent alternate government identity/payment APIs when these platform ser
 
 | App | Design note |
 |-----|-------------|
-| `api` | Express/Fastify (or equivalent) chosen at composition time; keep framework out of application |
-| `web` | Vite + React shell; consume API contracts only |
+| `api` | HTTP composition root (Node); keep framework out of application. Primary backend the Android client calls. |
 | `orchestrator` | Agent registry, mailbox loop, stage pipeline; no domain mutations without going through application use cases |
+| `web` | **Not the product UI.** Optional local/debug HTML shell only. Citizen product is Android (see Phase 4 in [tasks.md](./tasks.md)). |
+
+### Citizen client (outside or beside this monorepo)
+
+| Surface | Design note |
+|---------|-------------|
+| **Android (BANGON)** | Primary citizen app. Talks only to `apps/api` HTTP contracts (`/cases`, `/bangon/*`). Never imports domain packages or calls eGov platform URLs directly — platform I/O stays server-side behind ports. |
+| Staff / reviewer | Case review and orchestrator approvals — Android admin screen or thin internal tool; same API rule (API only). |
 
 ## Multi-AI orchestration design
 
@@ -115,7 +122,7 @@ Outbound ports stay private to the process; they are not HTTP endpoints.
 |-------|------|-------|
 | Unit | Domain invariants, use cases with fake ports | `packages/domain`, `packages/application` |
 | Adapter | Contract tests against port interfaces | each `adapters-*` |
-| App | Smoke wiring of composition root | `apps/api`, `apps/orchestrator` |
+| App | Smoke wiring of composition root | `apps/api`, `apps/orchestrator` (Android client tested against live/staging API separately) |
 | Criteria | Acceptance checks from `criteria.md` | CI later |
 
 Prefer fakes over mocks: implement the port in-memory.
@@ -137,6 +144,7 @@ These defaults can change at the adapter/app edge without rewriting domain or ap
 Documented intentionally for later commits — do not invent silently:
 
 - AuthN/Z model (citizen vs staff vs system)  
+- Android app packaging / repo location (in-monorepo vs separate Android repo)  
 - Multi-agency tenancy  
 - Document virus scanning / retention policy  
 - Exact HTTP framework and ORM  
