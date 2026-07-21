@@ -1,0 +1,11 @@
+.git
+.local
+.env
+node_modules
+apps/android
+apps/api
+apps/orchestrator
+packages
+postman
+tooling
+docs

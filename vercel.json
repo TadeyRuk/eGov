@@ -1,4 +1,6 @@
 {
   "outputDirectory": "apps/web/public",
-  "cleanUrls": true
+  "cleanUrls": true,
+  "installCommand": "true",
+  "buildCommand": "true"
 }
