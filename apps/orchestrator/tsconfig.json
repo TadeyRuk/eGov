@@ -1,0 +1,20 @@
+{
+  "extends": "../../tooling/tsconfig/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": false,
+    "declaration": false,
+    "declarationMap": false,
+    "types": ["node"]
+  },
+  "include": ["src"],
+  "references": [
+    { "path": "../../packages/adapters-ai" },
+    { "path": "../../packages/adapters-messaging" },
+    { "path": "../../packages/adapters-persistence" },
+    { "path": "../../packages/application" },
+    { "path": "../../packages/domain" },
+    { "path": "../../packages/shared" }
+  ]
+}

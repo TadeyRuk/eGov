@@ -1,0 +1,11 @@
+{
+  "name": "@egov/web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node ./src/dev-server.mjs",
+    "typecheck": "node -e \"console.log('@egov/web: shell placeholder — Vite app arrives in Phase 4')\"",
+    "build": "node -e \"console.log('@egov/web: no build yet')\""
+  }
+}

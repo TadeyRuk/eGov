@@ -1,0 +1,15 @@
+{
+  "name": "egov",
+  "private": true,
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "pnpm -r run build",
+    "typecheck": "pnpm -r run build && pnpm -r run typecheck",
+    "dev:api": "pnpm --filter @egov/api dev",
+    "dev:orchestrator": "pnpm --filter @egov/orchestrator dev",
+    "dev:web": "pnpm --filter @egov/web dev"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
