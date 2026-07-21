@@ -1,98 +1,224 @@
-# eGov
+<h1 align="center">BANGON</h1>
 
-Modular Philippine e-government **SuperApp** monorepo: hexagonal ports/adapters, a multi-agent orchestration line, and outbound adapters for all **9** official [eGov API Platform](https://platforms.e.gov.ph/dashboard) services.
+<p align="center">
+  <strong>Benefit Allocation &amp; Navigation for Government Opportunities Nationwide</strong>
+</p>
 
-**Ground truth for structure:** [docs/architecture.md](docs/architecture.md) (what is built vs aspirational).  
-**Hackathon pitch / long-term narrative:** [eGov_PH_SuperApp_System_Architecture.md](eGov_PH_SuperApp_System_Architecture.md).
+<p align="center">
+  Proactive Philippine benefit-matching on the official eGov API Platform —
+  fund-check first, verify the citizen, match eligibility, notify, and disburse
+  without agency-by-agency applications.
+</p>
 
-## Product direction (target — not yet built)
+<p align="center">
+  <a href="docs/architecture.md"><strong>Architecture</strong></a>
+  ·
+  <a href="eGov_PH_SuperApp_System_Architecture.md"><strong>Pitch Spec</strong></a>
+  ·
+  <a href="docs/platform-apis.md"><strong>Platform APIs</strong></a>
+  ·
+  <a href="https://platforms.e.gov.ph/dashboard"><strong>eGov Dashboard</strong></a>
+</p>
 
-Documented under **Product Vision** in [docs/architecture.md](docs/architecture.md):
+<p align="center">
+  <img alt="eGov Platform" src="https://img.shields.io/badge/eGov_API_Platform-9_services-0F766E?style=flat-square" />
+  <img alt="Architecture" src="https://img.shields.io/badge/Architecture-Hexagonal-2563EB?style=flat-square" />
+  <img alt="BANGON core" src="https://img.shields.io/badge/BANGON_core-Eligibility_built-16A34A?style=flat-square" />
+  <img alt="HTTP compose" src="https://img.shields.io/badge/HTTP_E2E_compose-Not_yet-CA8A04?style=flat-square" />
+  <img alt="Monorepo" src="https://img.shields.io/badge/Monorepo-pnpm_TypeScript-334155?style=flat-square" />
+</p>
 
-| Theme | Intent | Build status |
-|-------|--------|----------------|
-| **BANGON** | Proactive benefit-matching: DBM fund check → Face + eVerify → eligibility search → eMessage / eGovPay / eGovChain (eReport on miss; eGov AI for plain-language help) | Not a single use case yet; ports exist individually; **eligibility-search port still undesigned** |
-| Multi-agency PSA cascade | PhilSys update propagates across agencies (zero-redundancy onboarding) | Not built — `ServiceCase` is single-agency today |
-| Scale / nationwide | 100M+ tx/week design target; barangay → national surface | Narrative only for hackathon scope |
+---
 
-Do not treat vision bullets as implemented features.
+## Why BANGON
 
-## Foundation docs
+Citizens should not discover benefits by walking agency to agency. BANGON flips the model:
 
-| Doc | Role |
-|-----|------|
-| [docs/architecture.md](docs/architecture.md) | Layers, ports, apps, flows, **current vs Product Vision** |
-| [docs/design.md](docs/design.md) | Principles, domain sketch, agent roles |
-| [docs/platform-apis.md](docs/platform-apis.md) | eGov API Platform reference (all 9 services) |
-| [docs/boundaries.md](docs/boundaries.md) | Hard dependency and AI rules |
-| [docs/fallback.md](docs/fallback.md) | Degradation and fail-safe paths |
-| [docs/criteria.md](docs/criteria.md) | Acceptance gates per phase |
-| [docs/tasks.md](docs/tasks.md) | Ordered backlog foundation → production |
-| [eGov_PH_SuperApp_System_Architecture.md](eGov_PH_SuperApp_System_Architecture.md) | Pitch / SuperApp specification (aspirational) |
+1. Check which programs are **actually funded** (DBM Compass) — before promising anything.
+2. Verify the person is live and matches PhilSys (Face Liveness + eVerify).
+3. Match only against that **fundable** list using PSA-grounded eligibility fields.
+4. Notify via eMessage, disburse financial benefits via eGovPay, and anchor on eGovChain.
+5. Explain decisions in plain language with eGov AI; escalate non-delivery via eReport.
 
-## Platform integrations (current)
+Fund-checking runs **before** matching so a citizen is never told they qualify for an unfunded program.
 
-Outbound ports in `@egov/application` (`ports/platform.ts`), implemented by `@egov/adapters-egov-platform`:
+## How It Works
+
+```mermaid
+flowchart LR
+  Dbm[DBM Compass<br/>fund check]
+  Scan[Citizen scan-in]
+  Face[Face Liveness]
+  Verify[eVerify]
+  Match[Eligibility match]
+  Msg[eMessage]
+  Pay[eGovPay]
+  Chain[eGovChain]
+
+  Dbm --> Scan
+  Scan --> Face --> Verify --> Match
+  Match --> Msg
+  Match --> Pay
+  Match --> Chain
+```
+
+| Step | Platform / code | Role |
+|------|-----------------|------|
+| Fund check | `DbmCompassPort` | Which benefits have budget right now |
+| Liveness | `FaceLivenessPort` | Live person (`SUCCEEDED` + confidence ≥ 95) |
+| Identity | `EVerifyPort` | PSA fields → `CitizenEligibilityProfile` |
+| Match | `findEligibleBenefits` | Pure rules over fundable catalog only |
+| Notify | `notifyEligibility` → eMessage | SMS with no links / no OTPs |
+| Disburse | `disburseBenefit` → eGovPay | Financial benefits only |
+| Anchor | `EgovChainPort` | Tamper-evident record (wiring pending) |
+| Explain | `EgovAiPort` | Plain-language help (wiring pending) |
+| Escalate | `EReportPort` | Non-delivery complaints (port exists; BANGON trigger pending) |
+
+Seed catalog (hackathon stub — no live agency benefit API among the 9 services): SSS senior pension, PhilHealth senior subsidy, DSWD widowed assistance.
+
+## What Is Built vs Not
+
+| Area | Status |
+|------|--------|
+| Domain: `Benefit`, `EligibilityRule`, `BenefitMatch`, `isEligibleForBenefit` | Built |
+| Use cases in `packages/application/src/use-cases/bangon.ts` | Built (composable, not one monolith) |
+| `BenefitCatalogPort` + in-memory seed catalog | Built |
+| All 9 eGov platform ports/adapters | Built (env-backed `fetch`) |
+| `apps/api` route that runs the full BANGON flow | Not yet |
+| Face gate enforced inside `confirmCitizenIdentity` | Caller must check `isFaceLivenessPassed` (not enforced yet) |
+| eGovChain / eGov AI / eReport BANGON triggers | Not wired |
+| Multi-agency PSA cascade / barangay rollout | Vision only |
+
+Ground truth: [docs/architecture.md](docs/architecture.md) · Product Vision · BANGON.
+
+## System Architecture
+
+Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters.
+
+```mermaid
+flowchart TB
+  Client[Client Android or web]
+  Api[apps/api]
+  UC[BANGON use cases]
+  Domain[domain Benefit rules]
+  Catalog[BenefitCatalogPort]
+  Platform[adapters-egov-platform]
+  Ext[eGov API Platform 9 services]
+
+  Client --> Api --> UC
+  UC --> Domain
+  UC --> Catalog
+  UC --> Platform --> Ext
+```
+
+| Layer | Package | Responsibility |
+|-------|---------|----------------|
+| Domain | `@egov/domain` | Benefit / eligibility invariants |
+| Application | `@egov/application` | Ports + BANGON / case / orchestration use cases |
+| Adapters | `@egov/adapters-*` | Persistence, HTTP, AI, messaging, **egov-platform** |
+| Apps | `apps/api`, `apps/web`, `apps/orchestrator` | Composition roots |
+
+## Official Platform APIs
+
+Credentials **only** from [platforms.e.gov.ph/dashboard](https://platforms.e.gov.ph/dashboard). Never commit secrets.
 
 | Port | Service |
 |------|---------|
 | `EgovSsoPort` | eGov SSO |
 | `EVerifyPort` | eVerify |
 | `FaceLivenessPort` | Face Liveness |
-| `EMessagePort` | eMessage SMS |
+| `EMessagePort` | eMessage |
 | `EgovAiPort` | eGov AI |
 | `EgovPayPort` | eGovPay |
-| `EgovChainPort` | eGovChain JSON-RPC |
+| `EgovChainPort` | eGovChain (JSON-RPC, chain `13371`) |
 | `EReportPort` | eReport |
 | `DbmCompassPort` | DBM Compass |
 
-Credentials come **only** from the dashboard. Copy [`.env.example`](.env.example) → `.env` and fill placeholders. Never commit secrets.
+Full catalog: [docs/platform-apis.md](docs/platform-apis.md).
 
-## Monorepo layout
+## Technology
+
+| Layer | Implementation |
+|-------|----------------|
+| Language | TypeScript (Node 20+) |
+| Workspaces | pnpm 9 monorepo |
+| Architecture | Hexagonal ports & adapters |
+| Platform I/O | `fetch` + `.env` secrets via `@egov/adapters-egov-platform` |
+| Persistence (now) | In-memory stubs (`@egov/adapters-persistence`) |
+| Delivery line | Multi-agent orchestrator (`apps/orchestrator`) |
+| Hygiene / smoke | `pnpm hygiene`, `pnpm smoke:platform` |
+
+## Repository Map
 
 ```
 apps/
-  api/              # HTTP composition root
-  web/              # UI shell (citizen / staff)
-  orchestrator/     # multi-agent delivery line
+  api/                 # HTTP composition root
+  web/                 # UI shell
+  orchestrator/        # agent delivery pipeline
 packages/
-  domain/           # entities & invariants (no I/O)
-  application/      # use cases + ports (incl. platform ports)
-  shared/           # Result, errors, ids
-  adapters-http/
+  domain/              # Benefit + ServiceCase invariants
+  application/         # bangon.ts, service-cases, ports
+  shared/
+  adapters-egov-platform/
   adapters-persistence/
+  adapters-http/
   adapters-ai/
   adapters-messaging/
-  adapters-egov-platform/  # official eGov platform fetch adapters
-docs/
-tooling/            # tsconfig, hygiene check
+docs/                  # architecture, platform-apis, tasks, criteria
+eGov_PH_SuperApp_System_Architecture.md
+tooling/check-hygiene.mjs
 ```
 
-**Dependency rule:** `apps → adapters → application → domain` (see [docs/boundaries.md](docs/boundaries.md)). Domain never imports adapters.
+See also: [docs/boundaries.md](docs/boundaries.md), [docs/design.md](docs/design.md), [docs/tasks.md](docs/tasks.md), [docs/criteria.md](docs/criteria.md).
 
-## Quick start
+## Run Locally
+
+### Prerequisites
+
+- Node.js 20+
+- pnpm 9.x (`npx pnpm@9.15.0` if not on PATH)
+- Dashboard credentials copied into `.env`
 
 ```bash
-# if pnpm is not on PATH:
+git clone https://github.com/TadeyRuk/eGov.git
+cd eGov
+
 npx pnpm@9.15.0 install
 npx pnpm@9.15.0 typecheck
 
-# secrets + tracked-file hygiene
-pnpm hygiene
+cp .env.example .env   # then fill from the eGov dashboard — never commit .env
 
-# live platform adapter smoke (needs `.env` from dashboard)
-pnpm smoke:platform
-# optional side effects: Face session / SMS / Pay generate
-# pnpm smoke:platform -- --write
+pnpm hygiene
+pnpm smoke:platform    # safe probes; add -- --write for Face / SMS / Pay generate
 
 pnpm --filter @egov/api dev
 pnpm --filter @egov/orchestrator dev
 ```
 
-Requires Node 20+ and [pnpm](https://pnpm.io) 9.x. Copy [`.env.example`](.env.example) → `.env` (never commit `.env`).
+### Environment variables
 
-## Status
+See [`.env.example`](.env.example). Dashboard-shaped names are preferred (adapters accept aliases):
 
-- **Now:** Phase 0 foundation — hexagonal monorepo, in-memory stubs, all 9 platform ports/adapters (env-backed fetch), hygiene + `smoke:platform`. See [docs/tasks.md](docs/tasks.md).
-- **Next (architecture):** Wire use cases to SSO / eVerify / Pay; harden AI / eReport path maps against dashboard OpenAPI; design BANGON eligibility-search before inventing a port.
-- **Not built:** BANGON composite workflow, PSA cascade, Postgres / queue scale path.
+| Variable | Service |
+|----------|---------|
+| `EGOV_SSO_PARTNER_CODE` / `EGOV_SSO_PARTNER_SECRET` | SSO |
+| `EVERIFY_CLIENT_ID` / `EVERIFY_CLIENT_SECRET` | eVerify |
+| `FACE_LIVENESS_API_KEY` | Face Liveness |
+| `EMESSAGE_AUTH_TOKEN` | eMessage |
+| `EGOV_AI_ACCESS_CODE` | eGov AI |
+| `EGOVPAY_API_KEY` (+ optional `EGOVPAY_HMAC_SECRET`, settlement UUID) | eGovPay |
+| `EGOVCHAIN_RPC_URL` / `EGOVCHAIN_CHAIN_ID` | eGovChain |
+| `EREPORT_ACCESS_TOKEN` | eReport |
+| `DBM_COMPASS_API_KEY` | DBM Compass |
+
+Optional smoke overrides: `SMOKE_SSO_EXCHANGE_CODE`, `SMOKE_SMS_TO`, `SMOKE_PAY_TRANSACTION_ID`.
+
+## Docs
+
+| Doc | Role |
+|-----|------|
+| [docs/architecture.md](docs/architecture.md) | Layers, ports, BANGON built vs vision |
+| [eGov_PH_SuperApp_System_Architecture.md](eGov_PH_SuperApp_System_Architecture.md) | Hackathon pitch / SuperApp spec |
+| [docs/platform-apis.md](docs/platform-apis.md) | Official 9-service reference |
+| [docs/tasks.md](docs/tasks.md) | Backlog foundation → production |
+| [docs/hackathon-mechanics.md](docs/hackathon-mechanics.md) | Judging mechanics |
