@@ -45,11 +45,13 @@ Registry deployment transaction: `0xdf42c6b312b1a79985bdaf415fec29767d3f6f92c07f
 
 Synthetic card transaction: `0x29d1706704679f47d0a62f4a4509f0c966401d84ee837be4e01181fd5f78b4bc`
 
+The credential/document self-service model adds four passing policy-gate tests: valid issuer/holder access, stale challenge plus low liveness rejection, image-without-consent rejection, and authenticated-holder mismatch rejection. Its Solidity registry also compiles successfully; it is an undeployed design artifact and is not represented as a live department integration.
+
 ## Application and client checks
 
 | Check | Result |
 |---|---:|
-| Monorepo automated tests | PASS — 55/55 |
+| Monorepo automated tests | PASS — 59/59 |
 | TypeScript build/typecheck | PASS |
 | Repository hygiene/secret check | PASS |
 | Java Android debug APK build | PASS |

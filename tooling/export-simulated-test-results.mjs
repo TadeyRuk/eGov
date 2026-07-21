@@ -85,9 +85,9 @@ const output = {
     ],
   },
   verificationSummary: {
-    automatedTests: { result: "PASS", passed: 55, total: 55 },
+    automatedTests: { result: "PASS", passed: 59, total: 59 },
     typecheckAndBuild: { result: "PASS" },
-    repositoryHygiene: { result: "PASS", trackedFilesChecked: 163 },
+    repositoryHygiene: { result: "PASS", trackedFilesChecked: 177 },
     aiOrchestration: { result: aiKpi.result, score: aiKpi.score },
     accountabilityReadBack: { result: accountabilityKpi.result, ...accountabilityKpi.summary },
     systemKpi: { result: systemKpi.result, ...systemKpi.summary },

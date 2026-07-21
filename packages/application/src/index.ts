@@ -9,4 +9,5 @@ export * from "./use-cases/sso-profile.js";
 export * from "./use-cases/face-liveness.js";
 export * from "./use-cases/egov-ai-orchestrator.js";
 export * from "./use-cases/government-document-ocr.js";
+export * from "./use-cases/credential-access.js";
 export * from "./use-cases/public-interest-news-rag.js";

@@ -1,0 +1,50 @@
+flowchart LR
+  subgraph Core["1. Hexagonal application core"]
+    HTTP["adapters-http"]
+    Benefits["Benefit workflow<br/>fund → verify → match → pay"]
+    AIFlow["AI orchestration<br/>Assistant + Laws + Translator + Speech"]
+    Accountability["Accountability<br/>projects + eReport + RAG + OCR"]
+    Domain["@egov/domain<br/>rules + invariants + events"]
+    Ports["Repository / event / hash<br/>and platform ports"]
+    HTTP --> Benefits
+    HTTP --> AIFlow
+    HTTP --> Accountability
+    Benefits --> Domain
+    AIFlow --> Domain
+    Accountability --> Domain
+    Benefits --> Ports
+    AIFlow --> Ports
+    Accountability --> Ports
+  end
+
+  subgraph Adapters["2. Outbound adapters"]
+    Platform["adapters-egov-platform"]
+    Persistence["adapters-persistence"]
+    Messaging["adapters-messaging"]
+    AI["adapters-ai"]
+  end
+
+  subgraph Official["3. Official eGov API Platform"]
+    Identity["SSO / eVerify / Face Liveness"]
+    CitizenOps["eMessage / eGovPay / eReport"]
+    Intelligence["Assistant / Laws / Translator<br/>Speech / Document Extractor"]
+    DBM["DBM Compass<br/>SAAODB / NCA / SARO / LGSF"]
+    RPC["eGovChain JSON-RPC"]
+  end
+
+  Ports --> Platform
+  Ports --> Persistence
+  Ports --> Messaging
+  Ports --> AI
+  Platform --> Identity
+  Platform --> CitizenOps
+  Platform --> Intelligence
+  Platform --> DBM
+  Platform --> RPC
+
+  classDef core fill:#dcfce7,stroke:#15803d,color:#14532d;
+  classDef adapter fill:#fef3c7,stroke:#b45309,color:#78350f;
+  classDef external fill:#f1f5f9,stroke:#475569,color:#0f172a;
+  class HTTP,Benefits,AIFlow,Accountability,Domain,Ports core;
+  class Platform,Persistence,Messaging,AI adapter;
+  class Identity,CitizenOps,Intelligence,DBM,RPC external;

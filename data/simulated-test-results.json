@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-07-21T20:45:34.875Z",
+  "generatedAt": "2026-07-21T21:18:09.374Z",
   "datasetId": "tolvaris-synthetic-government-demo-2026",
   "isSynthetic": true,
   "disclaimer": "All people, agencies, businesses, projects, payments, reports, documents, amounts, anomalies, identifiers, and transactions represented as test data are synthetic hackathon demonstrations. They are not claims about real government activity.",
@@ -19,15 +19,15 @@
   "verificationSummary": {
     "automatedTests": {
       "result": "PASS",
-      "passed": 55,
-      "total": 55
+      "passed": 59,
+      "total": 59
     },
     "typecheckAndBuild": {
       "result": "PASS"
     },
     "repositoryHygiene": {
       "result": "PASS",
-      "trackedFilesChecked": 163
+      "trackedFilesChecked": 177
     },
     "aiOrchestration": {
       "result": "PASS",

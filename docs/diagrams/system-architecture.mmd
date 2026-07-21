@@ -25,7 +25,7 @@ flowchart LR
       direction LR
       Bangon["Benefit workflow<br/>fund → verify → match<br/>notify → pay → anchor"]
       AIFlow["AI orchestration<br/>Assistant + Laws +<br/>Translator + Speech"]
-      Accountability["Accountability pipelines<br/>signed projects + eReport<br/>news RAG + document OCR"]
+      Accountability["Accountability + exchange<br/>signed projects + eReport<br/>news RAG + OCR + credential challenges"]
     end
 
     Domain["&lt;&lt;domain&gt;&gt;<br/>@egov/domain<br/>eligibility rules, entities,<br/>invariants, domain events"]
@@ -48,6 +48,7 @@ flowchart LR
     Persistence["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-persistence<br/>repositories + document store"]
     Messaging["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-messaging<br/>event bus"]
     AIAdapter["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-ai<br/>LLM + agent mailbox"]
+    CredentialGateway["&lt;&lt;issuer-side gate&gt;&gt;<br/>holder-bound challenge<br/>policy + consent decision"]
   end
 
   subgraph PrivateData["Protected off-chain boundary"]
@@ -65,6 +66,7 @@ flowchart LR
     ReportRegistry["Report registry<br/>commitments + disclosure decisions"]
     PaymentRegistry["Payment proof registry<br/>private citizen / public business"]
     DocumentRegistry["Document proof registry<br/>private / gated / public"]
+    CredentialRegistry["Credential exchange registry<br/>attestation → request → decision → receipt"]
   end
 
   subgraph Official["Official eGov API Platform"]
@@ -74,6 +76,11 @@ flowchart LR
     Intelligence["eGov AI<br/>Assistant / Laws / Translator<br/>Speech / Document Extractor"]
     GovernmentData["DBM Compass<br/>SAAODB / NCA / SARO / LGSF"]
     Rpc["eGovChain JSON-RPC<br/>call / submit / receipt / logs"]
+  end
+
+  subgraph Departments["Issuing department security boundary"]
+    IssuerSystems["BIR / LTO / SSS / other issuer APIs<br/>direct holder self-service"]
+    IssuerVault["Issuer encrypted vault<br/>authoritative fields + images"]
   end
 
   Android -->|"HTTPS JSON"| API
@@ -90,6 +97,7 @@ flowchart LR
   Ports --> Persistence
   Ports --> Messaging
   Ports --> AIAdapter
+  Ports --> CredentialGateway
 
   PlatformAdapter --> Identity
   PlatformAdapter --> CitizenOps
@@ -110,11 +118,22 @@ flowchart LR
   Rpc --> ReportRegistry
   Rpc --> PaymentRegistry
   Rpc --> DocumentRegistry
+  Rpc --> CredentialRegistry
+
+  Android -->|"direct self-service request"| IssuerSystems
+  Web -->|"direct self-service request"| IssuerSystems
+  IssuerSystems -->|"issue department challenge"| CredentialGateway
+  CredentialGateway -->|"SSO / signature / optional liveness"| Identity
+  CredentialGateway -->|"verify issuer-owned holder attestation"| CredentialRegistry
+  IssuerSystems -->|"approved holder only"| IssuerVault
+  IssuerVault -->|"holder/session-encrypted response"| Android
+  IssuerVault -->|"holder/session-encrypted response"| Web
 
   Vault -. "hash / HMAC commitment only" .-> BenefitRegistry
   Vault -. "evidence digest only" .-> ReportRegistry
   Vault -. "individual proof only" .-> PaymentRegistry
   Vault -. "content digest only" .-> DocumentRegistry
+  IssuerSystems -. "attestation / consent / release digests only" .-> CredentialRegistry
   ProjectRegistry --> ReadModel
   Ledger --> ReadModel
 
@@ -129,7 +148,9 @@ flowchart LR
   class Android,Web,Agency,Reviewer client;
   class WebFn,API,Orchestrator,KPI runtime;
   class HTTP,Bangon,AIFlow,Accountability,Domain,Ports core;
-  class PlatformAdapter,Persistence,Messaging,AIAdapter adapter;
+  class PlatformAdapter,Persistence,Messaging,AIAdapter,CredentialGateway adapter;
   class Vault,ReadModel,Reports private;
-  class ProjectRegistry,Ledger,BenefitRegistry,ReportRegistry,PaymentRegistry,DocumentRegistry chain;
+  class ProjectRegistry,Ledger,BenefitRegistry,ReportRegistry,PaymentRegistry,DocumentRegistry,CredentialRegistry chain;
   class Identity,CitizenOps,Intelligence,GovernmentData,Rpc external;
+  class IssuerSystems external;
+  class IssuerVault private;

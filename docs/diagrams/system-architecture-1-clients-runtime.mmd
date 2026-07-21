@@ -1,0 +1,36 @@
+flowchart LR
+  subgraph Clients["1. Client and partner boundary"]
+    Android["Android B.A.N.G.O.N"]
+    Web["Vercel web + SSO widget"]
+    Agency["Agency system<br/>Ed25519 signer"]
+    Reviewer["Agency / COA / legal reviewer"]
+  end
+
+  subgraph Runtime["2. Deployment surfaces"]
+    WebFn["Web serverless<br/>config + SSO exchange"]
+    API["apps/api<br/>HTTP composition root"]
+    Orchestrator["apps/orchestrator<br/>delivery workflow"]
+    Ops["Health + smoke + KPI<br/>structured JSON logs"]
+  end
+
+  subgraph Entry["3. Inbound application boundary"]
+    HTTP["adapters-http<br/>validation + request IDs"]
+    UseCases["@egov/application<br/>benefits + AI + accountability"]
+    Ports["Application ports"]
+  end
+
+  Android -->|"HTTPS JSON"| API
+  Web --> WebFn -->|"exchange code only"| API
+  Agency -->|"signed project request"| API
+  Reviewer -->|"review / disclosure decision"| API
+  API --> HTTP --> UseCases --> Ports
+  Orchestrator --> Ports
+  Ops -. "monitors" .-> API
+  Ops -. "monitors" .-> WebFn
+
+  classDef client fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e;
+  classDef runtime fill:#ede9fe,stroke:#6d28d9,color:#3b0764;
+  classDef core fill:#dcfce7,stroke:#15803d,color:#14532d;
+  class Android,Web,Agency,Reviewer client;
+  class WebFn,API,Orchestrator,Ops runtime;
+  class HTTP,UseCases,Ports core;

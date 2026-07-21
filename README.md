@@ -53,6 +53,7 @@ B.A.N.G.O.N is an Android-first government-benefit coordination prototype with a
 | Verified KPI and transaction results | [docs/test-results.md](docs/test-results.md) |
 | Blockchain normalization/privacy rules | [docs/tolvaris-ledgers.md](docs/tolvaris-ledgers.md) |
 | Accountability, analytics, news RAG, and OCR | [docs/accountability-and-analytics.md](docs/accountability-and-analytics.md) |
+| Government credential/document exchange | [docs/credential-exchange.md](docs/credential-exchange.md) |
 | Synthetic transparency dashboard | [egov-hackathon.vercel.app/transparency.html](https://egov-hackathon.vercel.app/transparency.html) |
 
 The public website intentionally remains in **STAGING** mode: the official widget stays visible for integration demonstration and displays a warning that production citizen accounts may not work there.
@@ -135,6 +136,7 @@ Seed catalog (hackathon stub — no live agency benefit API among the 9 services
 | eGovPay proof registry | Built; private individual commitments and policy-gated plaintext business mode |
 | Public-interest news RAG | Built as an application use case; retrieved-source allowlist and `UNVERIFIED_MEDIA_SIGNAL` guardrail |
 | Government-document OCR | Built as an application use case; strict normalization and public/private document-proof modes |
+| Credential/document self-service gate | Built as a deterministic issuer/holder policy evaluator plus on-chain attestation/request/decision/release schema; external department connectors remain approval-dependent |
 | Multi-agency PSA cascade / barangay rollout | Vision only |
 
 Ground truth: [docs/architecture.md](docs/architecture.md) · [Tolvaris ledger model](docs/tolvaris-ledgers.md) · [Verified test results](docs/test-results.md) · Product Vision · B.A.N.G.O.N.
@@ -326,81 +328,56 @@ erDiagram
 
 See [the accountability and analytics guide](docs/accountability-and-analytics.md) for the general-ledger standards basis, anomaly rules, public-interest news RAG guardrails, OCR flow, and privacy matrix.
 
-## System Architecture
+## Government Credential and Document Self-Service
 
-Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters. Click the PNG for the full-resolution component architecture; the editable Mermaid source is in [`docs/diagrams/system-architecture.mmd`](docs/diagrams/system-architecture.mmd).
-
-[![B.A.N.G.O.N and Tolvaris system architecture](docs/diagrams/system-architecture.png)](docs/diagrams/system-architecture.png)
-
-The full diagram covers client/partner boundaries, deployment surfaces, application use cases, domain and ports, infrastructure adapters, the official nine-service eGov API Platform, protected off-chain data, eGovChain registries, analytics, and operational KPIs.
-
-### Mermaid UML component overview
+Tolvaris generalizes the existing card-type ledger to IDs, licences, registrations, certificates, permits, tax documents, and other government credentials. The blockchain is the ground source of truth that an approved issuer attested a credential type to a pseudonymous holder, plus its active/revoked/expired state and audit digests. It is not a shared document database. The user directly requests the record from the original issuer—such as LTO, BIR, or SSS—and only that issuer may return its own details or image to the authenticated holder. The chain stores no names, credential numbers, fields, portraits, ID images, biometrics, or decryptable vault locations—even in encrypted form.
 
 ```mermaid
 flowchart LR
-  subgraph Clients[Client and partner boundary]
-    Android[Android B.A.N.G.O.N]
-    Web[Vercel web + SSO widget]
-    Agency[Agency Ed25519 signer]
-    Reviewer[Agency / COA / legal reviewer]
-  end
+  Issuer["Issuing department<br/>SSS / BIR / LTO / others"]
+  Attestation["On-chain issuer attestation<br/>holder commitment + type + digests + status"]
+  Holder["Authenticated holder"]
+  Request["Direct request to issuer API<br/>my document + exact fields/image"]
+  Challenge["Issuer-specific signed challenge<br/>SSO + holder signature + consent<br/>optional fresh liveness"]
+  Decision{"All policy gates pass?"}
+  Vault["Issuer encrypted off-chain vault"]
+  Envelope["Holder/session-encrypted<br/>minimal credential response"]
+  Receipt["On-chain release receipt digest"]
 
-  subgraph Runtime[Deployment surfaces]
-    WebFn[Web serverless SSO]
-    API[apps/api]
-    Orch[apps/orchestrator]
-    Ops[Health / smoke / KPI / logs]
-  end
-
-  subgraph Core[Hexagonal application core]
-    HTTP[adapters-http]
-    UC[@egov/application<br/>benefits + AI + accountability]
-    Domain[@egov/domain<br/>rules and invariants]
-    Ports[repository / event / hash / platform ports]
-    HTTP --> UC --> Domain
-    UC --> Ports
-  end
-
-  subgraph Infra[Infrastructure adapters]
-    Platform[adapters-egov-platform]
-    Persist[adapters-persistence]
-    Events[adapters-messaging]
-    AI[adapters-ai]
-  end
-
-  subgraph External[Official eGov API Platform]
-    Identity[SSO / eVerify / Face Liveness]
-    CitizenOps[eMessage / eGovPay / eReport]
-    Intelligence[Assistant / Laws / Translator / Speech / OCR]
-    DBM[DBM Compass]
-    RPC[eGovChain JSON-RPC]
-  end
-
-  subgraph Data[Privacy and accountability data]
-    Vault[Encrypted off-chain identity / evidence vault]
-    Analytics[Analytics read model + anomaly signals]
-    Registries[Project / ledger / benefit / report / payment / document registries]
-  end
-
-  Android --> API
-  Web --> WebFn --> API
-  Agency -->|signed project request| API
-  Reviewer --> API
-  API --> HTTP
-  Orch --> Ports
-  Ops -. monitors .-> API
-  Ports --> Platform
-  Ports --> Persist --> Vault
-  Ports --> Events --> Analytics
-  Ports --> AI
-  Platform --> Identity
-  Platform --> CitizenOps
-  Platform --> Intelligence
-  Platform --> DBM
-  Platform --> RPC --> Registries
-  Registries --> Analytics --> Reviewer
-  Vault -. commitments and digests only .-> Registries
+  Issuer --> Attestation
+  Holder --> Request --> Issuer --> Challenge --> Holder
+  Holder --> Decision
+  Attestation --> Decision
+  Decision -->|no| Deny["Deny without details"]
+  Decision -->|"yes; issuer only"| Vault --> Envelope --> Holder
+  Envelope --> Receipt
 ```
+
+There is no technically honest “100% identity certainty.” The implementation returns `HIGH` assurance only after the issuer's policy factors pass and otherwise fails closed as `INSUFFICIENT`. BIR, LTO, SSS, and other departments may define different signed challenges, allowed fields, liveness thresholds, expiry windows, and image-release rules. A different department cannot use this path to retrieve the record. A real connector still requires the issuer's approved API contract, authenticated-holder authorization, lawful purpose, data minimization, consent rules, and audited access.
+
+Implementation and full sequence/UML: [Government credential and document exchange](docs/credential-exchange.md) · [Solidity registry](contracts/TolvarisCredentialExchangeRegistry.sol) · [Policy evaluator](packages/application/src/use-cases/credential-access.ts).
+
+## System Architecture
+
+Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters. The architecture is split into three readable PNG views; click each image for full resolution and use the source link to edit its Mermaid definition. A single [complete overview](docs/diagrams/system-architecture.png) and its [Mermaid source](docs/diagrams/system-architecture.mmd) are retained as references.
+
+### 1. Clients and deployment runtime
+
+[![Clients and deployment runtime architecture](docs/diagrams/system-architecture-1-clients-runtime.png)](docs/diagrams/system-architecture-1-clients-runtime.png)
+
+[Editable Mermaid source](docs/diagrams/system-architecture-1-clients-runtime.mmd)
+
+### 2. Hexagonal core and official eGov integrations
+
+[![Hexagonal core and eGov integrations](docs/diagrams/system-architecture-2-core-integrations.png)](docs/diagrams/system-architecture-2-core-integrations.png)
+
+[Editable Mermaid source](docs/diagrams/system-architecture-2-core-integrations.mmd)
+
+### 3. Data, blockchain, and credential self-service
+
+[![Data blockchain and credential self-service architecture](docs/diagrams/system-architecture-3-data-credentials.png)](docs/diagrams/system-architecture-3-data-credentials.png)
+
+[Editable Mermaid source](docs/diagrams/system-architecture-3-data-credentials.mmd)
 
 | Layer | Package | Responsibility |
 |-------|---------|----------------|
@@ -529,6 +506,7 @@ Optional smoke overrides: `SMOKE_SSO_EXCHANGE_CODE`, `SMOKE_SSO_SCOPE` (default 
 | [docs/integration-openapi.yaml](docs/integration-openapi.yaml) | AI orchestration + signed agency publishing OpenAPI |
 | [docs/tolvaris-ledgers.md](docs/tolvaris-ledgers.md) | Blockchain normalization, plaintext/privacy, duplicate hashes |
 | [docs/accountability-and-analytics.md](docs/accountability-and-analytics.md) | General ledger, benefits, eReport, eGovPay proofs, news RAG, OCR, privacy |
+| [docs/credential-exchange.md](docs/credential-exchange.md) | Issuer attestations and direct holder retrieval with department challenges, consent, and minimal field/image release |
 | [docs/test-results.md](docs/test-results.md) | Verified tests, latency KPIs, and transaction evidence |
 | [docs/tasks.md](docs/tasks.md) | Backlog foundation → production |
 | [docs/hackathon-mechanics.md](docs/hackathon-mechanics.md) | Judging mechanics |
