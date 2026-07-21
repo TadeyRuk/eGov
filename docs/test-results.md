@@ -62,6 +62,10 @@ Synthetic card transaction: `0x29d1706704679f47d0a62f4a4509f0c966401d84ee837be4e
 
 The APK is generated at `apps/android-sso-java/app/build/outputs/apk/debug/app-debug.apk` and contains only public client configuration plus the public Vercel backend URL.
 
+## Safe nine-service platform smoke
+
+**Result: 6 PASS, 3 SKIP, 0 FAIL.** eVerify authentication, eGov AI token/credits, eGovPay validation probe, eGovChain block read, eReport token/report types, and DBM Compass SAAODB read all passed. SSO was skipped because no fresh single-use exchange code was provided; Face Liveness and eMessage were skipped because safe mode does not create a biometric session or send a real message. Those skips are intentional and are not counted as passes.
+
 ## Synthetic general-ledger analytics
 
 **Result: PASS.** Three synthetic agencies, three projects, three budget snapshots, and six double-entry journal entries were written to and read from eGovChain. All six entries balanced; the contract rejected a simulated unbalanced entry.
