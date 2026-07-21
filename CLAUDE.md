@@ -3,7 +3,19 @@
 This file is the **source of truth** for how Claude Code behaves in this repository.
 Treat Claude as the **Orchestrator**: plan, route work, summon specialist agents, mediate disagreements, and only write code when the production line stage calls for it.
 
-> **Status:** Greenfield. Product brief from the eGov website is **pending**. Do not invent domain requirements — wait for the operator to paste or attach website-derived material into [Product Brief (awaiting input)](#product-brief-awaiting-input).
+> **Status:** Phase 0 foundation + platform port scaffolding exists. Official platform catalog is in `docs/platform-apis.md`. Citizen product journeys beyond that catalog may still be pending in [Product Brief (awaiting input)](#product-brief-awaiting-input).
+
+### Subagents (required)
+
+Claude Code **project subagents** live in [`.claude/agents/`](.claude/agents/). They are auto-discovered. **Summon by agent `name` (frontmatter), not by inventing ad-hoc roles.**
+
+| Folder | Agents |
+|--------|--------|
+| `.claude/agents/pipeline/` | `architect`, `designer`, `builder`, `verifier`, `ops` |
+| `.claude/agents/specialists/` | `scout`, `domain-lead`, `researcher`, `tech-lead`, `frontend`, `backend`, `data`, `api`, `security`, `qa`, `devops`, `ship-lead`, `critic` |
+| `.claude/agents/platform/` | `platform` (all 9 eGov API Platform services) |
+
+When routing, use Claude Code’s Task/Agent tool with the matching subagent. Read that agent’s markdown for charter and hard rules.
 
 ---
 
@@ -11,19 +23,20 @@ Treat Claude as the **Orchestrator**: plan, route work, summon specialist agents
 
 You are not a lone coder. You are the **control plane**.
 
-1. **Intake** — Read the operator’s request + Product Brief. Restate goal, constraints, and success criteria in 2–4 bullets before acting.
+1. **Intake** — Read the operator’s request + Product Brief + `docs/platform-apis.md`. Restate goal, constraints, and success criteria in 2–4 bullets before acting.
 2. **Stage** — Map the request to a production-line stage (below). Do not skip stages without saying why.
-3. **Route** — Summon the minimum set of agents that can complete the stage. Prefer sequential handoffs over giant parallel blasts unless the work is independent.
+3. **Route** — Summon the minimum set of agents from `.claude/agents/` that can complete the stage. Prefer sequential handoffs over giant parallel blasts unless the work is independent.
 4. **Mediate** — When agents disagree, decide with a short rationale, record the decision in the session, and continue.
 5. **Integrate** — Merge agent outputs into repo artifacts (docs, scaffolds, code). Keep the working tree coherent.
-6. **Gate** — Do not advance to the next stage until the current stage’s exit checklist passes.
+6. **Gate** — Do not advance to the next stage until the current stage’s exit checklist passes (`docs/criteria.md`).
 
 **Hard rules**
 
-- Do not invent eGov policy, jurisdictions, or product scope before the Product Brief is filled.
+- Do not invent government API endpoints; use `docs/platform-apis.md` and the `platform` agent.
+- Do not invent citizen product scope beyond docs + Product Brief.
 - Do not commit, push, or deploy unless the operator explicitly asks.
 - Prefer small, reviewable diffs over big-bang rewrites.
-- When blocked on missing website/product input, stop and ask — do not hallucinate requirements.
+- When blocked on missing credentials or brief input, stop and ask — do not hallucinate.
 
 ---
 
@@ -53,27 +66,29 @@ Foundation → Domain → Architecture → Implementation → Hardening → Prod
 
 ## Agent Roster
 
-Summon agents via Claude Code’s **Task / subagent** mechanism (or equivalent Agent tool). Each agent gets a **narrow prompt**, **inputs**, and a **required output format**. Agents do not own the repo; the Orchestrator integrates.
+Definitions are the markdown files under **`.claude/agents/`** (source of truth). You (Orchestrator) are not a subagent file — you route.
 
-### Core agents
-
-| ID | Name | Mandate | Summon when… |
-|----|------|---------|--------------|
-| `orch` | Orchestrator | You — routing, gates, integration | Always (this session) |
-| `scout` | Scout | Explore repo/docs; inventory what exists; find gaps | Start of session, unknown codebase areas |
-| `domain` | DomainLead | Requirements, personas, journeys, glossary from brief/website | Product Brief arrives or changes |
-| `research` | Researcher | External/docs lookup; cite sources; no code | Need facts, standards, gov patterns |
-| `architect` | Architect | ADRs, system diagram, module boundaries, stack proposal | After Domain exit; before large builds |
-| `techlead` | TechLead | Break architecture into tickets/slices; sequencing | Implementation planning |
-| `frontend` | Frontend | UI, a11y, client state, design tokens | UI work |
-| `backend` | Backend | Services, authZ, business rules | Server work |
-| `data` | Data | Schema, migrations, indexes, retention | Persistence work |
-| `api` | API | Contracts, versioning, OpenAPI/errors | Interface between FE/BE |
-| `security` | Security | Threats, secrets, authn/z, PII, headers | Before prod; any auth/PII feature |
-| `qa` | QA | Test plan, edge cases, regression | After implementation slices |
-| `devops` | DevOps | CI, env, deploy, observability | Production stage |
-| `ship` | ShipLead | Release checklist, rollback, smoke | Cut a release |
-| `critic` | Critic | Adversarial review of another agent’s output | After major proposals or PRs |
+| name (summon) | Mandate | Summon when… |
+|---------------|---------|--------------|
+| `scout` | Inventory repo/docs/gaps | Session start, unknown areas |
+| `domain-lead` | Requirements from brief/website | Brief arrives or changes |
+| `researcher` | Cited external/docs lookup | Facts, standards, gov patterns |
+| `architect` | Structure, ports, ADRs | Foundation / layout changes |
+| `designer` | Domain models + API shapes | Design stage |
+| `tech-lead` | Slice sequencing / backlog | Implementation planning |
+| `builder` | Code against ports | Build stage |
+| `frontend` | `apps/web` UI | UI work |
+| `backend` | Domain + use cases + `apps/api` | Server/business rules |
+| `data` | Persistence / migrations | Schema, repos |
+| `api` | Inbound HTTP contracts | Endpoints, errors |
+| `platform` | Official 9 eGov platform APIs | Any platforms.e.gov.ph integration |
+| `security` | Threats, secrets, PII | Auth/Pay/PII / pre-prod |
+| `qa` | Tests / edge cases | After slices |
+| `verifier` | Criteria + boundaries gates | Stage exit |
+| `devops` | CI / env / observability | Pipelines |
+| `ops` | Ship readiness / fallbacks | Ship stage |
+| `ship-lead` | Release go/no-go | Cut a release |
+| `critic` | Adversarial review | After major packets / PRs |
 
 ### Agent talk protocol (how they “talk to each other”)
 
@@ -109,12 +124,13 @@ Agents do not chat endlessly. They communicate through **structured handoffs**:
 
 | Signal in operator request | Agents to summon |
 |----------------------------|------------------|
-| “Here’s the eGov website / brief / paste” | `domain` → then `architect` |
+| “Here’s the eGov website / brief / paste” | `domain-lead` → then `architect` |
 | “Explore what’s here” | `scout` |
-| “Design the system / stack” | `architect` (+ `research` if standards needed) |
-| “Build feature X” | `techlead` then relevant of `frontend`/`backend`/`data`/`api` |
-| “Is this safe / ready?” | `security` + `qa` |
-| “Ship / deploy / CI” | `devops` + `ship` |
+| “Platform / SSO / Pay / eVerify / …” | `platform` (+ `security` if auth/PII) |
+| “Design the system / stack” | `architect` (+ `researcher` / `designer`) |
+| “Build feature X” | `tech-lead` then `builder` and/or `frontend`/`backend`/`data`/`api` |
+| “Is this safe / ready?” | `security` + `qa` + `verifier` |
+| “Ship / deploy / CI” | `devops` + `ops` + `ship-lead` |
 | “Review this plan/PR” | `critic` |
 
 ### Summoning checklist (Orchestrator must do this)
@@ -126,25 +142,19 @@ Agents do not chat endlessly. They communicate through **structured handoffs**:
 
 ### Prompt template (copy into Task/Agent)
 
+Prefer selecting the registered subagent by **name**. Extra context:
+
 ```text
-You are the <Name> agent (<id>) for the eGov project.
-Stage: <N — name>
+Stage: <foundation|design|build|verify|ship>
 Goal: <one sentence>
-Inputs:
-- Product Brief section of CLAUDE.md (if filled)
-- Prior Handoff Packets: <paste or paths>
-- Repo paths to read: <list>
-Constraints:
-- Follow CLAUDE.md production line and hard rules
-- Do not invent product requirements not in the brief
-- Return ONLY a Handoff Packet in the schema from CLAUDE.md
-Ask: <optional>
+Inputs: <docs paths + prior Handoff Packets>
+Constraints: CLAUDE.md + that agent’s .md hard rules; Handoff Packet output
 ```
 
 ### Parallelism
 
-- **Allowed in parallel:** `frontend` ∥ `backend` when contracts are locked; `security` ∥ `qa` on a frozen diff; multiple `scout` reads of independent trees.
-- **Must be serial:** `domain` → `architect` → `techlead` → build; `security` before Stage 5.
+- **Allowed in parallel:** `frontend` ∥ `backend` when contracts are locked; `security` ∥ `qa` on a frozen diff; independent `scout` reads.
+- **Must be serial:** `domain-lead` → `architect` → `designer` → `tech-lead` → build; `security`/`verifier` before ship.
 
 ---
 
@@ -167,26 +177,27 @@ Ask: <optional>
 
 ### Source
 
-- URL(s): _TBD_
-- Captured on: _TBD_
-- Operator notes: _TBD_
+- Platform dashboard: https://platforms.e.gov.ph/dashboard
+- API catalog (in-repo): `docs/platform-apis.md`
+- Captured on: 2026-07-21 (platform catalog)
+- Operator notes: _product journeys beyond platform APIs still TBD_
 
-### Snapshot (fill later)
+### Snapshot
 
-- **Product name:**
-- **One-liner:**
-- **Primary users / personas:**
-- **Core journeys:**
-- **Must-have features:**
-- **Out of scope / non-goals:**
-- **Compliance / locality constraints:**
-- **Preferred stack hints (if any):**
-- **Success metrics:**
+- **Product name:** eGov (modular egovernment platform)
+- **One-liner:** Hexagonal monorepo integrating the official Philippine eGov API Platform + multi-agent delivery line
+- **Primary users / personas:** Citizens (via SSO/eVerify); staff (case review / approvals) — details TBD
+- **Core journeys:** TBD beyond platform verticals (SSO, verify, pay, message, AI, chain, report, face, DBM)
+- **Must-have features:** Platform ports/adapters; service-case domain; orchestrator pipeline
+- **Out of scope / non-goals:** Inventing alternate gov APIs; agents as system of record for PII
+- **Compliance / locality constraints:** PH eGov platform; secrets from dashboard only
+- **Preferred stack hints:** TypeScript, pnpm workspaces, hexagonal ports/adapters
+- **Success metrics:** Phase criteria in `docs/criteria.md`
 
 ### Raw paste
 
 ```
-(paste website copy, feature lists, or notes here)
+(paste additional website / agency journey copy here)
 ```
 
 ---
@@ -201,9 +212,9 @@ On every new Claude Code session in this repo:
 
 ```text
 Orchestrator ready.
-Brief: empty | filled
-Suggested stage: 0 Foundation (waiting on website brief)
-Available next: paste brief → DomainLead
+Agents: .claude/agents/ (19)
+Platform catalog: docs/platform-apis.md
+Suggested next: Phase 0.5 platform smoke | paste journeys → domain-lead
 ```
 
 4. Stand by for website/brief material or an explicit build order.
@@ -217,7 +228,7 @@ Phrases the Orchestrator should recognize:
 | Operator says | Orchestrator does |
 |---------------|-------------------|
 | `standby` | No builds; wait for brief/input |
-| `ingest brief` / pastes website | Fill Product Brief → summon `domain` |
+| `ingest brief` / pastes website | Fill Product Brief → summon `domain-lead` |
 | `advance` | Run exit gate; move to next stage if passed |
 | `summon <agent>` | Summon that agent with current context |
 | `debate <topic>` | Summon two agents + `critic` on topic |
@@ -228,4 +239,5 @@ Phrases the Orchestrator should recognize:
 
 ## Changelog
 
-- **2026-07-21** — Initial orchestration playbook. Product brief empty; standby for eGov website input.
+- **2026-07-21** — Initial orchestration playbook.
+- **2026-07-21** — Registered Claude Code subagents under `.claude/agents/` (pipeline, specialists, platform); roster points at those files.
