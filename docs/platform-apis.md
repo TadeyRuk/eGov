@@ -94,7 +94,7 @@ Related UI (not an API port): blockchain explorer `https://hackathon-explorer.e.
 
 Exact HTTP paths for each capability are as exposed by the platform on the dashboard; use the capability names above as the catalog surface.
 
-**Env placeholders:** `EGOV_AI_BASE_URL`, `EGOV_AI_API_KEY`
+**Env placeholders:** `EGOV_AI_BASE_URL`, `EGOV_AI_ACCESS_CODE` (alias: `EGOV_AI_API_KEY`)
 
 ---
 
@@ -112,7 +112,7 @@ Exact HTTP paths for each capability are as exposed by the platform on the dashb
 
 HMAC algorithm and signing material come from the dashboard.
 
-**Env placeholders:** `EGOVPAY_BASE_URL`, `EGOVPAY_TOKEN`, `EGOVPAY_HMAC_SECRET`
+**Env placeholders:** `EGOVPAY_BASE_URL`, `EGOVPAY_API_KEY` (alias: `EGOVPAY_TOKEN`), optional `EGOVPAY_HMAC_SECRET` (falls back to API key for digest), optional `EGOVPAY_SETTLEMENT_TEMPLATE_UUID`
 
 ---
 
@@ -147,7 +147,7 @@ HMAC algorithm and signing material come from the dashboard.
 | OTP verify | Token | Verify OTP |
 | List / view reports | Token | Report retrieval |
 
-**Env placeholders:** `EREPORT_BASE_URL`, `EREPORT_API_KEY`
+**Env placeholders:** `EREPORT_BASE_URL`, `EREPORT_ACCESS_TOKEN` (alias: `EREPORT_API_KEY`)
 
 ---
 

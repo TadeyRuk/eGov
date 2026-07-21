@@ -137,4 +137,30 @@ flowchart LR
 2. **Next** — wire use cases to SSO / eVerify / Pay; harden path maps against live OpenAPI from the dashboard  
 3. **Later** — Postgres, queue-backed events, multi-tenant agency isolation  
 
+## Product Vision (target — not yet built)
+
+> Everything in this section is aspirational. It comes from the hackathon pitch doc — [`eGov_PH_SuperApp_System_Architecture.md`](../eGov_PH_SuperApp_System_Architecture.md) — and is included here only to give the long-term direction. Nothing below is implemented unless it is also named in the "Current" sections above with a matching port, adapter, or use case. When in doubt, the sections above this one are ground truth; this section is not.
+
+### Multi-agency PSA cascade
+
+The product goal is zero-redundancy onboarding: a PSA PhilSys update (marriage, name change, death, etc.) propagating automatically across SSS, Pag-IBIG, PhilHealth, DFA, and other linked agency records, with no manual resubmission per agency.
+
+**Status: not built.** `ServiceCase` (`packages/domain/src/index.ts`) has no `agency` field and no cross-agency propagation logic — it is a single-agency case tracker today. This needs real domain modeling (agency-linked cases, a PSA-update domain event, propagation rules) before it can exist. Tracked in [`tasks.md`](./tasks.md) under **Parking lot → Multi-agency tenancy model**; not scheduled into a phase yet.
+
+### Composite identity → benefit-claim workflow
+
+The pitch describes one flow: SSO login → Face Liveness session → eVerify PSA check → eGovChain state anchor → instant downstream agency benefit claim + eMessage alert.
+
+**Status: not built as a single use case.** `packages/application/src/use-cases/` currently has `service-cases.ts` (case submit/advance/get against `ServiceCaseRepository` only — no platform-port calls) and `orchestration.ts` (agent pipeline, not this workflow). Building this composite flow means a new use case that calls `EgovSsoPort`, `FaceLivenessPort`, `EVerifyPort`, `EgovChainPort`, and `EMessagePort` in sequence, wired through `apps/api`. See [`tasks.md`](./tasks.md) **Phase 0.5 — Platform verticals** (per-service validation, not yet composed) and **Phase 1 — Core domain vertical** (use case buildout).
+
+### High-scale target (100M+ transactions/week)
+
+Long-term design target, not current capacity — the platform endpoints in use (e.g. `hackathon-blockchain.e.gov.ph`) are hackathon-sandbox infrastructure with no published SLA. The hexagonal layering above means this is a swap-in later, not a rewrite: batched eGovChain anchors, a queue-backed `EventBus` (see **Phase 3 — Durable infrastructure** in [`tasks.md`](./tasks.md)), and a Postgres-backed repository replacing the in-memory stub. None of this is required for, or built into, the hackathon scope.
+
+### Nationwide rollout (barangay → national)
+
+Vision: the same SSO login and eGov Pay integration extending from barangay clearance offices up to national agency services, giving citizens one unified transaction history end to end. **Status: not built** — no barangay-specific code, config, or routing exists; this is narrative scope from the pitch doc only.
+
+---
+
 See also: [platform-apis.md](./platform-apis.md), [design.md](./design.md), [boundaries.md](./boundaries.md), [fallback.md](./fallback.md).

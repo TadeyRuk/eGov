@@ -7,6 +7,10 @@ coverage/
 .env
 .env.*
 !.env.example
+# Accidental non-dot copy of secrets
+/env
+*.pem
+secrets/
 .DS_Store
 .remember/
 # Keep project subagents in git; ignore local Claude settings only

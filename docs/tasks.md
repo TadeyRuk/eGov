@@ -11,7 +11,8 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] Stub in-memory adapters and composition roots
 - [x] Document official platform catalog in `docs/platform-apis.md`
 - [x] Add platform ports + `@egov/adapters-egov-platform` (env-backed fetch)
-- [ ] Add root scripts: `build`, `typecheck`, `test` (smoke)
+- [x] Add root scripts: `hygiene`, `smoke:platform` (credential + safe probes)
+- [ ] Add root `test` suite beyond platform smoke
 - [ ] Add CI workflow for typecheck on PR
 
 ## Phase 0.5 — Platform verticals
@@ -26,8 +27,11 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [ ] eReport datasets + submit/OTP path
 - [ ] DBM Compass SAAODB/NCA/SARO/LGSF query smoke
 - [ ] Align adapter path maps with live OpenAPI from the dashboard (no invented endpoints)
+- [x] Add `pnpm smoke:platform` runner (safe probes by default; `--write` for side effects)
 
 ## Phase 1 — Core domain vertical
+
+> **STANDBY (2026-07-21):** Judging criteria refinement and product use-case expansion are on hold until the operator lifts standby. Do not implement the items below unless asked.
 
 - [ ] Flesh out `Citizen`, `ServiceCase`, `CaseDocument` invariants and transitions
 - [ ] Implement use cases: submit case, get case, attach document, advance status

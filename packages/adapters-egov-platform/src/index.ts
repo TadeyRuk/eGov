@@ -24,6 +24,7 @@ export {
   DEFAULT_BASE_URLS,
   processEnv,
   requireEnv,
+  requireEnvAny,
   type PlatformEnv,
 } from "./http.js";
 

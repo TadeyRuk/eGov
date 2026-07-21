@@ -4,6 +4,8 @@
 
 Acceptance criteria for the foundation and each delivery stage. A stage is done only when its criteria pass — not when an agent or developer says it is done.
 
+> **STANDBY (2026-07-21):** Do not expand, rewrite, or treat incomplete Phase 1+ criteria as active gates until the operator lifts standby. Foundation Phase 0 criteria remain the structural reference; product judging stays frozen while the idea forms.
+
 ## Foundation criteria (Phase 0)
 
 - [ ] Monorepo installs with `pnpm install` from repo root  

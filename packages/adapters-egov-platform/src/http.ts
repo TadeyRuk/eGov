@@ -32,6 +32,23 @@ export function requireEnv(
   return ok(value);
 }
 
+/** First non-empty among aliases (dashboard names + legacy placeholders). */
+export function requireEnvAny(
+  env: PlatformEnv,
+  keys: readonly string[],
+): Result<string> {
+  for (const key of keys) {
+    const value = env.get(key)?.trim();
+    if (value) return ok(value);
+  }
+  return err(
+    appError(
+      "UNAVAILABLE",
+      `Missing required env (tried ${keys.join(", ")}). Obtain credentials from https://platforms.e.gov.ph/dashboard`,
+    ),
+  );
+}
+
 export function envOrDefault(
   env: PlatformEnv,
   key: string,

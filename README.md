@@ -61,11 +61,19 @@ tooling/tsconfig/
 npx pnpm@9.15.0 install
 npx pnpm@9.15.0 typecheck
 
+# secrets + tracked-file hygiene
+pnpm hygiene
+
+# live platform adapter smoke (needs `.env` from dashboard)
+pnpm smoke:platform
+# optional side effects: Face session / SMS / Pay generate
+# pnpm smoke:platform -- --write
+
 pnpm --filter @egov/api dev
 pnpm --filter @egov/orchestrator dev
 ```
 
-Requires Node 20+ and [pnpm](https://pnpm.io) 9.x.
+Requires Node 20+ and [pnpm](https://pnpm.io) 9.x. Copy [`.env.example`](.env.example) → `.env` (never commit `.env`).
 
 ## Status
 

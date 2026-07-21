@@ -10,7 +10,7 @@ import {
   DEFAULT_BASE_URLS,
   envOrDefault,
   platformFetch,
-  requireEnv,
+  requireEnvAny,
   type PlatformEnv,
 } from "./http.js";
 
@@ -19,7 +19,10 @@ export function createEReportAdapter(env: PlatformEnv): EReportPort {
     envOrDefault(env, "EREPORT_BASE_URL", DEFAULT_BASE_URLS.eReport);
 
   async function headers(token?: string): Promise<Result<Record<string, string>>> {
-    const apiKey = requireEnv(env, "EREPORT_API_KEY");
+    const apiKey = requireEnvAny(env, [
+      "EREPORT_ACCESS_TOKEN",
+      "EREPORT_API_KEY",
+    ]);
     if (!apiKey.ok) return apiKey;
     const h: Record<string, string> = {
       "content-type": "application/json",

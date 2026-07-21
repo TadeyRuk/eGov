@@ -10,7 +10,7 @@ import {
   DEFAULT_BASE_URLS,
   envOrDefault,
   platformFetch,
-  requireEnv,
+  requireEnvAny,
   type PlatformEnv,
 } from "./http.js";
 
@@ -37,7 +37,10 @@ export function createEgovAiAdapter(env: PlatformEnv): EgovAiPort {
     path: string,
     input: EgovAiRequest,
   ): Promise<Result<EgovAiResponse>> {
-    const apiKey = requireEnv(env, "EGOV_AI_API_KEY");
+    const apiKey = requireEnvAny(env, [
+      "EGOV_AI_ACCESS_CODE",
+      "EGOV_AI_API_KEY",
+    ]);
     if (!apiKey.ok) return apiKey;
     const headers: Record<string, string> = {
       "content-type": "application/json",

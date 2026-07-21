@@ -3,7 +3,9 @@
 This file is the **source of truth** for how Claude Code behaves in this repository.
 Treat Claude as the **Orchestrator**: plan, route work, summon specialist agents, mediate disagreements, and only write code when the production line stage calls for it.
 
-> **Status:** Phase 0 foundation + platform port scaffolding exists. Official platform catalog is in `docs/platform-apis.md`. Citizen product journeys beyond that catalog may still be pending in [Product Brief (awaiting input)](#product-brief-awaiting-input).
+> **Status:** Phase 0 foundation + platform port scaffolding exists. Official platform catalog is in `docs/platform-apis.md`.
+>
+> **Standby (operator):** Do **not** expand or “complete” **judging criteria** (`docs/criteria.md`) or **product use cases** until the operator lifts standby. Keep structure/boundaries/gates as-is; plug ideas in later. Foundation lock work (CI, wiring) only if explicitly asked.
 
 ### Subagents (required)
 
@@ -228,6 +230,7 @@ Phrases the Orchestrator should recognize:
 | Operator says | Orchestrator does |
 |---------------|-------------------|
 | `standby` | No builds; wait for brief/input |
+| `standby criteria/use cases` | Freeze `docs/criteria.md` expansion and Phase 1 use-case work |
 | `ingest brief` / pastes website | Fill Product Brief → summon `domain-lead` |
 | `advance` | Run exit gate; move to next stage if passed |
 | `summon <agent>` | Summon that agent with current context |
