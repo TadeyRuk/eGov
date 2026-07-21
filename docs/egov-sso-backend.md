@@ -11,7 +11,7 @@ EGOV_SSO_BASE_URL=https://hackathon-sso.e.gov.ph
 EGOV_SSO_PARTNER_CODE=<registered partner code>
 EGOV_SSO_PARTNER_SECRET=<registered partner secret>
 EGOV_SSO_CLIENT_ID=<public widget client ID, if distinct from partner code>
-EGOV_SSO_SCOPE=<optional scope>
+EGOV_SSO_SCOPE=SSO_AUTHENTICATION
 ```
 
 The deployment is a test backend when the base URL and widget environment are `STAGING`, even if Vercel labels its stable URL as a Production deployment.
