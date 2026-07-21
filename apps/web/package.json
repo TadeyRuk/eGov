@@ -3,13 +3,25 @@
   "version": "0.0.0",
   "private": true,
   "type": "module",
-  "dependencies": {
-    "ethers": "6.17.0"
-  },
   "scripts": {
-    "dev": "bash -c 'set -a; source ../../.env; if [ -f ../../.local/tolvaris-registry.env ]; then source ../../.local/tolvaris-registry.env; fi; set +a; exec node ./src/dev-server.mjs'",
-    "test": "node --test ./lib/*.test.js",
-    "typecheck": "node --check ./src/dev-server.mjs && node --check ./api/config.js && node --check ./api/cards.js && node --check ./api/auth/egov/exchange.js && node --check ./lib/tolvaris.js",
-    "build": "node --check ./src/dev-server.mjs && node --check ./api/config.js && node --check ./api/cards.js && node --check ./api/auth/egov/exchange.js && node --check ./lib/tolvaris.js"
+    "dev": "vite",
+    "dev:sso": "bash -c 'set -a; source ../../.env; if [ -f ../../.local/tolvaris-registry.env ]; then source ../../.local/tolvaris-registry.env; fi; set +a; exec node ./src/dev-server.mjs'",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit && node --check ./src/dev-server.mjs && node --check ./api/config.js && node --check ./api/cards.js && node --check ./api/auth/egov/exchange.js && node --check ./lib/tolvaris.js",
+    "test": "node --test ./lib/*.test.js"
+  },
+  "dependencies": {
+    "ethers": "6.17.0",
+    "lucide-react": "^1.25.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10"
   }
 }

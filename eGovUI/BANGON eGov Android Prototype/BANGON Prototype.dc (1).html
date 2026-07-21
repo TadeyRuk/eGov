@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics>
+<style>
+  body{margin:0;background:#EEF2F1;font-family:system-ui,-apple-system,"Segoe UI",sans-serif;}
+  input,textarea,button{font-family:inherit;}
+  ::placeholder{color:#94A3A0;}
+  @keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+  @keyframes aiPulse{0%,100%{transform:scale(1);opacity:0.35;}50%{transform:scale(1.18);opacity:0.05;}}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;justify-content:center;align-items:flex-start;gap:36px;padding:48px 32px;box-sizing:border-box;">
+
+  <div style="width:412px;">
+    <div style="margin-bottom:14px;">
+      <div style="font-size:12px;font-weight:700;letter-spacing:1px;color:#0F766E;text-transform:uppercase;">eGov PH · Citizen App Prototype</div>
+      <div style="font-size:22px;font-weight:700;color:#1F2937;margin-top:2px;">B.A.N.G.O.N — Android Client</div>
+      <div style="font-size:13px;color:#5B6B76;margin-top:2px;">Simulated flow · walang tunay na koneksyon sa eGov PH platform.</div>
+    </div>
+
+    <x-import component-from-global-scope="AndroidDevice" from="./android-frame.jsx" hint-size="412,892">
+      <div style="position:relative;height:100%;background:#fff;">
+        <div style="height:100%;overflow:auto;position:relative;padding-bottom:86px;box-sizing:border-box;">
+
+        <sc-if value="{{ s0 }}" hint-placeholder-val="{{ true }}">
+          <div style="display:flex;flex-direction:column;padding:18px 20px 24px;">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <div style="font-size:23px;font-weight:800;letter-spacing:-0.5px;">
+                <span style="color:#2563EB;">e</span><span style="color:#16A34A;">G</span><span style="color:#F59E0B;">O</span><span style="color:#DC2626;">V</span><span style="color:#1D4ED8;font-size:14px;vertical-align:top;position:relative;top:1px;">PH</span>
+              </div>
+              <div style="width:38px;height:38px;border-radius:50%;background:#EDE4FE;color:#7C3AED;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px;">JD</div>
+            </div>
+            <div style="margin-top:14px;">
+              <div style="font-size:19px;font-weight:800;color:#0F172A;">Mabuhay, Juan!</div>
+              <div style="font-size:13px;color:#64748B;margin-top:2px;">Alamin agad ang tulong na bagay sa'yo.</div>
+            </div>
+            <div style="display:flex;align-items:center;background:#F3F4F6;border-radius:100px;padding:12px 16px;margin-top:18px;gap:10px;">
+              <span style="font-size:13.5px;color:#9AA5A1;flex:1;">Hanapin: BANGON, National ID...</span>
+              <span style="color:#64748B;font-size:15px;">⌕</span>
+            </div>
+
+            <div style="display:flex;justify-content:space-between;margin-top:22px;">
+              <sc-for list="{{ homeFeatures }}" as="f" hint-placeholder-count="5">
+                <div style="display:flex;flex-direction:column;align-items:center;gap:8px;width:56px;">
+                  <div style="width:52px;height:52px;border-radius:24px;background:{{ f.bg }};position:relative;">
+                    <sc-if value="{{ f.isScan }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:15px;top:15px;width:8px;height:8px;border-top:2.5px solid {{ f.iconColor }};border-left:2.5px solid {{ f.iconColor }};border-radius:3px 0 0 0;"></div>
+                      <div style="position:absolute;right:15px;top:15px;width:8px;height:8px;border-top:2.5px solid {{ f.iconColor }};border-right:2.5px solid {{ f.iconColor }};border-radius:0 3px 0 0;"></div>
+                      <div style="position:absolute;left:15px;bottom:15px;width:8px;height:8px;border-bottom:2.5px solid {{ f.iconColor }};border-left:2.5px solid {{ f.iconColor }};border-radius:0 0 0 3px;"></div>
+                      <div style="position:absolute;right:15px;bottom:15px;width:8px;height:8px;border-bottom:2.5px solid {{ f.iconColor }};border-right:2.5px solid {{ f.iconColor }};border-radius:0 0 3px 0;"></div>
+                    </sc-if>
+                    <sc-if value="{{ f.isId }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:13px;top:17px;width:26px;height:18px;border:2.5px solid {{ f.iconColor }};border-radius:4px;"></div>
+                      <div style="position:absolute;left:17px;top:21px;width:6px;height:6px;border-radius:50%;background:{{ f.iconColor }};"></div>
+                      <div style="position:absolute;left:26px;top:21px;width:9px;height:2px;background:{{ f.iconColor }};"></div>
+                      <div style="position:absolute;left:26px;top:27px;width:6px;height:2px;background:{{ f.iconColor }};"></div>
+                    </sc-if>
+                    <sc-if value="{{ f.isList }}" hint-placeholder-val="{{ true }}">
+                      <div style="position:absolute;left:17px;top:12px;width:18px;height:24px;border:2.5px solid {{ f.iconColor }};border-radius:4px;"></div>
+                      <div style="position:absolute;left:21px;top:19px;width:10px;height:2px;background:{{ f.iconColor }};"></div>
+                      <div style="position:absolute;left:21px;top:24px;width:10px;height:2px;background:{{ f.iconColor }};"></div>
+                      <div style="position:absolute;left:21px;top:29px;width:6px;height:2px;background:{{ f.iconColor }};"></div>
+                    </sc-if>
+                    <sc-if value="{{ f.isWallet }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:13px;top:19px;width:26px;height:16px;border:2.5px solid {{ f.iconColor }};border-radius:4px;"></div>
+                      <div style="position:absolute;left:13px;top:24px;width:26px;height:3.5px;background:{{ f.iconColor }};"></div>
+                    </sc-if>
+                    <sc-if value="{{ f.isFlag }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;left:17px;top:12px;width:2.5px;height:26px;background:{{ f.iconColor }};"></div>
+                      <div style="position:absolute;left:19.5px;top:13px;width:16px;height:11px;background:{{ f.iconColor }};clip-path:polygon(0 0,100% 25%,0 50%);"></div>
+                    </sc-if>
+                    <sc-if value="{{ f.badge }}" hint-placeholder-val="{{ false }}">
+                      <div style="position:absolute;top:-4px;right:-6px;background:#DC2626;color:#fff;font-size:8px;font-weight:800;padding:2px 5px;border-radius:100px;">New</div>
+                    </sc-if>
+                  </div>
+                  <div style="font-size:11px;color:#334155;font-weight:600;text-align:center;">{{ f.label }}</div>
+                </div>
+              </sc-for>
+            </div>
+
+            <div style="margin-top:22px;background:linear-gradient(135deg,#0F766E,#0B5D57);border-radius:18px;padding:20px;color:#fff;position:relative;overflow:hidden;">
+              <div style="position:absolute;right:-30px;top:-30px;width:120px;height:120px;border-radius:50%;background:rgba(255,255,255,0.08);"></div>
+              <div style="font-size:16px;font-weight:800;">BANGON</div>
+              <div style="font-size:12.5px;line-height:1.5;margin-top:6px;max-width:250px;opacity:0.9;">Proaktibong tugma sa mga benepisyong bagay sa'yo — walang paulit-ulit na papeles.</div>
+              <div style="display:flex;gap:5px;margin-top:16px;">
+                <div style="width:16px;height:5px;border-radius:100px;background:#fff;"></div>
+                <div style="width:5px;height:5px;border-radius:100px;background:rgba(255,255,255,0.4);"></div>
+                <div style="width:5px;height:5px;border-radius:100px;background:rgba(255,255,255,0.4);"></div>
+              </div>
+            </div>
+
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:18px;">
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <div style="width:34px;height:34px;border-radius:50%;background:#DBEAFE;color:#2563EB;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+                <div style="font-size:13.5px;color:#334155;line-height:1.4;padding-top:6px;">Awtomatikong tugma sa mga benepisyong bagay sa iyo</div>
+              </div>
+              <div style="display:flex;gap:12px;align-items:flex-start;">
+                <div style="width:34px;height:34px;border-radius:50%;background:#DCFCE7;color:#16A34A;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-weight:700;">✓</div>
+                <div style="font-size:13.5px;color:#334155;line-height:1.4;padding-top:6px;">Ligtas gamit ang iyong PhilSys National ID</div>
+              </div>
+            </div>
+
+            <button style="background:#0F766E;color:#fff;border:none;border-radius:22px;padding:16px;font-size:16px;font-weight:700;cursor:pointer;margin-top:22px;" onClick="{{ next }}">Simulan ang BANGON</button>
+            <div style="text-align:center;font-size:11.5px;color:#94A3A0;margin-top:12px;">Opisyal na serbisyo ng pamahalaan · eGov PH</div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ s1 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #F1F5F4;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#334155;" onClick="{{ back }}">←</div>
+              <div style="font-size:16.5px;font-weight:700;color:#0F172A;">Mag-sign in</div>
+            </div>
+            <div style="flex:1;padding:24px 22px;display:flex;flex-direction:column;">
+              <div style="display:flex;align-items:center;gap:10px;margin-bottom:22px;">
+                <div style="width:46px;height:46px;border-radius:22px;background:#DBEAFE;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:12px;color:#2563EB;">eGov</div>
+                <div>
+                  <div style="font-size:14.5px;font-weight:700;color:#1F2937;">eGovPH SSO</div>
+                  <div style="font-size:12px;color:#5B6B76;">Opisyal na secure sign-in gateway</div>
+                </div>
+              </div>
+              <label style="font-size:13px;font-weight:600;color:#334155;margin-bottom:6px;">PhilSys Number (PCN)</label>
+              <input value="{{ philsysId }}" onChange="{{ setPhilsysId }}" placeholder="0000-0000-0000-0000" style="border:1.5px solid #DCE3E1;border-radius:20px;padding:14px;font-size:15px;letter-spacing:0.5px;color:#1F2937;outline:none;"/>
+              <sc-if value="{{ idError }}" hint-placeholder-val="{{ false }}">
+                <div style="color:#B91C1C;font-size:12.5px;margin-top:6px;">{{ idError }}</div>
+              </sc-if>
+              <div style="font-size:11.5px;font-weight:700;color:#94A3A0;text-transform:uppercase;letter-spacing:0.5px;margin-top:20px;">Mock PhilSys ID (para sa demo)</div>
+              <div style="display:flex;flex-direction:column;gap:8px;margin-top:8px;">
+                <sc-for list="{{ mockIds }}" as="m" hint-placeholder-count="3">
+                  <div style="display:flex;justify-content:space-between;align-items:center;border:1.5px solid #E2E8F0;border-radius:20px;padding:11px 14px;cursor:pointer;" onClick="{{ m.use }}">
+                    <div>
+                      <div style="font-size:13px;font-weight:700;color:#1F2937;">{{ m.name }}</div>
+                      <div style="font-size:11.5px;color:#94A3A0;letter-spacing:0.5px;">{{ m.id }}</div>
+                    </div>
+                    <span style="font-size:11px;font-weight:700;color:#2563EB;">Gamitin</span>
+                  </div>
+                </sc-for>
+              </div>
+              <div style="flex:1;"></div>
+              <button style="background:{{ ssoButtonBg }};color:#fff;border:none;border-radius:22px;padding:16px;font-size:15.5px;font-weight:700;cursor:pointer;" onClick="{{ signIn }}">{{ ssoButtonLabel }}</button>
+              <div style="display:flex;align-items:center;gap:8px;margin-top:16px;justify-content:center;">
+                <div style="width:14px;height:14px;border-radius:3px;background:#DBEAFE;color:#2563EB;display:flex;align-items:center;justify-content:center;font-size:9px;">🔒</div>
+                <div style="font-size:11.5px;color:#94A3A0;">Ang iyong datos ay hindi ibinabahagi nang walang pahintulot.</div>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ s2 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #F1F5F4;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#334155;" onClick="{{ back }}">←</div>
+              <div style="font-size:16.5px;font-weight:700;color:#0F172A;">Pag-verify ng Pagkakakilanlan</div>
+            </div>
+            <div style="flex:1;padding:30px 22px;display:flex;flex-direction:column;align-items:center;text-align:center;">
+              <div style="width:200px;height:200px;border-radius:50%;background:conic-gradient(#2563EB {{ scanProgress }}%, #E2E8F0 0);display:flex;align-items:center;justify-content:center;margin-top:8px;">
+                <div style="width:172px;height:172px;border-radius:50%;background:#fff;display:flex;align-items:center;justify-content:center;flex-direction:column;">
+                  <sc-if value="{{ scanDone }}" hint-placeholder-val="{{ false }}">
+                    <div style="font-size:40px;color:#16A34A;">✓</div>
+                    <div style="font-size:13px;color:#16A34A;font-weight:700;margin-top:6px;">{{ confidence }}%</div>
+                  </sc-if>
+                  <sc-if value="{{ notScanDone }}" hint-placeholder-val="{{ true }}">
+                    <div style="width:64px;height:64px;border-radius:50% 50% 50% 50%/60% 60% 40% 40%;background:#DBEAFE;position:relative;">
+                      <div style="position:absolute;left:16px;top:22px;width:8px;height:8px;border-radius:50%;background:#2563EB;"></div>
+                      <div style="position:absolute;right:16px;top:22px;width:8px;height:8px;border-radius:50%;background:#2563EB;"></div>
+                    </div>
+                    <div style="font-size:12px;color:#5B6B76;margin-top:10px;">{{ scanProgress }}%</div>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="font-size:14.5px;color:#334155;font-weight:600;margin-top:22px;">{{ scanStatusText }}</div>
+              <div style="font-size:12.5px;color:#5B6B76;margin-top:6px;line-height:1.5;">Panatilihing nasa gitna ang iyong mukha. Huwag kumurap ng matagal.</div>
+              <div style="flex:1;min-height:24px;"></div>
+              <sc-if value="{{ showStartScan }}" hint-placeholder-val="{{ true }}">
+                <button style="width:100%;background:#2563EB;color:#fff;border:none;border-radius:22px;padding:16px;font-size:15.5px;font-weight:700;cursor:pointer;" onClick="{{ startScan }}">Simulan ang pag-scan</button>
+              </sc-if>
+              <sc-if value="{{ scanDone }}" hint-placeholder-val="{{ false }}">
+                <button style="width:100%;background:#16A34A;color:#fff;border:none;border-radius:22px;padding:16px;font-size:15.5px;font-weight:700;cursor:pointer;" onClick="{{ continueFromScan }}">Magpatuloy</button>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ s3 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #F1F5F4;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#334155;" onClick="{{ back }}">←</div>
+              <div style="font-size:16.5px;font-weight:700;color:#0F172A;">Kumpirmasyon ng Datos</div>
+            </div>
+            <div style="flex:1;padding:24px 22px;display:flex;flex-direction:column;">
+              <sc-if value="{{ everifyLoading }}" hint-placeholder-val="{{ true }}">
+                <div style="display:flex;flex-direction:column;align-items:center;justify-content:center;flex:1;gap:16px;padding:60px 0;">
+                  <div style="width:38px;height:38px;border-radius:50%;border:4px solid #DBEAFE;border-top-color:#2563EB;animation:spin 0.9s linear infinite;"></div>
+                  <div style="font-size:13.5px;color:#5B6B76;text-align:center;">Kinukuha ang iyong impormasyon mula sa PSA PhilSys...</div>
+                </div>
+              </sc-if>
+              <sc-if value="{{ everifyDone }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#DCFCE7;color:#16A34A;font-size:12px;font-weight:700;padding:8px 12px;border-radius:18px;display:inline-block;width:fit-content;margin-bottom:16px;">PSA-verified ✓</div>
+                <div style="display:flex;flex-direction:column;gap:0;border:1.5px solid #E2E8F0;border-radius:22px;overflow:hidden;">
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EEF2F1;"><span style="font-size:13px;color:#5B6B76;">Pangalan</span><span style="font-size:13.5px;font-weight:600;color:#1F2937;">J. Dela Cruz</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EEF2F1;"><span style="font-size:13px;color:#5B6B76;">Kaarawan</span><span style="font-size:13.5px;font-weight:600;color:#1F2937;">14 Mar 1958</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;border-bottom:1px solid #EEF2F1;"><span style="font-size:13px;color:#5B6B76;">Katayuang Sibil</span><span style="font-size:13.5px;font-weight:600;color:#1F2937;">Balo</span></div>
+                  <div style="display:flex;justify-content:space-between;padding:14px 16px;"><span style="font-size:13px;color:#5B6B76;">Katayuan</span><span style="font-size:13.5px;font-weight:600;color:#16A34A;">Buhay</span></div>
+                </div>
+                <div style="font-size:12px;color:#94A3A0;margin-top:14px;line-height:1.5;">Direkta mula sa iyong PhilSys National ID — walang paulit-ulit na porma.</div>
+                <div style="flex:1;min-height:16px;"></div>
+                <button style="background:#0F766E;color:#fff;border:none;border-radius:22px;padding:16px;font-size:15.5px;font-weight:700;cursor:pointer;margin-top:16px;" onClick="{{ next }}">Tingnan ang mga Benepisyo</button>
+              </sc-if>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ s4 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #F1F5F4;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#334155;" onClick="{{ back }}">←</div>
+              <div style="font-size:16.5px;font-weight:700;color:#0F172A;">Mga Benepisyong Tugma</div>
+            </div>
+            <div style="padding:20px 20px;">
+              <div style="background:#FEF3C7;color:#92400E;font-size:12.5px;line-height:1.5;padding:12px 14px;border-radius:20px;margin-bottom:16px;">Sinuri muna namin ang pondo (DBM Compass) bago ipinakita ang mga sumusunod.</div>
+              <sc-for list="{{ benefits }}" as="b" hint-placeholder-count="3">
+                <div style="background:#fff;border:1.5px solid #E2E8F0;border-radius:22px;padding:16px;margin-bottom:12px;cursor:pointer;" onClick="{{ b.select }}">
+                  <div style="display:flex;justify-content:space-between;align-items:center;">
+                    <div style="display:flex;align-items:center;gap:10px;">
+                      <div style="width:36px;height:36px;border-radius:20px;background:{{ b.tileBg }};color:{{ b.agencyColor }};display:flex;align-items:center;justify-content:center;font-weight:800;font-size:14px;">{{ b.initial }}</div>
+                      <span style="font-size:11px;font-weight:700;color:#fff;background:{{ b.agencyColor }};padding:3px 9px;border-radius:100px;">{{ b.agency }}</span>
+                    </div>
+                    <span style="font-size:17px;color:#94A3A0;">›</span>
+                  </div>
+                  <div style="font-size:15.5px;font-weight:700;color:#1F2937;margin-top:10px;">{{ b.title }}</div>
+                  <div style="font-size:14px;font-weight:700;color:#0F766E;margin-top:2px;">{{ b.amount }}</div>
+                  <div style="font-size:12.5px;color:#5B6B76;margin-top:6px;line-height:1.4;">{{ b.reason }}</div>
+                </div>
+              </sc-for>
+              <div style="font-size:12px;color:#94A3A0;text-align:center;margin-top:6px;line-height:1.5;">Iyan lang ang tugma sa ngayon. Awtomatikong susuriin ulit kapag may bagong pondo.</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ s5 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #F1F5F4;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#334155;" onClick="{{ backToBenefits }}">←</div>
+              <div style="font-size:16.5px;font-weight:700;color:#0F172A;">{{ selectedBenefit.title }}</div>
+            </div>
+            <div style="padding:22px 20px;">
+              <div style="background:#fff;border:1.5px solid #E2E8F0;border-radius:22px;padding:16px;">
+                <span style="font-size:11px;font-weight:700;color:#fff;background:{{ selectedBenefit.agencyColor }};padding:3px 9px;border-radius:100px;">{{ selectedBenefit.agency }}</span>
+                <div style="font-size:20px;font-weight:800;color:#0F766E;margin-top:10px;">{{ selectedBenefit.amount }}</div>
+                <div style="font-size:12.5px;color:#5B6B76;margin-top:4px;">{{ selectedBenefit.reason }}</div>
+                <div style="display:inline-flex;align-items:center;gap:6px;background:#DCFCE7;color:#166534;font-size:12px;font-weight:700;padding:6px 10px;border-radius:16px;margin-top:12px;">May sapat na pondo ✓ · DBM Compass</div>
+              </div>
+              <div style="font-size:13.5px;font-weight:700;color:#334155;margin-top:22px;margin-bottom:12px;">Katayuan ng Proseso</div>
+              <sc-for list="{{ disburseSteps }}" as="step" hint-placeholder-count="4">
+                <div style="display:flex;gap:12px;align-items:flex-start;padding-bottom:18px;">
+                  <div style="width:26px;height:26px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700;background:{{ step.bg }};color:{{ step.fg }};">{{ step.mark }}</div>
+                  <div style="font-size:13.5px;color:{{ step.textColor }};font-weight:{{ step.weight }};padding-top:3px;">{{ step.label }}</div>
+                </div>
+              </sc-for>
+              <sc-if value="{{ showChainHash }}" hint-placeholder-val="{{ false }}">
+                <div style="background:#F7FAF9;border-radius:18px;padding:12px 14px;font-size:11.5px;color:#5B6B76;margin-top:4px;line-height:1.6;">
+                  Ref: <span style="color:#1F2937;font-weight:600;">EGP-4471-8823</span><br/>
+                  eGovChain anchor: <span style="color:#1F2937;font-weight:600;">0x9f2a…c17b</span>
+                </div>
+              </sc-if>
+              <div style="height:16px;"></div>
+              <button style="width:100%;background:{{ disburseButtonBg }};color:#fff;border:none;border-radius:22px;padding:16px;font-size:15.5px;font-weight:700;cursor:pointer;" onClick="{{ confirmDisburse }}">{{ disburseButtonLabel }}</button>
+              <div style="text-align:center;margin-top:16px;font-size:13px;color:#0F766E;font-weight:600;cursor:pointer;" onClick="{{ goTransparency }}">→ Tingnan ang mga proyekto ng gobyerno sa lugar mo</div>
+            </div>
+          </div>
+        </sc-if>
+
+        <sc-if value="{{ s6 }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;min-height:100%;position:relative;">
+            <div style="display:flex;align-items:center;gap:14px;padding:18px 20px;border-bottom:1px solid #F1F5F4;">
+              <div style="width:34px;height:34px;border-radius:50%;background:#F3F4F6;display:flex;align-items:center;justify-content:center;cursor:pointer;font-size:18px;color:#334155;" onClick="{{ back }}">←</div>
+              <div style="font-size:16.5px;font-weight:700;color:#0F172A;">Transparency sa Proyekto</div>
+            </div>
+            <div style="padding:18px 18px 90px;">
+              <sc-for list="{{ projects }}" as="p" hint-placeholder-count="3">
+                <div style="background:#fff;border:1.5px solid #E2E8F0;border-radius:22px;padding:15px;margin-bottom:12px;">
+                  <div style="display:flex;justify-content:space-between;align-items:flex-start;">
+                    <div style="font-size:14.5px;font-weight:700;color:#1F2937;max-width:230px;">{{ p.title }}</div>
+                    <span style="font-size:11px;font-weight:700;color:#fff;background:{{ p.statusColor }};padding:3px 9px;border-radius:100px;white-space:nowrap;">{{ p.status }}</span>
+                  </div>
+                  <div style="font-size:12px;color:#5B6B76;margin-top:4px;">{{ p.agency }} · {{ p.location }}</div>
+                  <div style="height:7px;background:#EEF2F1;border-radius:100px;margin-top:10px;overflow:hidden;">
+                    <div style="height:100%;border-radius:100px;background:{{ p.statusColor }};width:{{ p.utilization }}%;"></div>
+                  </div>
+                  <div style="font-size:11.5px;color:#94A3A0;margin-top:5px;">{{ p.utilization }}% nagamit sa badyet</div>
+                </div>
+              </sc-for>
+            </div>
+            <div style="position:absolute;bottom:18px;left:18px;right:18px;">
+              <button style="width:100%;background:#DC2626;color:#fff;border:none;border-radius:100px;padding:15px;font-size:14.5px;font-weight:700;cursor:pointer;box-shadow:0 8px 20px rgba(220,38,38,0.3);" onClick="{{ openReport }}">⚑ Mag-report ng Problema</button>
+            </div>
+
+            <sc-if value="{{ reportOpen }}" hint-placeholder-val="{{ false }}">
+              <div style="position:absolute;inset:0;background:rgba(15,23,20,0.5);display:flex;align-items:flex-end;">
+                <div style="background:#fff;width:100%;border-radius:28px 28px 0 0;padding:22px 20px 26px;max-height:88%;overflow:auto;">
+                  <sc-if value="{{ reportSubmitted }}" hint-placeholder-val="{{ false }}">
+                    <div style="text-align:center;padding:20px 0;">
+                      <div style="font-size:40px;color:#16A34A;">✓</div>
+                      <div style="font-size:16px;font-weight:700;color:#1F2937;margin-top:10px;">Naisumite na ang ulat!</div>
+                      <div style="font-size:13px;color:#5B6B76;margin-top:6px;">Case ID: <span style="font-weight:700;color:#1F2937;">{{ caseId }}</span></div>
+                      <button style="width:100%;background:#0F766E;color:#fff;border:none;border-radius:22px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:20px;" onClick="{{ closeReport }}">Isara</button>
+                    </div>
+                  </sc-if>
+                  <sc-if value="{{ notReportSubmitted }}" hint-placeholder-val="{{ true }}">
+                    <div style="display:flex;justify-content:space-between;align-items:center;">
+                      <div style="font-size:16px;font-weight:700;color:#1F2937;">Mag-report ng Problema</div>
+                      <div style="cursor:pointer;color:#94A3A0;font-size:18px;" onClick="{{ closeReport }}">✕</div>
+                    </div>
+                    <div style="font-size:12.5px;color:#5B6B76;margin-top:4px;">Piliin ang uri ng problema para sa proyektong ito.</div>
+                    <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:14px;">
+                      <sc-for list="{{ reportCategories }}" as="cat" hint-placeholder-count="4">
+                        <div style="{{ cat.chipStyle }}" onClick="{{ cat.select }}">{{ cat.label }}</div>
+                      </sc-for>
+                    </div>
+                    <label style="font-size:13px;font-weight:600;color:#334155;margin-top:16px;display:block;">Ilarawan ang problema</label>
+                    <textarea value="{{ reportText }}" onChange="{{ setReportText }}" placeholder="Halimbawa: Hindi pa natatapos ang proyekto simula pa noong..." style="width:100%;box-sizing:border-box;border:1.5px solid #DCE3E1;border-radius:20px;padding:12px;font-size:14px;color:#1F2937;margin-top:6px;min-height:80px;resize:none;outline:none;"></textarea>
+                    <button style="width:100%;background:{{ reportSubmitBg }};color:#fff;border:none;border-radius:22px;padding:15px;font-size:15px;font-weight:700;cursor:pointer;margin-top:16px;" onClick="{{ submitReport }}">Isumite ang Ulat</button>
+                  </sc-if>
+                </div>
+              </div>
+            </sc-if>
+          </div>
+        </sc-if>
+
+        </div>
+
+        <div style="position:absolute;right:16px;bottom:88px;width:56px;height:56px;">
+          <div style="position:absolute;inset:-6px;border-radius:50%;background:#0F766E;opacity:0.3;animation:aiPulse 2.2s ease-in-out infinite;"></div>
+          <div style="position:absolute;inset:0;border-radius:50%;background:#0F766E;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 10px 22px rgba(15,118,110,0.45);" onClick="{{ openAi }}">
+            <span style="color:#fff;font-size:22px;line-height:1;">✦</span>
+          </div>
+        </div>
+
+        <sc-if value="{{ aiOpen }}" hint-placeholder-val="{{ false }}">
+          <div style="position:absolute;inset:0;background:rgba(8,10,20,0.6);backdrop-filter:blur(3px);display:flex;align-items:flex-end;z-index:20;">
+            <div style="background:#141B1E;width:100%;border-radius:32px 32px 0 0;padding:22px 20px 26px;max-height:78%;overflow:auto;box-sizing:border-box;border-top:1px solid rgba(255,255,255,0.08);">
+              <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div style="display:flex;align-items:center;gap:10px;">
+                  <div style="width:40px;height:40px;border-radius:50%;background:#0F766E;display:flex;align-items:center;justify-content:center;color:#fff;font-size:17px;">✦</div>
+                  <div>
+                    <div style="font-size:16px;font-weight:800;color:#fff;">eGov AI</div>
+                    <div style="font-size:11px;color:#8B93B0;">Katulong mo sa BANGON</div>
+                  </div>
+                </div>
+                <div style="cursor:pointer;color:#8B93B0;font-size:18px;width:30px;height:30px;border-radius:50%;background:rgba(255,255,255,0.06);display:flex;align-items:center;justify-content:center;" onClick="{{ closeAi }}">✕</div>
+              </div>
+
+              <div style="display:flex;flex-direction:column;gap:10px;margin-top:18px;">
+                <sc-for list="{{ aiMessages }}" as="m" hint-placeholder-count="1">
+                  <div style="{{ m.rowStyle }}">
+                    <div style="{{ m.bubbleStyle }}">{{ m.text }}</div>
+                  </div>
+                </sc-for>
+              </div>
+
+              <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:16px;">
+                <sc-for list="{{ aiQuestions }}" as="q" hint-placeholder-count="3">
+                  <div style="border:1px solid rgba(94,234,212,0.3);background:rgba(94,234,212,0.08);border-radius:100px;padding:9px 14px;font-size:12.5px;color:#5EEAD4;font-weight:600;cursor:pointer;" onClick="{{ q.ask }}">✦ {{ q.q }}</div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </sc-if>
+
+        <div style="position:absolute;left:14px;right:14px;bottom:14px;background:#fff;border:1px solid #EEF2F1;border-radius:100px;display:flex;align-items:center;justify-content:space-around;padding:8px 10px;box-shadow:0 14px 28px rgba(15,23,42,0.15);">
+          <sc-for list="{{ tabItems }}" as="t" hint-placeholder-count="5">
+            <div style="{{ t.wrapStyle }}" onClick="{{ t.go }}">
+              <sc-if value="{{ t.isHome }}" hint-placeholder-val="{{ true }}">
+                <div style="position:absolute;left:15px;top:19px;width:14px;height:9px;background:{{ t.iconColor }};border-radius:0 0 2px 2px;"></div>
+                <div style="position:absolute;left:12px;top:19px;width:0;height:0;border-left:10px solid transparent;border-right:10px solid transparent;border-bottom:8px solid {{ t.iconColor }};"></div>
+              </sc-if>
+              <sc-if value="{{ t.isScan }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:12px;top:12px;width:7px;height:7px;border-top:2px solid {{ t.iconColor }};border-left:2px solid {{ t.iconColor }};"></div>
+                <div style="position:absolute;right:12px;top:12px;width:7px;height:7px;border-top:2px solid {{ t.iconColor }};border-right:2px solid {{ t.iconColor }};"></div>
+                <div style="position:absolute;left:12px;bottom:12px;width:7px;height:7px;border-bottom:2px solid {{ t.iconColor }};border-left:2px solid {{ t.iconColor }};"></div>
+                <div style="position:absolute;right:12px;bottom:12px;width:7px;height:7px;border-bottom:2px solid {{ t.iconColor }};border-right:2px solid {{ t.iconColor }};"></div>
+              </sc-if>
+              <sc-if value="{{ t.isId }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:11px;top:15px;width:22px;height:15px;border:2px solid {{ t.iconColor }};border-radius:4px;"></div>
+                <div style="position:absolute;left:14px;top:19px;width:5px;height:5px;border-radius:50%;background:{{ t.iconColor }};"></div>
+                <div style="position:absolute;left:22px;top:19px;width:7px;height:1.8px;background:{{ t.iconColor }};"></div>
+                <div style="position:absolute;left:22px;top:24px;width:5px;height:1.8px;background:{{ t.iconColor }};"></div>
+              </sc-if>
+              <sc-if value="{{ t.isList }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:14px;top:10px;width:16px;height:20px;border:2px solid {{ t.iconColor }};border-radius:3px;"></div>
+                <div style="position:absolute;left:17px;top:15px;width:9px;height:1.6px;background:{{ t.iconColor }};"></div>
+                <div style="position:absolute;left:17px;top:19px;width:9px;height:1.6px;background:{{ t.iconColor }};"></div>
+                <div style="position:absolute;left:17px;top:23px;width:5px;height:1.6px;background:{{ t.iconColor }};"></div>
+              </sc-if>
+              <sc-if value="{{ t.isFlag }}" hint-placeholder-val="{{ false }}">
+                <div style="position:absolute;left:16px;top:9px;width:2px;height:22px;background:{{ t.iconColor }};"></div>
+                <div style="position:absolute;left:18px;top:10px;width:13px;height:10px;background:{{ t.iconColor }};clip-path:polygon(0 0,100% 25%,0 50%);"></div>
+              </sc-if>
+            </div>
+          </sc-for>
+        </div>
+
+      </div>
+    </x-import>
+  </div>
+
+  <sc-if value="{{ showRail }}" hint-placeholder-val="{{ true }}">
+    <div style="width:220px;background:#fff;border:1.5px solid #E2E8F0;border-radius:24px;padding:16px;margin-top:56px;">
+      <div style="font-size:11.5px;font-weight:700;color:#94A3A0;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:10px;">Tumalon sa Screen</div>
+      <sc-for list="{{ navItems }}" as="item" hint-placeholder-count="7">
+        <div style="{{ item.rowStyle }}" onClick="{{ item.go }}">
+          <span style="{{ item.badgeStyle }}">{{ item.num }}</span>
+          <span style="{{ item.labelStyle }}">{{ item.label }}</span>
+        </div>
+      </sc-for>
+    </div>
+  </sc-if>
+
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;defaultLang&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;default&quot;:&quot;fil&quot;,&quot;options&quot;:[&quot;fil&quot;,&quot;en&quot;],&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;showControlRail&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;},&quot;startSignedIn&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:false,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Behavior&quot;}}">
+const BENEFITS = [
+  { id: 'sss', agency: 'SSS', agencyColor: '#2563EB', tileBg: '#DBEAFE', initial: 'S', title: 'Senior Citizen Pension', amount: '\u20b11,000 / buwan', reason: 'Ikaw ay 60 taong gulang pataas ayon sa iyong PhilSys record.' },
+  { id: 'philhealth', agency: 'PhilHealth', agencyColor: '#16A34A', tileBg: '#DCFCE7', initial: '+', title: 'Senior Citizen Premium Subsidy', amount: 'Libreng premium', reason: 'Awtomatikong sakop bilang rehistradong senior citizen.' },
+  { id: 'dswd', agency: 'DSWD', agencyColor: '#B45309', tileBg: '#FEF3C7', initial: 'D', title: 'Tulong Pinansyal para sa Balo', amount: '\u20b13,000 (one-time)', reason: 'Naitala bilang balo batay sa civil status mula PSA.' },
+];
+
+const PROJECTS = [
+  { id: 1, title: 'Farm-to-Market Road', agency: 'DPWH', location: 'Brgy. San Isidro, N. Ecija', utilization: 72, status: 'Ongoing', statusColor: '#2563EB' },
+  { id: 2, title: 'Barangay Health Station Upgrade', agency: 'DOH-LGSF', location: 'Brgy. Malaya, Quezon City', utilization: 100, status: 'Tapos na', statusColor: '#16A34A' },
+  { id: 3, title: 'Flood Control Structure', agency: 'DPWH', location: 'Marikina Riverbank', utilization: 38, status: 'Naantala', statusColor: '#B91C1C' },
+];
+
+const REPORT_CATS = [
+  { value: 'delayed', label: 'Naantalang Proyekto' },
+  { value: 'amount', label: 'Maling Halaga' },
+  { value: 'corruption', label: 'Hinihinalang Katiwalian' },
+  { value: 'other', label: 'Iba pa' },
+];
+
+const SCREEN_LABELS = ['Onboarding', 'SSO Login', 'Face Scan', 'eVerify', 'Benepisyo', 'Detalye & Bayad', 'Transparency'];
+const DISBURSE_LABELS = ['Na-verify ang pagiging kwalipikado', 'Ipoproseso sa eGovPay', 'Ipinadala sa iyong account', 'Naka-anchor sa eGovChain'];
+
+const HOME_FEATURES = [
+  { kind: 'scan', bg: '#DBEAFE', iconColor: '#2563EB', label: 'Mag-scan' },
+  { kind: 'id', bg: '#DCFCE7', iconColor: '#16A34A', label: 'ID Verify' },
+  { kind: 'list', bg: '#FEF3C7', iconColor: '#D97706', label: 'Benepisyo' },
+  { kind: 'wallet', bg: '#FCE7F3', iconColor: '#DB2777', label: 'Bayad' },
+  { kind: 'flag', bg: '#EDE4FE', iconColor: '#7C3AED', label: 'Ulat', badge: true },
+];
+
+const MOCK_IDS = [
+  { name: 'Juan Dela Cruz', id: '4827-1093-5561-2204' },
+  { name: 'Maria Santos', id: '7710-2284-9013-6650' },
+  { name: 'Ricardo Bautista', id: '3391-8847-1025-4478' },
+];
+
+const AI_QUESTIONS = [
+  { q: 'Bakit ako kwalipikado?', a: 'Batay sa iyong PhilSys record, ikaw ay 60 taong gulang pataas — kaya kwalipikado ka sa Senior Citizen Pension ng SSS.' },
+  { q: 'Kailan ako babayaran?', a: 'Karaniwang 3-5 araw pagkatapos ma-verify ang iyong pagiging kwalipikado, ipoproseso ang bayad sa pamamagitan ng eGovPay.' },
+  { q: 'Paano kung may problema?', a: 'Maaari kang mag-report gamit ang eReport mula sa Ulat tab — awtomatikong makakatanggap ka ng Case ID.' },
+];
+
+const TABS = [
+  { key: 'home', kind: 'home', screens: [0] },
+  { key: 'scan', kind: 'scan', screens: [1, 2] },
+  { key: 'id', kind: 'id', screens: [3] },
+  { key: 'benepisyo', kind: 'list', screens: [4, 5] },
+  { key: 'ulat', kind: 'flag', screens: [6] },
+];
+
+class Component extends DCLogic {
+  state = {
+    screen: this.props.startSignedIn ? 4 : 0,
+    lang: this.props.defaultLang || 'fil',
+    philsysId: this.props.startSignedIn ? MOCK_IDS[0].id : '',
+    idError: '',
+    ssoLoading: false,
+    scanning: false,
+    scanProgress: this.props.startSignedIn ? 100 : 0,
+    scanDone: !!this.props.startSignedIn,
+    confidence: this.props.startSignedIn ? 97.8 : 0,
+    everifyLoading: false,
+    everifyDone: !!this.props.startSignedIn,
+    selectedBenefitId: null,
+    disburseStep: 0,
+    disburseBusy: false,
+    reportOpen: false,
+    reportCategory: '',
+    reportText: '',
+    reportSubmitted: false,
+    caseId: '',
+    aiOpen: false,
+    aiMessages: [{ role: 'ai', text: 'Kumusta! Ako si eGov AI. Anong gusto mong malaman tungkol sa iyong benepisyo?' }],
+  };
+
+  componentWillUnmount() {
+    if (this.scanTimer) clearInterval(this.scanTimer);
+    if (this._t) clearTimeout(this._t);
+  }
+
+  goTo = (n) => this.setState({ screen: n });
+  next = () => this.setState((s) => ({ screen: s.screen + 1 }));
+  back = () => this.setState((s) => ({ screen: Math.max(0, s.screen - 1) }));
+  backToBenefits = () => this.setState({ screen: 4 });
+  goTransparency = () => this.setState({ screen: 6 });
+
+  setPhilsysId = (e) => {
+    const digits = e.target.value.replace(/\D/g, '').slice(0, 16);
+    const groups = digits.match(/.{1,4}/g) || [];
+    this.setState({ philsysId: groups.join('-'), idError: '' });
+  };
+
+  signIn = () => {
+    const digits = this.state.philsysId.replace(/\D/g, '');
+    if (digits.length !== 16) {
+      this.setState({ idError: 'Ilagay ang tamang 16-digit na PhilSys number.' });
+      return;
+    }
+    this.setState({ ssoLoading: true });
+    this._t = setTimeout(() => this.setState({ ssoLoading: false, screen: 2 }), 1100);
+  };
+
+  startScan = () => {
+    this.setState({ scanning: true, scanProgress: 0, scanDone: false });
+    this.scanTimer = setInterval(() => {
+      this.setState((s) => {
+        const p = Math.min(98, s.scanProgress + 8 + Math.random() * 8);
+        if (p >= 98) {
+          clearInterval(this.scanTimer);
+          return { scanProgress: 100, scanning: false, scanDone: true, confidence: 97.8 };
+        }
+        return { scanProgress: p };
+      });
+    }, 160);
+  };
+
+  continueFromScan = () => {
+    this.setState({ screen: 3, everifyLoading: true, everifyDone: false });
+    this._t = setTimeout(() => this.setState({ everifyLoading: false, everifyDone: true }), 1200);
+  };
+
+  selectBenefit = (id) => this.setState({ selectedBenefitId: id, screen: 5, disburseStep: 0 });
+
+  confirmDisburse = () => {
+    if (this.state.disburseStep >= DISBURSE_LABELS.length - 1 || this.state.disburseBusy) return;
+    this.setState({ disburseBusy: true });
+    this._t = setTimeout(() => {
+      this.setState((s) => ({ disburseStep: s.disburseStep + 1, disburseBusy: false }));
+    }, 850);
+  };
+
+  openAi = () => this.setState({ aiOpen: true });
+  closeAi = () => this.setState({ aiOpen: false });
+  askAi = (q) => this.setState((s) => ({ aiMessages: [...s.aiMessages, { role: 'user', text: q.q }, { role: 'ai', text: q.a }] }));
+
+  openReport = () => this.setState({ reportOpen: true, reportSubmitted: false, reportCategory: '', reportText: '' });
+  closeReport = () => this.setState({ reportOpen: false });
+  setReportText = (e) => this.setState({ reportText: e.target.value });
+  submitReport = () => {
+    if (!this.state.reportCategory || !this.state.reportText.trim()) return;
+    const caseId = 'ER-2026-' + Math.floor(10000 + Math.random() * 89999);
+    this.setState({ reportSubmitted: true, caseId });
+  };
+
+  renderVals() {
+    const s = this.state;
+    const selectedBenefit = BENEFITS.find((b) => b.id === s.selectedBenefitId) || BENEFITS[0];
+
+    const disburseSteps = DISBURSE_LABELS.map((label, i) => {
+      const done = i < s.disburseStep;
+      const active = i === s.disburseStep;
+      return {
+        label,
+        mark: done ? '\u2713' : String(i + 1),
+        bg: done ? '#16A34A' : active ? '#0F766E' : '#EEF2F1',
+        fg: done || active ? '#fff' : '#94A3A0',
+        textColor: done || active ? '#1F2937' : '#94A3A0',
+        weight: active ? '700' : '600',
+      };
+    });
+
+    const disburseBusy = s.disburseBusy;
+    const disburseDone = s.disburseStep >= DISBURSE_LABELS.length - 1;
+    const disburseButtonLabel = disburseBusy ? 'Nagpoproseso...' : disburseDone ? 'Tapos na \u2713' : 'Ipagpatuloy ang Proseso';
+    const disburseButtonBg = disburseDone ? '#16A34A' : disburseBusy ? '#94A3A0' : '#0F766E';
+
+    const reportCategories = REPORT_CATS.map((c) => ({
+      ...c,
+      chipStyle: `padding:9px 14px;border-radius:100px;font-size:12.5px;font-weight:600;cursor:pointer;border:1.5px solid ${s.reportCategory === c.value ? '#0F766E' : '#DCE3E1'};background:${s.reportCategory === c.value ? '#E6F4F1' : '#fff'};color:${s.reportCategory === c.value ? '#0B5D57' : '#334155'};`,
+      select: () => this.setState({ reportCategory: c.value }),
+    }));
+
+    const navItems = SCREEN_LABELS.map((label, i) => ({
+      num: i + 1,
+      label,
+      active: i === s.screen,
+      go: () => this.goTo(i),
+      rowStyle: `display:flex;align-items:center;gap:10px;padding:9px 8px;border-radius:18px;cursor:pointer;background:${i === s.screen ? '#E6F4F1' : 'transparent'};margin-bottom:2px;`,
+      badgeStyle: `width:20px;height:20px;border-radius:50%;flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:10.5px;font-weight:700;background:${i === s.screen ? '#0F766E' : '#EEF2F1'};color:${i === s.screen ? '#fff' : '#94A3A0'};`,
+      labelStyle: `font-size:12.5px;font-weight:${i === s.screen ? '700' : '500'};color:${i === s.screen ? '#0B5D57' : '#334155'};`,
+    }));
+
+    const homeFeatures = HOME_FEATURES.map((f) => ({
+      ...f,
+      isScan: f.kind === 'scan', isId: f.kind === 'id', isList: f.kind === 'list',
+      isWallet: f.kind === 'wallet', isFlag: f.kind === 'flag',
+    }));
+
+    const tabItems = TABS.map((t) => {
+      const active = t.screens.includes(s.screen);
+      return {
+        ...t,
+        active,
+        isHome: t.kind === 'home', isScan: t.kind === 'scan', isId: t.kind === 'id',
+        isList: t.kind === 'list', isFlag: t.kind === 'flag',
+        iconColor: active ? '#fff' : '#94A3A0',
+        wrapStyle: `width:44px;height:44px;border-radius:50%;position:relative;cursor:pointer;background:${active ? '#2563EB' : 'transparent'};`,
+        go: () => this.goTo(t.screens[0]),
+      };
+    });
+
+    return {
+      s0: s.screen === 0, s1: s.screen === 1, s2: s.screen === 2, s3: s.screen === 3,
+      s4: s.screen === 4, s5: s.screen === 5, s6: s.screen === 6,
+      next: this.next, back: this.back, backToBenefits: this.backToBenefits, goTransparency: this.goTransparency,
+      philsysId: s.philsysId, setPhilsysId: this.setPhilsysId, idError: s.idError,
+      mockIds: MOCK_IDS.map((m) => ({ ...m, use: () => this.setState({ philsysId: m.id, idError: '' }) })),
+      ssoLoading: s.ssoLoading, signIn: this.signIn,
+      ssoButtonBg: s.ssoLoading ? '#94A3A0' : '#0F766E',
+      ssoButtonLabel: s.ssoLoading ? 'Kumokonekta sa eGovPH...' : 'Magpatuloy sa eGovPH SSO',
+      scanProgress: Math.round(s.scanProgress), scanDone: s.scanDone, notScanDone: !s.scanDone,
+      confidence: s.confidence, startScan: this.startScan, continueFromScan: this.continueFromScan,
+      showStartScan: !s.scanning && !s.scanDone,
+      scanStatusText: s.scanDone ? 'Na-verify! Buhay at tunay na tao.' : s.scanning ? 'Kinukumpirma na buhay ka...' : 'Handa nang mag-scan',
+      everifyLoading: s.everifyLoading, everifyDone: s.everifyDone,
+      benefits: BENEFITS.map((b) => ({ ...b, select: () => this.selectBenefit(b.id) })),
+      selectedBenefit, disburseSteps,
+      showChainHash: disburseDone,
+      confirmDisburse: this.confirmDisburse, disburseButtonLabel, disburseButtonBg,
+      projects: PROJECTS,
+      reportOpen: s.reportOpen, reportSubmitted: s.reportSubmitted, notReportSubmitted: !s.reportSubmitted,
+      openReport: this.openReport, closeReport: this.closeReport, caseId: s.caseId,
+      reportCategories, reportText: s.reportText, setReportText: this.setReportText,
+      reportSubmitBg: (s.reportCategory && s.reportText.trim()) ? '#0F766E' : '#B7C2BE',
+      submitReport: this.submitReport,
+      showRail: this.props.showControlRail !== false,
+      navItems, homeFeatures, tabItems,
+      aiOpen: s.aiOpen, openAi: this.openAi, closeAi: this.closeAi,
+      aiMessages: s.aiMessages.map((m) => ({
+        text: m.text,
+        rowStyle: `display:flex;justify-content:${m.role === 'user' ? 'flex-end' : 'flex-start'};`,
+        bubbleStyle: `max-width:80%;padding:10px 14px;border-radius:16px;font-size:13px;line-height:1.5;${m.role === 'user' ? 'background:#0F766E;color:#fff;border-radius:16px 16px 4px 16px;' : 'background:rgba(255,255,255,0.08);color:#E5E7F0;border-radius:16px 16px 16px 4px;'}`,
+      })),
+      aiQuestions: AI_QUESTIONS.map((item) => ({ ...item, ask: () => this.askAi(item) })),
+    };
+  }
+}
+
+</script>
+</body>
+</html>

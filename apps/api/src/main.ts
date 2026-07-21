@@ -2,6 +2,7 @@ import {
   createAuthHttpHandlers,
   createBangonHttpHandlers,
   createCaseHttpHandlers,
+  createDbmHttpHandlers,
   createFaceLivenessHttpHandlers,
   healthResponse,
 } from "@egov/adapters-http";
@@ -65,6 +66,10 @@ const faceLiveness = createFaceLivenessHttpHandlers({
   faceLiveness: platform.faceLiveness,
 });
 
+const dbm = createDbmHttpHandlers({
+  dbmCompass: platform.dbmCompass,
+});
+
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,OPTIONS",
@@ -85,7 +90,7 @@ async function readJson(req: IncomingMessage): Promise<unknown> {
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
-  const payload = JSON.stringify(body);
+  const payload = JSON.stringify(body ?? {});
   res.writeHead(status, {
     "content-type": "application/json; charset=utf-8",
     "content-length": Buffer.byteLength(payload),
@@ -369,6 +374,36 @@ const server = createServer(async (req, res) => {
         barangayCode: string;
       };
       const result = await bangon.reportNonDelivery(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
+    // ─── DBM Compass Transparency ───────────────────────────────────────
+    if (method === "GET" && url.pathname === "/bangon/transparency/projects") {
+      const programCode = url.searchParams.get("programCode");
+      const reportYearRaw = url.searchParams.get("reportYear");
+      const region = url.searchParams.get("region");
+      const province = url.searchParams.get("province");
+      const municipality = url.searchParams.get("municipality");
+      const pageRaw = url.searchParams.get("page");
+      const limitRaw = url.searchParams.get("limit");
+      const query: {
+        programCode?: string;
+        reportYear?: number;
+        region?: string;
+        province?: string;
+        municipality?: string;
+        page?: number;
+        limit?: number;
+      } = {};
+      if (programCode) query.programCode = programCode;
+      if (reportYearRaw) query.reportYear = Number(reportYearRaw);
+      if (region) query.region = region;
+      if (province) query.province = province;
+      if (municipality) query.municipality = municipality;
+      if (pageRaw) query.page = Number(pageRaw);
+      if (limitRaw) query.limit = Number(limitRaw);
+      const result = await dbm.listTransparencyProjects(query);
       send(res, result.status, result.body);
       return;
     }

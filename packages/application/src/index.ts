@@ -4,6 +4,7 @@ export * from "./use-cases/orchestration.js";
 export * from "./use-cases/bangon.js";
 export * from "./use-cases/auth.js";
 export * from "./use-cases/dbm-fund.js";
+export * from "./use-cases/dbm-transparency.js";
 export * from "./use-cases/face-liveness.js";
 export * from "./use-cases/sso-profile.js";
 export * from "./use-cases/face-liveness.js";

@@ -11,6 +11,7 @@ import {
   getFaceLivenessResult,
   getServiceCase,
   getSsoCitizenProfile,
+  listTransparencyProjects,
   notifyEligibility,
   reportBenefitNonDelivery,
   startFaceLivenessSession,
@@ -31,6 +32,7 @@ import {
   type FindEligibleBenefitsDeps,
   type GetFaceLivenessResultDeps,
   type GetServiceCaseDeps,
+  type ListTransparencyProjectsDeps,
   type NotifyEligibilityDeps,
   type ReportBenefitNonDeliveryDeps,
   type StartFaceLivenessSessionDeps,
@@ -476,6 +478,46 @@ export function createFaceLivenessHttpHandlers(
     async getResult(sessionToken) {
       return toHttpResponse(
         await getFaceLivenessResult(deps, { sessionToken }),
+      );
+    },
+  };
+}
+
+// ─── DBM Compass (Transparency projects) ──────────────────────────────────
+
+export type DbmHttpDeps = ListTransparencyProjectsDeps;
+
+export type DbmHttpHandlers = {
+  listTransparencyProjects(query: {
+    programCode?: string;
+    reportYear?: number;
+    region?: string;
+    province?: string;
+    municipality?: string;
+    page?: number;
+    limit?: number;
+  }): Promise<HttpResponse>;
+};
+
+export function createDbmHttpHandlers(deps: DbmHttpDeps): DbmHttpHandlers {
+  return {
+    async listTransparencyProjects(query) {
+      return toHttpResponse(
+        await listTransparencyProjects(deps, {
+          ...(query.programCode !== undefined
+            ? { programCode: query.programCode }
+            : {}),
+          ...(query.reportYear !== undefined
+            ? { reportYear: query.reportYear }
+            : {}),
+          ...(query.region !== undefined ? { region: query.region } : {}),
+          ...(query.province !== undefined ? { province: query.province } : {}),
+          ...(query.municipality !== undefined
+            ? { municipality: query.municipality }
+            : {}),
+          ...(query.page !== undefined ? { page: query.page } : {}),
+          ...(query.limit !== undefined ? { limit: query.limit } : {}),
+        }),
       );
     },
   };

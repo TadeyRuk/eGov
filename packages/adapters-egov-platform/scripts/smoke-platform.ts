@@ -3,8 +3,9 @@
  *
  * Usage (from repo root):
  *   pnpm smoke:platform
- *   pnpm smoke:platform -- --write          # Face session; SMS if SMOKE_SMS_TO set
+ *   pnpm smoke:platform -- --write          # Face session; SMS; eGov AI generate; Pay generate
  *   pnpm smoke:platform -- --only=everify,egov-chain
+ *   pnpm smoke:platform -- --only=egov-ai --write   # token + one ai_assistant generate (spends credits)
  *
  * Never prints secret values. Side-effecting calls stay behind --write.
  */
@@ -84,28 +85,58 @@ function errMsg(error: { message?: string; code?: string; cause?: unknown }): st
   return `${error.code ?? "ERR"}: ${error.message ?? "unknown"}`;
 }
 
-async function smokeSso(_p: EgovPlatformAdapters): Promise<void> {
+async function smokeSso(p: EgovPlatformAdapters): Promise<void> {
   if (!hasAny("EGOV_SSO_PARTNER_CODE") || !hasAny("EGOV_SSO_PARTNER_SECRET")) {
     fail("sso", "missing EGOV_SSO_PARTNER_CODE / EGOV_SSO_PARTNER_SECRET");
     return;
   }
+
+  // Prefer a fresh exchange code; optional reuse of a still-valid access token for profile.
   const code = envGet("SMOKE_SSO_EXCHANGE_CODE");
-  if (!code) {
+  const existingToken = envGet("SMOKE_SSO_ACCESS_TOKEN");
+
+  let accessToken: string | undefined = existingToken?.trim() || undefined;
+
+  if (code) {
+    const res = await p.sso.exchangeToken({
+      exchangeCode: code,
+      scope: envGet("SMOKE_SSO_SCOPE") ?? "SSO_AUTHENTICATION",
+    });
+    if (!res.ok) {
+      fail("sso", `exchangeToken: ${errMsg(res.error)}`);
+      return;
+    }
+    accessToken = res.value.accessToken;
+    pass(
+      "sso",
+      `exchangeToken ok (expires_in=${res.value.expiresIn ?? "?"})`,
+    );
+  } else if (!accessToken) {
     skip(
       "sso",
-      "creds present; set SMOKE_SSO_EXCHANGE_CODE for live token exchange",
+      "creds present; set SMOKE_SSO_EXCHANGE_CODE (or SMOKE_SSO_ACCESS_TOKEN for profile-only)",
     );
     return;
+  } else {
+    pass("sso", "using SMOKE_SSO_ACCESS_TOKEN (skipped exchange)");
   }
-  const res = await _p.sso.exchangeToken({
-    exchangeCode: code,
-    scope: envGet("SMOKE_SSO_SCOPE") ?? "SSO_AUTHENTICATION",
-  });
-  if (!res.ok) {
-    fail("sso", errMsg(res.error));
+
+  // Profile must run immediately — access tokens are short-TTL.
+  const profile = await p.sso.authenticatePartner(accessToken);
+  if (!profile.ok) {
+    fail("sso", `authenticatePartner: ${errMsg(profile.error)}`);
     return;
   }
-  pass("sso", "exchangeToken ok");
+  const raw = profile.value.raw as Record<string, unknown>;
+  const uniqid = String(
+    raw.uniqid ??
+      (raw.data as Record<string, unknown> | undefined)?.uniqid ??
+      "",
+  );
+  pass(
+    "sso",
+    `authenticatePartner ok${uniqid ? ` (uniqid present)` : " (profile JSON returned)"}`,
+  );
 }
 
 async function smokeEverify(p: EgovPlatformAdapters): Promise<void> {
@@ -186,6 +217,38 @@ async function smokeAi(p: EgovPlatformAdapters): Promise<void> {
   pass(
     "egov-ai",
     `token ok (credits_remaining=${res.value.creditsRemaining ?? "?"})`,
+  );
+
+  // Generation spends platform credits — only behind --write.
+  if (!write) {
+    skip(
+      "egov-ai",
+      "pass --write to call ai_assistant/generate (spends credits)",
+    );
+    return;
+  }
+
+  const prompt =
+    envGet("SMOKE_AI_PROMPT") ??
+    "Explain in one short sentence why a senior citizen may qualify for a government pension benefit. Plain language.";
+  const category = envGet("SMOKE_AI_CATEGORY") ?? "PH";
+  const gen = await p.egovAi.aiAssistant({
+    prompt,
+    category,
+    token: res.value.accessToken,
+  });
+  if (!gen.ok) {
+    fail("egov-ai", `generate: ${errMsg(gen.error)}`);
+    return;
+  }
+  const text = gen.value.data.trim();
+  if (!text) {
+    fail("egov-ai", "generate returned empty data");
+    return;
+  }
+  pass(
+    "egov-ai",
+    `ai_assistant generate ok (chars=${text.length}, session_id=${gen.value.sessionId || "?"})`,
   );
 }
 
@@ -270,7 +333,8 @@ async function smokeEreport(p: EgovPlatformAdapters): Promise<void> {
     fail("ereport", `generateToken: ${errMsg(tokenRes.error)}`);
     return;
   }
-  const types = await p.eReport.getReportTypes(tokenRes.value.accessToken);
+  const token = tokenRes.value.accessToken;
+  const types = await p.eReport.getReportTypes(token);
   if (!types.ok) {
     fail("ereport", `getReportTypes: ${errMsg(types.error)}`);
     return;
@@ -278,6 +342,70 @@ async function smokeEreport(p: EgovPlatformAdapters): Promise<void> {
   pass(
     "ereport",
     `token + getReportTypes ok (report_types=${types.value.length})`,
+  );
+
+  // Deeper read-only dataset probes (no complaint filed).
+  const regions = await p.eReport.getRegions(token);
+  if (!regions.ok) {
+    fail("ereport", `getRegions: ${errMsg(regions.error)}`);
+    return;
+  }
+  pass("ereport", `getRegions ok (regions=${regions.value.length})`);
+
+  // submitComplaint / OTP create real cases + need a real inbox — opt-in only.
+  if (!write || envGet("SMOKE_EREPORT_SUBMIT") !== "1") {
+    skip(
+      "ereport",
+      "submit/OTP OOS by default; pass --write and SMOKE_EREPORT_SUBMIT=1 to file a real complaint",
+    );
+    return;
+  }
+
+  const mobile = envGet("SMOKE_EREPORT_MOBILE");
+  const email = envGet("SMOKE_EREPORT_EMAIL");
+  const regionCode = envGet("SMOKE_EREPORT_REGION_CODE");
+  const provinceCode = envGet("SMOKE_EREPORT_PROVINCE_CODE");
+  const municipalityCode = envGet("SMOKE_EREPORT_MUNICIPALITY_CODE");
+  const barangayCode = envGet("SMOKE_EREPORT_BARANGAY_CODE");
+  if (
+    !mobile ||
+    !email ||
+    !regionCode ||
+    !provinceCode ||
+    !municipalityCode ||
+    !barangayCode
+  ) {
+    fail(
+      "ereport",
+      "SMOKE_EREPORT_SUBMIT=1 needs SMOKE_EREPORT_MOBILE, EMAIL, REGION/PROVINCE/MUNICIPALITY/BARANGAY_CODE",
+    );
+    return;
+  }
+
+  const submitted = await p.eReport.submitComplaint({
+    accessToken: token,
+    mobile,
+    firstName: envGet("SMOKE_EREPORT_FIRST_NAME") ?? "Smoke",
+    lastName: envGet("SMOKE_EREPORT_LAST_NAME") ?? "Test",
+    gender: envGet("SMOKE_EREPORT_GENDER") ?? "male",
+    complainantEmail: email,
+    reportType: envGet("SMOKE_EREPORT_REPORT_TYPE") ?? "red_tape",
+    subject: envGet("SMOKE_EREPORT_SUBJECT") ?? "BANGON smoke non-delivery",
+    message:
+      envGet("SMOKE_EREPORT_MESSAGE") ??
+      "Automated smoke — please ignore / close.",
+    regionCode,
+    provinceCode,
+    municipalityCode,
+    barangayCode,
+  });
+  if (!submitted.ok) {
+    fail("ereport", `submitComplaint: ${errMsg(submitted.error)}`);
+    return;
+  }
+  pass(
+    "ereport",
+    `submitComplaint ok (case_number=${submitted.value.caseNumber || "?"})`,
   );
 }
 
