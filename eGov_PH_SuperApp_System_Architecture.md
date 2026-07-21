@@ -11,8 +11,8 @@
 The primary goal of the **eGov PH SuperApp** is to fully digitalize public service delivery across the Philippines—from top-level executive departments (DFA, SSS, Pag-IBIG, PhilHealth, DBM, DPWH) down to local government units (LGUs) and Barangay halls. 
 
 ### Key Objectives:
-1. **Zero-Redundancy Onboarding (target):** Eliminate repeated registration processes across separate government agencies. If a citizen's data (Name, Age, Date of Birth, Civil Status, Religion, Vital/Alive status) is recorded in the Philippine Statistics Authority (PSA) via PhilSys National ID, it is meant to serve as the single source of truth across all agencies. **Current build status:** the domain model (`ServiceCase`) is a single-agency case tracker today — no agency field, no cross-agency cascade logic yet. Multi-agency propagation is the long-term product goal, out of scope for the hackathon build (see §5).
-2. **Instant Verification & Service Dispatch:** Citizens can instantly create accounts, apply for services, update civil status, or claim benefits using biometric **Face Liveness** verification linked to PSA records and validated on **eGovChain**.
+1. **Zero-Redundancy Onboarding (target):** Eliminate repeated registration processes across separate government agencies. If a citizen's data (Name, Age, Date of Birth, Civil Status, Religion, Vital/Alive status) is recorded in the Philippine Statistics Authority (PSA) via PhilSys National ID, it is meant to serve as the single source of truth across all agencies. **Current build status:** the domain model (`ServiceCase`) is a single-agency case tracker today — no agency field, no cross-agency cascade logic yet. Multi-agency propagation is the long-term product goal, out of scope for the hackathon build (see §5). This is a separate goal from BANGON below — cascade is about *keeping records in sync*, BANGON is about *proactively finding benefits*.
+2. **BANGON — Proactive Benefit Matching:** Instead of citizens applying for benefits one by one, the SuperApp scans a verified citizen and proactively finds which benefits they already qualify for across agencies, checks the issuing agency has sufficient funds, and notifies them in-app. See Workflow 1 (§4) for the full flow. This uses **Face Liveness** (live-person check) and **eVerify** (identity match) as its verification layer.
 3. **High-Scale Performance (target):** Architected with a hexagonal ports/adapters structure so that asynchronous processing, optimized JSON-RPC caching, and state anchoring can be added later without a rewrite — with a longer-term target of **100,000,000+ transactions per week**. This figure is a design goal, not a verified capacity of the current hackathon-sandbox platform (see §5).
 4. **Complete Inclusivity:** Universal accessibility designed for all demographics, specifically eliminating physical branch queuing for senior citizens, low-connectivity rural populations, and daily wage earners.
 5. **Strict API Adherence:** Built strictly using **only the 9 official eGov PH APIs** without third-party external API dependencies.
@@ -130,29 +130,53 @@ All AI capabilities strictly follow a 2-step execution lifecycle:
 
 ## 4. End-to-End System Workflows
 
-### Workflow 1: Instant Multi-Agency Registration & Benefit Claim
+### Workflow 1: BANGON — Proactive Benefit Matching
+
+**BANGON** is the flagship feature of the SuperApp: instead of a citizen having to know which benefits exist and apply agency-by-agency, the app scans the citizen once and proactively finds what they already qualify for.
 
 ```
-[ Citizen ] ──(Open SuperApp)──> [ eGov PH SSO ]
-                                       │
-                                       ▼
-                         [ Face Liveness Session ]
-                                       │
-                                       ▼
-                         [ National ID | eVerify ]
-                         (Fetch PSA Ground Truth)
-                                       │
-                                       ▼
-                         [ eGovChain JSON-RPC ]
-                         (Anchor State Hash)
-                                       │
-                      ┌────────────────┴────────────────┐
-                      ▼                                 ▼
-         [ Instant SSS/Pag-IBIG/DFA ]        [ eMessage Alert ]
-          (No Branch Visit Needed)           (In-App Notification)
+[ Citizen ] ──(Scan in via SuperApp)──> [ Existing ID read ]
+                                              │
+                          ┌───────────────────┴───────────────────┐
+                          ▼                                       ▼
+              [ Face Liveness Session ]              [ National ID | eVerify ]
+              (confirms live real person)             (confirms ID is real & matches)
+                          └───────────────────┬───────────────────┘
+                                               ▼
+                              [ Benefit-eligibility search ]
+                          (checks this citizen against agency
+                           benefit criteria — SSS, PhilHealth, etc.)
+                                               │
+                                               ▼
+                                [ DBM Compass fund check ]
+                        (does the issuing agency have sufficient
+                         funds to cover all eligible citizens?)
+                                               │
+                                    ┌──────────┴──────────┐
+                                    ▼ funded & eligible    ▼ not funded / not eligible
+                          [ eMessage: eligibility alert ]   (no notification sent)
+                          "You're eligible — open BANGON
+                           to proceed"
+                                    │
+                                    ▼
+                       [ eGovPay: disbursement ]
+                    (only if the benefit is financial)
+                                    │
+                                    ▼
+                    [ eGovChain: anchor the match + transaction ]
+                 (every eligibility check, fund check, and payment
+                  is anchored for tamper-evident audit)
+
+  If a matched/processed benefit is never actually received:
+  citizen files a complaint via [ eReport ] — same reporting
+  mechanism as Workflow 2, not a separate system.
 ```
 
-> **Hackathon scope note:** the chain-anchor step is a single synchronous JSON-RPC call — no batching, no async fallback. That's sufficient for a 1-day demo. Handling eGovChain latency/downtime gracefully (retry, async anchor queue) is a post-hackathon concern, not part of the day-1 build.
+> **Hackathon scope note:** the eGovChain anchor step is a single synchronous JSON-RPC call — no batching, no async fallback. That's sufficient for a 1-day demo. Handling eGovChain latency/downtime gracefully (retry, async anchor queue) is a post-hackathon concern, not part of the day-1 build.
+
+> **eGov AI throughout:** `eGov AI` (Assistant, Laws & Regulations, Translator) runs alongside this whole flow — explaining in plain language why a citizen qualifies, what a benefit means, and helping with in-app navigation. This is specifically aimed at making the flow usable for senior citizens and low-digital-literacy users without needing to understand government terminology.
+
+> **Build status:** the identity-confirmation steps (Face Liveness, eVerify) and the platform integrations (DBM Compass, eMessage, eGovPay, eGovChain, eReport) exist as ports/adapters today (see `docs/architecture.md`). The **benefit-eligibility search** — matching a citizen against agency benefit criteria — has no corresponding port, adapter, or domain concept yet. This is the actual novel piece BANGON needs; see `docs/architecture.md`'s Product Vision section for the open design question.
 
 ---
 

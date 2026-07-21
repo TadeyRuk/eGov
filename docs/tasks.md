@@ -31,22 +31,23 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 
 ## Phase 1 — Core domain vertical
 
-> **STANDBY (2026-07-21):** Judging criteria refinement and product use-case expansion are on hold until the operator lifts standby. Do not implement the items below unless asked.
+> **STANDBY (2026-07-21):** Judging criteria refinement and product use-case expansion (e.g. multi-agency modeling) are on hold until the operator lifts standby. The items below already built are noted as such; anything still unchecked should not be started without asking.
 
-- [ ] Flesh out `Citizen`, `ServiceCase`, `CaseDocument` invariants and transitions
-- [ ] Implement use cases: submit case, get case, attach document, advance status
-- [ ] Contract tests for repository ports (in-memory)
-- [ ] HTTP adapters for case endpoints
-- [ ] `apps/api` boots and serves health + case routes
+- [x] Flesh out `ServiceCase` invariants and transitions (`packages/domain/src/index.ts`: `createServiceCase`, `advanceServiceCase`, status machine) — `Citizen` and `CaseDocument` types exist but have no invariants/validation beyond their shape yet
+- [x] Implement use cases: submit case, get case, advance status (`packages/application/src/use-cases/service-cases.ts`)
+- [ ] Implement use case: attach document (`DocumentStore` port exists in `packages/application/src/ports/index.ts`; no use case or adapter wiring calls it yet)
+- [ ] Contract tests for repository ports (in-memory) — no test files exist in the repo yet
+- [x] HTTP adapters for case endpoints (`packages/adapters-http/src/index.ts`: `createCaseHttpHandlers` — submit/get/advance)
+- [x] `apps/api` boots and serves health + case routes (`apps/api/src/main.ts`: `/health`, `POST /cases`, `GET /cases/:id`, `POST /cases/:id/advance`)
 
 ## Phase 2 — Orchestration line
 
-- [ ] Agent registry (Architect, Designer, Builder, Verifier, Ops)
-- [ ] Mailbox runtime loop with correlation ids
-- [ ] Stage pipeline: foundation → design → build → verify → ship
-- [ ] `needs_approval` human gate hook
-- [ ] Wire orchestrator to `LlmPort` stub, then Ollama adapter
-- [ ] Persist agent tasks (when persistence is durable)
+- [x] Agent registry (Architect, Designer, Builder, Verifier, Ops) (`apps/orchestrator/src/agents/registry.ts`)
+- [x] Mailbox runtime loop with correlation ids (`apps/orchestrator/src/main.ts`, `packages/application/src/use-cases/orchestration.ts`: `dispatchAgentTask`, `runAgentTurn`)
+- [x] Stage pipeline: foundation → design → build → verify → ship (`PIPELINE_STAGES` iterated in `apps/orchestrator/src/main.ts`)
+- [ ] `needs_approval` human gate hook — `needs_human` exists as an `AgentTaskStatus` value in `@egov/domain`, but nothing sets it or gates on it; `runAgentTurn` only propagates LLM failure as an error today
+- [x] Wire orchestrator to `LlmPort` stub (`createStubLlmPort` in `@egov/adapters-ai`, wired in `apps/orchestrator/src/main.ts`) — Ollama adapter itself not yet built
+- [x] Persist agent tasks (`createInMemoryAgentTaskRepository` in `@egov/adapters-persistence`) — in-memory only; durable persistence is Phase 3
 
 ## Phase 3 — Durable infrastructure
 
