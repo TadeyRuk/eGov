@@ -10,9 +10,11 @@
   </head>
   <body>
     <h1>eGovPH SSO Test</h1>
-    <p id="status">Use the official widget to sign in.</p>
-    <div id="egov-sso-widget-button"></div>
-    <div id="egov-sso-widget-portal"></div>
+    <p id="status">Loading SSO configuration…</p>
+    <section id="egov-sso-widget" hidden>
+      <div id="egov-sso-widget-button"></div>
+      <div id="egov-sso-widget-portal"></div>
+    </section>
 
     <script>
       async function CUSTOM_ONSUCCESS_FUNCTION(exchangeCode) {
@@ -25,9 +27,22 @@
       }
       async function loadWidget() {
         const config = await fetch("/api/config", { cache: "no-store" }).then((r) => r.json());
+        const status = document.querySelector("#status");
+        const environment = String(config.environment || "STAGING").toUpperCase();
+        document.querySelector('meta[name="egov-environment"]').content = environment;
+        if (environment === "STAGING") {
+          status.textContent = "Staging mode: eGovPH sign-in is hidden until staging citizen credentials are provided.";
+          return;
+        }
         if (!config.clientId) throw new Error("Missing eGov SSO client ID");
         document.querySelector('meta[name="egov-client-id"]').content = config.clientId;
-        const script = document.createElement("script"); script.src = "https://widgets.e.gov.ph/egov-hackathon-sso-widget.js"; script.async = true; script.defer = true; document.body.append(script);
+        document.querySelector("#egov-sso-widget").hidden = false;
+        status.textContent = "Use the official eGovPH widget to sign in.";
+        const script = document.createElement("script");
+        script.src = "https://widgets.e.gov.ph/egov-hackathon-sso-widget.js";
+        script.async = true;
+        script.defer = true;
+        document.body.append(script);
       }
       loadWidget().catch(() => { document.querySelector("#status").textContent = "SSO configuration is unavailable."; });
     </script>
