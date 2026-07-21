@@ -98,7 +98,8 @@ export async function runAgentTurn(
   ]);
 
   if (!completion.ok) {
-    // Escalate per docs/fallback.md: LLM failure → needs_human.
+    // Per docs/criteria.md + docs/fallback.md: LLM failure → blocked
+    // (needs_human is reserved for SLA/deadlock escalation).
     // Best-effort: only when the mailbox payload carries a taskId
     // (as dispatched by dispatchAgentTask).
     const taskId = extractTaskId(received.value.payload);
@@ -107,12 +108,24 @@ export async function runAgentTurn(
       if (existing.ok) {
         await deps.tasks.save({
           ...existing.value,
-          status: "needs_human",
+          status: "blocked",
           updatedAt: deps.clock.now(),
         });
       }
     }
     return err(completion.error);
+  }
+
+  const taskId = extractTaskId(received.value.payload);
+  if (taskId !== null) {
+    const existing = await deps.tasks.getById(taskId);
+    if (existing.ok) {
+      await deps.tasks.save({
+        ...existing.value,
+        status: "completed",
+        updatedAt: deps.clock.now(),
+      });
+    }
   }
 
   await deps.mailbox.send({

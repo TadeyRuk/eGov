@@ -99,7 +99,7 @@ async function smokeSso(_p: EgovPlatformAdapters): Promise<void> {
   }
   const res = await _p.sso.exchangeToken({
     exchangeCode: code,
-    scope: envGet("SMOKE_SSO_SCOPE") ?? "openid",
+    scope: envGet("SMOKE_SSO_SCOPE") ?? "SSO_AUTHENTICATION",
   });
   if (!res.ok) {
     fail("sso", errMsg(res.error));
@@ -113,12 +113,14 @@ async function smokeEverify(p: EgovPlatformAdapters): Promise<void> {
     fail("everify", "missing EVERIFY_CLIENT_ID / EVERIFY_CLIENT_SECRET");
     return;
   }
+  // Optional: EVERIFY_PUBLIC_KEY is for Face Liveness Web SDK pubKey (client), not auth smoke.
   const res = await p.everify.authenticate();
   if (!res.ok) {
     fail("everify", errMsg(res.error));
     return;
   }
-  pass("everify", res.value.token ? "authenticate ok (token issued)" : "authenticate ok");
+  // Official auth nests access_token under data; adapter unwraps into res.value.token
+  pass("everify", res.value.token ? "authenticate ok (token issued)" : "authenticate ok (empty token — check data.access_token shape)");
 }
 
 async function smokeFace(p: EgovPlatformAdapters): Promise<void> {
@@ -130,12 +132,20 @@ async function smokeFace(p: EgovPlatformAdapters): Promise<void> {
     skip("face-liveness", "creds present; pass --write to createSession");
     return;
   }
-  const res = await p.faceLiveness.createSession({});
+  const res = await p.faceLiveness.createSession({
+    action: "close",
+    delay: envGet("SMOKE_LIVENESS_DELAY")
+      ? Number(envGet("SMOKE_LIVENESS_DELAY"))
+      : undefined,
+  });
   if (!res.ok) {
     fail("face-liveness", errMsg(res.error));
     return;
   }
-  pass("face-liveness", `createSession ok (sessionId length=${res.value.sessionId.length})`);
+  pass(
+    "face-liveness",
+    `createSession ok (token length=${res.value.token.length}, url returned=${res.value.url.length > 0})`,
+  );
 }
 
 async function smokeEmessage(p: EgovPlatformAdapters): Promise<void> {
@@ -152,7 +162,7 @@ async function smokeEmessage(p: EgovPlatformAdapters): Promise<void> {
     return;
   }
   const res = await p.emessage.pushSms({
-    to,
+    number: to,
     message: envGet("SMOKE_SMS_BODY") ?? "eGov platform smoke",
   });
   if (!res.ok) {
@@ -167,19 +177,16 @@ async function smokeAi(p: EgovPlatformAdapters): Promise<void> {
     fail("egov-ai", "missing EGOV_AI_ACCESS_CODE / EGOV_AI_API_KEY");
     return;
   }
+  // Official: POST /api/v1/egov/integration/token with { access_code }
   const res = await p.egovAi.token();
   if (!res.ok) {
-    if (/HTTP 404/.test(res.error.message)) {
-      skip(
-        "egov-ai",
-        "creds loaded; /token 404 — align path with dashboard OpenAPI",
-      );
-      return;
-    }
     fail("egov-ai", errMsg(res.error));
     return;
   }
-  pass("egov-ai", "token ok");
+  pass(
+    "egov-ai",
+    `token ok (credits_remaining=${res.value.creditsRemaining ?? "?"})`,
+  );
 }
 
 async function smokePay(p: EgovPlatformAdapters): Promise<void> {
@@ -188,7 +195,26 @@ async function smokePay(p: EgovPlatformAdapters): Promise<void> {
     return;
   }
   if (write) {
-    const res = await p.egovPay.generatePayment({ payload: {} });
+    if (!envGet("EGOVPAY_SETTLEMENT_TEMPLATE_UUID")) {
+      fail("egov-pay", "write mode needs EGOVPAY_SETTLEMENT_TEMPLATE_UUID");
+      return;
+    }
+    const amount = Number(envGet("SMOKE_PAY_AMOUNT") ?? "1");
+    const txnid = envGet("SMOKE_PAY_TXNID") ?? `smoke-${Date.now()}`;
+    const redirectUrl =
+      envGet("SMOKE_PAY_REDIRECT_URL") ?? "https://example.com/pay/return";
+    const callbackUrl =
+      envGet("SMOKE_PAY_CALLBACK_URL") ?? "https://example.com/pay/callback";
+    const res = await p.egovPay.generatePayment({
+      payload: {
+        items: [{ name: "Smoke test", amount }],
+        amount,
+        txnid,
+        redirect_url: redirectUrl,
+        callback_url: callbackUrl,
+        currency: envGet("SMOKE_PAY_CURRENCY") ?? "PHP",
+      },
+    });
     if (!res.ok) {
       fail("egov-pay", `generate: ${errMsg(res.error)}`);
       return;
@@ -196,23 +222,23 @@ async function smokePay(p: EgovPlatformAdapters): Promise<void> {
     pass("egov-pay", "generatePayment ok");
     return;
   }
-  // Safe probe: signed GET (expect not-found / validation — proves auth headers)
+  // Safe probe: token-authenticated GET (expect not-found — proves auth header)
   const probeId = envGet("SMOKE_PAY_TRANSACTION_ID") ?? "smoke-probe-id";
   const res = await p.egovPay.getTransaction(probeId);
   if (res.ok) {
     pass("egov-pay", "getTransaction ok");
     return;
   }
-  // Platform rejecting unknown id still means credentials + HMAC path ran
+  // Platform rejecting unknown id still means credentials + path ran
   if (res.error.code === "VALIDATION" || res.error.code === "NOT_FOUND") {
     pass(
       "egov-pay",
-      `signed get reached platform (${res.error.code}; expected for probe id)`,
+      `token get reached platform (${res.error.code}; expected for probe id)`,
     );
     return;
   }
   if (res.error.code === "UNAVAILABLE" && /HTTP 4\d\d/.test(res.error.message)) {
-    pass("egov-pay", `signed get reached platform (${res.error.message})`);
+    pass("egov-pay", `token get reached platform (${res.error.message})`);
     return;
   }
   fail("egov-pay", errMsg(res.error));
@@ -228,23 +254,27 @@ async function smokeChain(p: EgovPlatformAdapters): Promise<void> {
 }
 
 async function smokeEreport(p: EgovPlatformAdapters): Promise<void> {
-  if (!hasAny("EREPORT_ACCESS_TOKEN", "EREPORT_API_KEY")) {
+  const accessCode = envGet("EREPORT_ACCESS_TOKEN") ?? envGet("EREPORT_API_KEY");
+  if (!accessCode) {
     fail("ereport", "missing EREPORT_ACCESS_TOKEN / EREPORT_API_KEY");
     return;
   }
-  const res = await p.eReport.datasets();
-  if (!res.ok) {
-    if (/HTTP 404/.test(res.error.message)) {
-      skip(
-        "ereport",
-        "creds loaded; /datasets 404 — align path with dashboard OpenAPI",
-      );
-      return;
-    }
-    fail("ereport", errMsg(res.error));
+  // Real flow (dashboard, 2026-07-22): POST /api/integration/token with
+  // { access_code } -> access_token, then Bearer that token for datasets.
+  const tokenRes = await p.eReport.generateToken(accessCode);
+  if (!tokenRes.ok) {
+    fail("ereport", `generateToken: ${errMsg(tokenRes.error)}`);
     return;
   }
-  pass("ereport", "datasets ok");
+  const types = await p.eReport.getReportTypes(tokenRes.value.accessToken);
+  if (!types.ok) {
+    fail("ereport", `getReportTypes: ${errMsg(types.error)}`);
+    return;
+  }
+  pass(
+    "ereport",
+    `token + getReportTypes ok (report_types=${types.value.length})`,
+  );
 }
 
 async function smokeDbm(p: EgovPlatformAdapters): Promise<void> {

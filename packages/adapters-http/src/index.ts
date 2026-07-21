@@ -7,10 +7,12 @@ import {
   exchangeSsoToken,
   explainEligibility,
   findEligibleBenefits,
+  getFaceLivenessResult,
   getServiceCase,
   getSsoCitizenProfile,
   notifyEligibility,
   reportBenefitNonDelivery,
+  startFaceLivenessSession,
   submitServiceCase,
   type AdvanceServiceCaseDeps,
   type AnchorBenefitMatchDeps,
@@ -22,11 +24,14 @@ import {
   type ExchangeSsoTokenDeps,
   type ExplainEligibilityDeps,
   type FaceLivenessPort,
+  type FaceLivenessSessionAction,
   type FindEligibleBenefitsDeps,
+  type GetFaceLivenessResultDeps,
   type GetServiceCaseDeps,
   type GetSsoCitizenProfileDeps,
   type NotifyEligibilityDeps,
   type ReportBenefitNonDeliveryDeps,
+  type StartFaceLivenessSessionDeps,
   type SubmitServiceCaseDeps,
 } from "@egov/application";
 import type {
@@ -185,7 +190,10 @@ export type BangonHttpHandlers = {
   confirmIdentity(body: {
     token: string;
     payload: Record<string, unknown>;
-    sessionId: string;
+    /** Preferred: Face Liveness API session token from createSession. */
+    sessionToken?: string;
+    /** Alias for sessionToken (legacy Android / docs wording). */
+    sessionId?: string;
   }): Promise<HttpResponse>;
   findMatches(body: {
     citizenId: string;
@@ -205,10 +213,20 @@ export type BangonHttpHandlers = {
   anchor(matchId: string): Promise<HttpResponse>;
   explain(matchId: string): Promise<HttpResponse>;
   reportNonDelivery(body: {
-    token: string;
+    accessToken: string;
     citizenId: string;
     benefitId: string;
+    benefitTitle: string;
+    mobile: string;
+    firstName: string;
+    lastName: string;
+    gender: string;
+    email: string;
     description: string;
+    regionCode: string;
+    provinceCode: string;
+    municipalityCode: string;
+    barangayCode: string;
   }): Promise<HttpResponse>;
 };
 
@@ -233,7 +251,19 @@ export function createBangonHttpHandlers(
 ): BangonHttpHandlers {
   return {
     async confirmIdentity(body) {
-      const liveness = await deps.faceLiveness.getResult(body.sessionId);
+      const sessionToken = (body.sessionToken ?? body.sessionId ?? "").trim();
+      if (sessionToken.length === 0) {
+        return {
+          status: 400,
+          body: {
+            error: {
+              code: "VALIDATION",
+              message: "sessionToken (or sessionId) is required",
+            },
+          },
+        };
+      }
+      const liveness = await getFaceLivenessResult(deps, { sessionToken });
       if (!liveness.ok) return toHttpResponse(liveness);
       const profile = await confirmCitizenIdentity(deps, {
         token: body.token,
@@ -302,10 +332,20 @@ export function createBangonHttpHandlers(
 
     async reportNonDelivery(body) {
       const result = await reportBenefitNonDelivery(deps, {
-        token: body.token,
+        accessToken: body.accessToken,
         citizenId: createId<"CitizenId">(body.citizenId) as CitizenId,
         benefitId: createId<"BenefitId">(body.benefitId) as BenefitId,
+        benefitTitle: body.benefitTitle,
+        mobile: body.mobile,
+        firstName: body.firstName,
+        lastName: body.lastName,
+        gender: body.gender,
+        email: body.email,
         description: body.description,
+        regionCode: body.regionCode,
+        provinceCode: body.provinceCode,
+        municipalityCode: body.municipalityCode,
+        barangayCode: body.barangayCode,
       });
       return toHttpResponse(result);
     },
@@ -340,6 +380,48 @@ export function createAuthHttpHandlers(deps: AuthHttpDeps): AuthHttpHandlers {
         await getSsoCitizenProfile(deps, {
           accessToken: body.accessToken,
         }),
+      );
+    },
+  };
+}
+
+// ─── Face Liveness (session create + result poll) ─────────────────────────
+//
+// API key stays on the server. Android opens `url` in a WebView / Custom Tab,
+// then polls GET result (or waits for redirect) before confirm-identity.
+
+export type FaceLivenessHttpDeps = StartFaceLivenessSessionDeps &
+  GetFaceLivenessResultDeps;
+
+export type FaceLivenessHttpHandlers = {
+  createSession(body: {
+    action: FaceLivenessSessionAction;
+    callbackUrl?: string;
+    delay?: number;
+  }): Promise<HttpResponse>;
+  getResult(sessionToken: string): Promise<HttpResponse>;
+};
+
+export function createFaceLivenessHttpHandlers(
+  deps: FaceLivenessHttpDeps,
+): FaceLivenessHttpHandlers {
+  return {
+    async createSession(body) {
+      const result = await startFaceLivenessSession(deps, {
+        action: body.action,
+        ...(body.callbackUrl !== undefined
+          ? { callbackUrl: body.callbackUrl }
+          : {}),
+        ...(body.delay !== undefined ? { delay: body.delay } : {}),
+      });
+      if (result.ok) {
+        return { status: 201, body: result.value };
+      }
+      return toHttpResponse(result);
+    },
+    async getResult(sessionToken) {
+      return toHttpResponse(
+        await getFaceLivenessResult(deps, { sessionToken }),
       );
     },
   };

@@ -6,6 +6,20 @@ Frozen HTTP contract for the **Android BANGON client**. Talk only to `apps/api` 
 
 **Content-Type:** `application/json` for all request/response bodies unless noted.
 
+### Server requirements (for Face Liveness + BANGON)
+
+Operator / deploy env (never in the APK):
+
+| Variable | Required for | Notes |
+|----------|--------------|-------|
+| `FACE_LIVENESS_API_KEY` | `/bangon/liveness/*`, `confirm-identity` gate | Dashboard → Face Liveness; sent as `x-api-key` |
+| `FACE_LIVENESS_BASE_URL` | optional | Default `https://hackathon-face-liveness-api.e.gov.ph` |
+| `EVERIFY_*` | `confirm-identity` eVerify call | See `.env.example` |
+| `SSO_*` | `/auth/sso/*` | Partner code/secret stay server-side |
+| `PORT` | optional | Default `8787` |
+
+Copy from [`.env.example`](../.env.example) into local `.env` (gitignored).
+
 **Errors:** non-2xx bodies look like:
 
 ```json
@@ -133,12 +147,65 @@ Expect profile fields suitable for sync: name, birthdate, address, email, contac
 
 ## BANGON
 
+### `POST /bangon/liveness/session`
+
+Starts a Face Liveness API capture session. **API key stays on the server** — Android never calls `hackathon-face-liveness-api.e.gov.ph` directly.
+
+**Body:**
+
+```json
+{
+  "action": "close",
+  "callbackUrl": "https://your.app/liveness-done",
+  "delay": 3000
+}
+```
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `action` | yes | `"redirect"` \| `"post"` \| `"close"` |
+| `callbackUrl` | when `action` is `"redirect"` | Where the capture UI returns after success |
+| `delay` | no | ms to show completion screen (platform default 3000) |
+
+**201:**
+
+```json
+{
+  "token": "<session token>",
+  "url": "https://…/capture…",
+  "raw": {}
+}
+```
+
+Open `url` in a WebView / Custom Tab. Keep `token` for result polling and `confirm-identity`.
+
+**400:** missing `callbackUrl` for `redirect`, or platform validation error  
+**503:** missing `FACE_LIVENESS_API_KEY` / platform unavailable
+
+### `GET /bangon/liveness/result/:sessionToken`
+
+Poll until terminal status. Server proxies `GET /v1/liveness/result/:token`.
+
+**200:**
+
+```json
+{
+  "status": "SUCCEEDED",
+  "confidence": 98.5,
+  "passed": true,
+  "referenceImageUrl": "https://…",
+  "raw": {}
+}
+```
+
+`passed` is `true` only when `status === "SUCCEEDED"` and `confidence >= 95.0`.
+
 ### `POST /bangon/confirm-identity`
 
 Two distinct liveness concepts — do not conflate:
 
-1. **Face Liveness API** (`FaceLivenessPort`): server loads result via `sessionId` (`faceLiveness.getResult`). Pass = `SUCCEEDED` + confidence ≥ 95.0. **Do not** send client-invented confidence scores.
-2. **eVerify Tier Web SDK**: `result.session_id` must be placed in eVerify verify payload as **`face_liveness_session_id`** (see [platform-apis.md §2](./platform-apis.md#2-everify)). That field belongs in `payload`, not as a substitute for the API gate `sessionId` unless product explicitly unifies the flows.
+1. **Face Liveness API** (`FaceLivenessPort`): start via `POST /bangon/liveness/session`, then server loads result via `sessionToken` (`faceLiveness.getResult`). Pass = `SUCCEEDED` + confidence ≥ 95.0. **Do not** send client-invented confidence scores.
+2. **eVerify Tier Web SDK**: `result.session_id` must be placed in eVerify verify payload as **`face_liveness_session_id`** (see [platform-apis.md §2](./platform-apis.md#2-everify)). That field belongs in `payload`, not as a substitute for the API gate token unless product explicitly unifies the flows.
 
 **Body:**
 
@@ -153,9 +220,11 @@ Two distinct liveness concepts — do not conflate:
     "birth_date": "1989-09-12",
     "face_liveness_session_id": "<Web SDK result.session_id>"
   },
-  "sessionId": "<Face Liveness API session id for getResult gate>"
+  "sessionToken": "<Face Liveness API token from /bangon/liveness/session>"
 }
 ```
+
+`sessionId` is accepted as an alias for `sessionToken`.
 
 **200:** `CitizenEligibilityProfile`
 
@@ -167,6 +236,7 @@ Two distinct liveness concepts — do not conflate:
 }
 ```
 
+**400:** missing `sessionToken` / `sessionId`  
 **403:** Face Liveness API gate did not pass (`SUCCEEDED` + confidence ≥ 95.0)
 
 ### `POST /bangon/matches`
@@ -218,20 +288,30 @@ No body. Post-decision eGov AI narration (cosmetic; failure does not undo the ma
 
 ### `POST /bangon/report-non-delivery`
 
-Citizen-initiated complaint.
+Citizen-initiated eReport complaint. Maps to eReport `submit_complaint` with report type `red_tape` (closest available category). Requires a prior eReport `accessToken` from the platform token endpoint (server can hold integration `access_code` — Android sends the bearer it was given, or you expose a thin token route later).
 
 **Body:**
 
 ```json
 {
-  "token": "<eReport token>",
+  "accessToken": "<eReport access_token>",
   "citizenId": "…",
   "benefitId": "…",
-  "description": "Matched but never received benefit"
+  "benefitTitle": "Social Pension",
+  "mobile": "639171234567",
+  "firstName": "Juan",
+  "lastName": "Dela Cruz",
+  "gender": "Male",
+  "email": "juan@example.com",
+  "description": "Matched but never received benefit",
+  "regionCode": "…",
+  "provinceCode": "…",
+  "municipalityCode": "…",
+  "barangayCode": "…"
 }
 ```
 
-**200:** `{ "raw": {} }`
+**200:** `{ "caseNumber": "…" }`
 
 ---
 
@@ -239,10 +319,11 @@ Citizen-initiated complaint.
 
 1. eGovPH callback (`…/egovph/sso?exchange_code=…`) → Android → `POST /auth/sso/exchange` with `SSO_AUTHENTICATION` → store `accessToken`.
 2. Optional: `POST /auth/sso/profile` → sync name / birthdate / address / email / contact / `uniqid`; auto-login; no local profile edit.
-3. Face Liveness: (a) platform Face Liveness API → `sessionId` for server gate; and/or (b) eVerify Face Liveness Web SDK → `face_liveness_session_id` for eVerify `/api/query` payload.
-4. eVerify `access_token` + demographics (+ `face_liveness_session_id` when using Tier) → `POST /bangon/confirm-identity` → eligibility profile.
-5. `POST /bangon/matches` → list of match ids.
-6. Per match: `notify` / `disburse` / `anchor` / `explain` as needed.
-7. If unpaid/undelivered: `POST /bangon/report-non-delivery`.
+3. Face Liveness API gate: `POST /bangon/liveness/session` → open returned `url` → poll `GET /bangon/liveness/result/:token` until `passed` (or fail). Keep `token` as `sessionToken`.
+4. Optional eVerify Tier Web SDK → put `result.session_id` in confirm payload as `face_liveness_session_id`.
+5. eVerify `access_token` + demographics (+ Web SDK field when using Tier) → `POST /bangon/confirm-identity` with `sessionToken` → eligibility profile.
+6. `POST /bangon/matches` → list of match ids.
+7. Per match: `notify` / `disburse` / `anchor` / `explain` as needed.
+8. If unpaid/undelivered: `POST /bangon/report-non-delivery`.
 
 Ground truth for handlers: [`packages/adapters-http/src/index.ts`](../packages/adapters-http/src/index.ts) · mounts: [`apps/api/src/main.ts`](../apps/api/src/main.ts).

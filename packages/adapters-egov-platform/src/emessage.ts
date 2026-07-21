@@ -51,17 +51,17 @@ export function createEMessageAdapter(env: PlatformEnv): EMessagePort {
       const auth = requireEnv(env, "EMESSAGE_AUTH_TOKEN");
       if (!auth.ok) return auth;
 
+      // Dashboard contract: 201 Created is success (`platformFetch` treats
+      // any 2xx via `response.ok`). Body fields are `number` + `message` only.
       const res = await platformFetch(`${base()}/messaging/v1/sms/push`, {
         method: "POST",
         headers: {
-          "content-type": "application/json",
-          accept: "application/json",
+          "Content-Type": "application/json",
           "X-EMESSAGE-Auth": auth.value,
         },
         body: JSON.stringify({
-          to: input.to,
+          number: input.number,
           message: input.message,
-          ...input.meta,
         }),
       });
       if (!res.ok) return res;

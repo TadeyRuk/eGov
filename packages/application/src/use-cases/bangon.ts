@@ -56,8 +56,9 @@ async function fundableBenefits(
       dataset: benefit.fundCheck.dataset,
       query: benefit.fundCheck.query,
     });
-    // Fail closed: if the fund-check call itself fails (network, auth,
-    // platform unavailable), do not offer the benefit as a candidate.
+    // Fail closed on transport/auth errors. `ok` means the DBM query
+    // succeeded — funded-field parsing in `raw` waits on Phase 0.5
+    // OpenAPI alignment (no invented dashboard response shape).
     if (fundCheck.ok) fundable.push(benefit);
   }
   return ok(fundable);
@@ -109,7 +110,7 @@ export async function notifyEligibility(
   input: NotifyEligibilityInput,
 ): Promise<Result<void>> {
   const sent = await deps.eMessage.pushSms({
-    to: input.citizenPhone,
+    number: input.citizenPhone,
     message: `eGov PH Alert: You may be eligible for ${input.benefitTitle}. Open the official BANGON app to view and confirm.`,
   });
   if (!sent.ok) return sent;
@@ -129,6 +130,14 @@ export type DisburseBenefitDeps = {
 export type DisburseBenefitInput = {
   readonly citizenId: CitizenId;
   readonly benefit: Benefit;
+  /** Total amount for eGovPay `amount` + default line item. */
+  readonly amount: number;
+  readonly redirectUrl: string;
+  readonly callbackUrl: string;
+  /** Merchant txn id; defaults to a bangon-scoped unique string. */
+  readonly txnid?: string;
+  readonly currency?: string;
+  readonly items?: readonly { readonly name: string; readonly amount: number }[];
 };
 
 export async function disburseBenefit(
@@ -143,11 +152,20 @@ export async function disburseBenefit(
       ),
     );
   }
+  const txnid =
+    input.txnid?.trim() ||
+    `bangon-${input.citizenId}-${input.benefit.id}-${Date.now()}`;
+  const items = input.items ?? [
+    { name: input.benefit.title, amount: input.amount },
+  ];
   const tx = await deps.eGovPay.generatePayment({
     payload: {
-      citizen_id: input.citizenId,
-      benefit_id: input.benefit.id,
-      agency: input.benefit.agency,
+      items,
+      amount: input.amount,
+      redirect_url: input.redirectUrl,
+      callback_url: input.callbackUrl,
+      txnid,
+      ...(input.currency ? { currency: input.currency } : {}),
     },
   });
   if (!tx.ok) return tx;
@@ -160,10 +178,11 @@ export async function disburseBenefit(
 
 // ─── confirmCitizenIdentity ─────────────────────────────────────────────────
 //
-// Gated on Face Liveness first: eVerify is never called unless the supplied
+// Gated on Face Liveness API first: eVerify is never called unless the supplied
 // FaceLivenessResult already passed (SUCCEEDED + confidence >= 95.0, per
-// isFaceLivenessPassed). This makes the gate real rather than a caller
-// convention — a caller cannot skip liveness by forgetting to check it.
+// isFaceLivenessPassed). Callers should also put eVerify Tier Web SDK
+// `face_liveness_session_id` (and demographics) inside `payload` for `/api/query`
+// — that field is distinct from the Face Liveness API session used for this gate.
 
 export type ConfirmCitizenIdentityDeps = {
   readonly eVerify: EVerifyPort;
@@ -203,10 +222,21 @@ export async function confirmCitizenIdentity(
       appError("VALIDATION", "eVerify response missing date of birth"),
     );
   }
+  const dateOfBirth = new Date(dob);
+  if (Number.isNaN(dateOfBirth.getTime())) {
+    return err(
+      appError("VALIDATION", "eVerify response has invalid date of birth"),
+    );
+  }
   return ok({
-    dateOfBirth: new Date(dob),
-    civilStatus: String(raw.civil_status ?? raw.civilStatus ?? ""),
-    vitalStatus: String(raw.vital_status ?? raw.vitalStatus ?? ""),
+    dateOfBirth,
+    // Uppercase so seed rules ("ALIVE") match eVerify casing variants.
+    civilStatus: String(raw.civil_status ?? raw.civilStatus ?? "")
+      .trim()
+      .toUpperCase(),
+    vitalStatus: String(raw.vital_status ?? raw.vitalStatus ?? "")
+      .trim()
+      .toUpperCase(),
   });
 }
 
@@ -274,15 +304,12 @@ export async function explainEligibility(
   input: ExplainEligibilityInput,
 ): Promise<Result<{ explanation: string }>> {
   const explained = await deps.egovAi.aiAssistant({
-    payload: {
-      prompt: `Explain in plain, simple language (suitable for a senior citizen) why someone qualifies for the benefit "${input.benefitTitle}". Eligibility rule: ${JSON.stringify(input.rule)}.`,
-    },
+    prompt: `Explain in plain, simple language (suitable for a senior citizen) why someone qualifies for the benefit "${input.benefitTitle}". Eligibility rule: ${JSON.stringify(input.rule)}.`,
+    category: "PH",
   });
   if (!explained.ok) return explained;
 
-  const raw = explained.value.raw;
-  const text = raw.data ?? raw.text ?? raw.content ?? "";
-  return ok({ explanation: String(text) });
+  return ok({ explanation: explained.value.data });
 }
 
 // ─── reportBenefitNonDelivery ───────────────────────────────────────────────
@@ -291,31 +318,60 @@ export async function explainEligibility(
 // this benefit." Same eReport port/mechanism as the existing corruption/
 // discrepancy reporting (Workflow 2 in the pitch doc) — not a separate
 // system. No automatic/time-based trigger.
+//
+// eReport's fixed report-type catalog (crime, red_tape, scam, child_abuse,
+// women_abuse, overpricing, fire, accident, gas_station_concerns) has no
+// exact "benefit not delivered" category. Mapped to "red_tape" — the closest
+// fit for a government-service delay/failure — a judgment call, not an
+// officially sanctioned category; revisit if eReport ever adds one.
+//
+// Submit Complaint's own auth is the integration access_token only; the
+// separate OTP -> report_view_token flow is only required to list/view
+// report history afterward, not to submit one — so this use case does not
+// depend on OTP.
+
+const NON_DELIVERY_REPORT_TYPE = "red_tape";
 
 export type ReportBenefitNonDeliveryDeps = {
   readonly eReport: EReportPort;
 };
 
 export type ReportBenefitNonDeliveryInput = {
-  readonly token: string;
+  readonly accessToken: string;
   readonly citizenId: CitizenId;
   readonly benefitId: BenefitId;
+  readonly benefitTitle: string;
+  readonly mobile: string;
+  readonly firstName: string;
+  readonly lastName: string;
+  readonly gender: string;
+  readonly email: string;
   readonly description: string;
+  readonly regionCode: string;
+  readonly provinceCode: string;
+  readonly municipalityCode: string;
+  readonly barangayCode: string;
 };
 
 export async function reportBenefitNonDelivery(
   deps: ReportBenefitNonDeliveryDeps,
   input: ReportBenefitNonDeliveryInput,
-): Promise<Result<{ raw: Record<string, unknown> }>> {
+): Promise<Result<{ caseNumber: string }>> {
   const submitted = await deps.eReport.submitComplaint({
-    token: input.token,
-    payload: {
-      citizen_id: input.citizenId,
-      benefit_id: input.benefitId,
-      category: "benefit_non_delivery",
-      description: input.description,
-    },
+    accessToken: input.accessToken,
+    mobile: input.mobile,
+    firstName: input.firstName,
+    lastName: input.lastName,
+    gender: input.gender,
+    complainantEmail: input.email,
+    reportType: NON_DELIVERY_REPORT_TYPE,
+    subject: `Benefit not received: ${input.benefitTitle}`,
+    message: `Citizen ${input.citizenId} was matched to benefit ${input.benefitId} ("${input.benefitTitle}") but reports it was never received. ${input.description}`,
+    regionCode: input.regionCode,
+    provinceCode: input.provinceCode,
+    municipalityCode: input.municipalityCode,
+    barangayCode: input.barangayCode,
   });
   if (!submitted.ok) return submitted;
-  return ok({ raw: submitted.value.raw });
+  return ok({ caseNumber: submitted.value.caseNumber });
 }

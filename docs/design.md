@@ -66,7 +66,7 @@ Transitions are enforced in the domain. Adapters must not invent statuses.
 2. Apps compose `createEgovPlatformAdapters(processEnv())`.  
 3. Secrets come exclusively from env / dashboard — never hardcoded.  
 4. Response bodies stay as `raw` JSON until product brief defines typed DTOs.  
-5. Face liveness is verified only when `SUCCEEDED` and confidence `≥ 95.0` (`isFaceLivenessPassed`).  
+5. Face Liveness **API** gate: verified only when `SUCCEEDED` and confidence `≥ 95.0` (`isFaceLivenessPassed`). eVerify Tier personal-info verify separately requires Web SDK session as `face_liveness_session_id` (not this API’s session id).  
 6. eGovChain stays a thin JSON-RPC port (`call` + a few `eth_*` helpers), not a 60-method dump.  
 
 Do not invent alternate government identity/payment APIs when these platform services cover the need.
@@ -103,7 +103,7 @@ Communication rules:
 - Agents talk only through `AgentMailbox` (no shared mutable globals).  
 - Every message has `from`, `to`, `stage`, `payload`, `correlationId`.  
 - Shared facts go on an `EventBus` or task board, not in chat side-channels.  
-- Escalation to a human gate is a first-class outcome (`needs_approval`).
+- Escalation to a human gate is a first-class outcome (`blocked` on LLM failure; `needs_human` on SLA/deadlock escalation).
 
 ## API surface (initial)
 
@@ -111,8 +111,15 @@ Inbound (illustrative):
 
 - `POST /cases` — submit service case  
 - `GET /cases/:id` — fetch case  
-- `POST /cases/:id/documents` — attach document  
-- `POST /orchestrator/tasks` — enqueue agent task (staff / internal)
+- `POST /cases/:id/advance` — advance case status  
+- `POST /cases/:id/documents` — attach document (base64 body)  
+- `POST /bangon/liveness/session` — create Face Liveness API session (`token` + `url`); API key server-side  
+- `GET /bangon/liveness/result/:sessionToken` — poll capture outcome (`passed` = SUCCEEDED ∧ confidence ≥ 95)  
+- `POST /bangon/confirm-identity` — Face Liveness API `sessionToken` gate + eVerify payload (include `face_liveness_session_id` from Web SDK when using Tier) → eligibility profile  
+- `POST /bangon/matches` — find eligible benefits for a profile  
+- `POST /bangon/matches/:id/{notify,disburse,anchor,explain}` — post-match side effects  
+- `POST /bangon/report-non-delivery` — citizen-initiated eReport complaint  
+- `POST /orchestrator/tasks` — enqueue agent task (staff / internal; not yet mounted)
 
 Outbound ports stay private to the process; they are not HTTP endpoints.
 

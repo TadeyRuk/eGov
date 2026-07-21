@@ -16,10 +16,10 @@ This document catalogs the nine platform services below. Do not invent endpoints
 | # | Service | Base URL | Auth summary |
 |---|---------|----------|--------------|
 | 1 | [eGov SSO](#1-egov-sso) | `https://hackathon-sso.e.gov.ph` | Partner code/secret → Bearer token |
-| 2 | [eVerify](#2-everify) | `https://hackathon-everify-api.e.gov.ph` | Token from `/api/auth` |
+| 2 | [eVerify](#2-everify) | `https://hackathon-everify-api.e.gov.ph` | `POST /api/auth` → Bearer `data.access_token` |
 | 3 | [eMessage](#3-emessage) | `https://ws-message.e.gov.ph` | Header `X-EMESSAGE-Auth` |
-| 4 | [eGov AI](#4-egov-ai) | `https://egov-ai-core-ws.oueg.info` | Token / API credentials from dashboard |
-| 5 | [eGovPay](#5-egovpay) | `https://egovpay-pgi-ws-dev.oueg.info` | `X-eGovPay-Token` + HMAC digest |
+| 4 | [eGov AI](#4-egov-ai) | `https://egov-ai-core-ws.oueg.info` | `access_code` → Bearer `access_token` |
+| 5 | [eGovPay](#5-egovpay) | `https://egovpay-pgi-ws-dev.oueg.info` | `X-eGovPay-Token`; generate body `digest` = HMAC-SHA256(`$amount|$txnid`, token) |
 | 6 | [eGovChain](#6-egovchain) | `https://hackathon-blockchain.e.gov.ph` | JSON-RPC 2.0 (chain id `13371`) |
 | 7 | [eReport](#7-ereport) | `https://stg-ereport-ws.oueg.info` | Token + OTP flows |
 | 8 | [Face Liveness](#8-face-liveness) | `https://hackathon-face-liveness-api.e.gov.ph` | Platform token / API key from dashboard |
@@ -31,88 +31,651 @@ Related UI (not an API port): blockchain explorer `https://hackathon-explorer.e.
 
 ## 1. eGov SSO
 
-**Purpose:** Partner SSO — exchange an authorization code for an access token, then fetch the citizen profile.
+**Purpose:** Single Sign-On for eGov partners — OAuth 2.0 authorization-code style flow. After the citizen authenticates, eGovPH appends an `exchange_code` to the partner callback URL; the partner backend exchanges that code for an access token, then loads the citizen profile.
 
 **Base URL:** `https://hackathon-sso.e.gov.ph`
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| `POST` | `/api/token` | Partner credentials in body | Body fields: `exchange_code`, `scope`, `partner_code`, `partner_secret` → access token |
-| `POST` | `/api/partner/sso_authentication` | `Authorization: Bearer <token>` | Returns citizen profile |
+| `POST` | `/api/token` | Partner credentials in **body** | Exchanges `exchange_code` for `access_token` |
+| `POST` | `/api/partner/sso_authentication` | `Authorization: Bearer <access_token>` | Returns citizen profile for the minted token |
 
 **Env placeholders:** `EGOV_SSO_BASE_URL`, `EGOV_SSO_PARTNER_CODE`, `EGOV_SSO_PARTNER_SECRET`
 
+### Partner callback URL (required)
+
+Partners must register a **base URL** where eGovPH appends the authentication parameter `exchange_code`.
+
+Example:
+
+```text
+https://test_website.com/egovph/sso?exchange_code=text_exchange_code
+```
+
+For BANGON (Android-first), the registered callback must deliver `exchange_code` into the app (HTTPS App Link / custom scheme that lands on a route equivalent to `/egovph/sso`). The Android client then posts the code to `apps/api` — **never** embed `partner_secret` on device.
+
+### `POST /api/token` — Generates Access Token
+
+Exchanges an authorization code for an access token using the eGov SSO service (OAuth 2.0 authorization code flow).
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `exchange_code` | string | Yes | Authorization code received after user authentication |
+| `scope` | string | Yes | Requested scope. Use **`SSO_AUTHENTICATION`** for standard SSO login |
+| `partner_code` | string | Yes | Unique code identifying the partner/agency system |
+| `partner_secret` | string | Yes | Secret key for the partner account (server-side only) |
+
+**Example body**
+
+```json
+{
+  "exchange_code": "generated_exchange_code",
+  "scope": "SSO_AUTHENTICATION",
+  "partner_code": "{{partner_code}}",
+  "partner_secret": "{{partner_secret}}"
+}
+```
+
+**Example cURL**
+
+```bash
+curl --request POST \
+  --url '{{base_url}}/api/token' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "exchange_code": "generated_exchange_code",
+    "scope": "SSO_AUTHENTICATION",
+    "partner_code": "{{partner_code}}",
+    "partner_secret": "{{partner_secret}}"
+  }'
+```
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `200 OK` | Access token successfully generated |
+| `403 Forbidden` | Partner credentials invalid or partner not authorized |
+| `422 Unprocessable Entity` | Exchange code invalid, already used, or expired |
+
+**Example `200` body**
+
+```json
+{
+  "access_token": "eyJ…"
+}
+```
+
+**Notes (authoritative)**
+
+- `exchange_code` is **single-use** and expires after a short period.
+- Store `partner_secret` securely; **never** expose it on the client (web or Android).
+- Use the returned `access_token` in the `Authorization: Bearer …` header of subsequent SSO requests (including `/api/partner/sso_authentication`).
+- Standard login scope is **`SSO_AUTHENTICATION`** — do not invent alternate scopes unless the dashboard documents them.
+
+### `POST /api/partner/sso_authentication` — Citizen profile
+
+After minting a token, call this endpoint with `Authorization: Bearer <access_token>` to obtain the citizen profile used for data sync / auto-login.
+
+### SSO implementation logic (partner product rules)
+
+| Case | Behavior |
+|------|----------|
+| **Existing users** | Match using `uniqid` or personal details (name, birthdate). Bind `uniqid` to streamline future logins and auto-authenticate. |
+| **New users** | Automatically register using SSO details; guide through onboarding only if additional info is needed; then auto-authenticate. |
+
+### Data sync map (from eGovPH)
+
+Accurately map at least:
+
+- name
+- birthdate
+- address
+- email
+- contact number
+- `uniqid` (stable bind key)
+
+Profile updates must occur **exclusively through eGovPH** — no direct profile/password editing in the partner UI.
+
+### Partner UX / integration checklist
+
+Grounded on the official eGov SSO integration checklist. For BANGON, “agency website” maps to the **Android client** (and any debug web shell):
+
+1. **SSO functionality**
+   - [ ] Data sync: map eGovPH user info (name, birthdate, address, email, contact number) + bind `uniqid`
+   - [ ] Auto-login: user is logged in automatically after successful SSO
+   - [ ] Profile locking: no direct profile edits in BANGON; updates via eGovPH only
+   - [ ] No manual auth: no separate login/register/password flows; sessions managed via eGovPH SSO
+2. **Mobile responsiveness** (Android + any web surfaces)
+   - [ ] Layout: no overlapping / distorted text or images
+   - [ ] Screen fitting across phone and tablet sizes
+   - [ ] Performance and feature parity on mobile
+3. **Hide / disable on partner UI**
+   - Login & registration pages/screens
+   - Profile & password management pages/screens
+   - External app-download / competing auth links that bypass eGovPH
+
+**Expected outcome:** Authenticated citizens access features without separate partner logins or local profile management.
+
+### Core technical requirements
+
+| Requirement | Rule |
+|-------------|------|
+| Active SSL | Mandatory end-to-end (HTTPS callback + API) |
+| Mobile responsiveness | Required across devices |
+| Partner base URL | Must accept `?exchange_code=` appended by eGovPH |
+
 ---
+
 
 ## 2. eVerify
 
-**Purpose:** Authenticate to eVerify, verify personal information, and check/verify QR credentials.
+**Purpose:** eVerify (NIDAS) — authenticate with client credentials, complete Face Liveness via the **eVerify Face Liveness Web SDK**, then verify personal information (and optional QR flows).
 
 **Base URL:** `https://hackathon-everify-api.e.gov.ph`
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
-| `POST` | `/api/auth` | Client credentials (dashboard) | Obtain session / API token |
-| `POST` | `/api/query` | Bearer token from `/api/auth` | Personal information verify |
+| `POST` | `/api/auth` | Client credentials in **body** | Obtain Bearer `access_token` (nested under `data`) |
+| `POST` | `/api/query` | `Authorization: Bearer <access_token>` | Personal information verify (demographics + `face_liveness_session_id`) |
 | `POST` | `/api/query/qr/check` | Bearer token | QR pre-check |
 | `POST` | `/api/query/qr` | Bearer token | QR verify |
 
-**Env placeholders:** `EVERIFY_BASE_URL`, `EVERIFY_CLIENT_ID`, `EVERIFY_CLIENT_SECRET`
+**Env placeholders:** `EVERIFY_BASE_URL`, `EVERIFY_CLIENT_ID`, `EVERIFY_CLIENT_SECRET`, optional `EVERIFY_PUBLIC_KEY` (Web SDK `pubKey` — client-side only; never ship `client_secret`)
+
+### Tier verification flow (authoritative)
+
+1. Obtain `access_token` from `POST /api/auth` (server-side).
+2. Secure a `face_liveness_session_id` via the **eVerify Face Liveness Web SDK** (citizen device / WebView).
+3. Submit demographics + `face_liveness_session_id` to `POST /api/query` with `Authorization: Bearer <access_token>`.
+
+**Do not confuse** the Web SDK session with the separate platform **Face Liveness API** (`hackathon-face-liveness-api.e.gov.ph`, §8). Tier verify expects the Web SDK’s `result.session_id` mapped to the field name **`face_liveness_session_id`**.
+
+### `POST /api/auth` — Obtain access token
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `client_id` | string | Yes | Dashboard client id |
+| `client_secret` | string | Yes | Dashboard client secret (**server-side only**) |
+
+**Example body**
+
+```json
+{
+  "client_id": "{{client_id}}",
+  "client_secret": "{{client_secret}}"
+}
+```
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `200 OK` | Token issued |
+| `403 Forbidden` | Invalid client credentials |
+
+**Example `200` body**
+
+```json
+{
+  "data": {
+    "access_token": "eyJ…",
+    "token_type": "Bearer",
+    "expires_at": "1724223772"
+  }
+}
+```
+
+**Notes (authoritative)**
+
+- Use `data.access_token` as `Authorization: Bearer …` on verify / QR endpoints.
+- Never expose `client_secret` on Android or any client; keep it in env / server composition root.
+- Adapter unwraps nested `data.access_token` (see `@egov/adapters-egov-platform` eVerify adapter).
+
+### Face Liveness Web SDK (eVerify Tier)
+
+Not a port on `FaceLivenessPort`. Hosted script for citizen capture; session id is then sent to eVerify verify.
+
+| | |
+|--|--|
+| **Script** | `https://hackathon-everify-face-liveness.e.gov.ph/js/everify-liveness-sdk.min.js` |
+| **Init** | `window.eKYC().start({ pubKey: "YOUR_PUBLIC_API_KEY" })` |
+| **Public key env** | `EVERIFY_PUBLIC_KEY` (safe to embed in client; still prefer config injection) |
+
+**Success payload (SDK)**
+
+```json
+{
+  "status": "COMPLETED",
+  "result": {
+    "photo": "data:image/jpeg;base64,…",
+    "session_id": "a1b3fae6-af74-4896-bd58-32a81604de01",
+    "photo_url": "https://liveness.photo.url/image.jpg?expires=123"
+  }
+}
+```
+
+Map `result.session_id` → **`face_liveness_session_id`** on the verify request.
+
+### `POST /api/query` — Verify personal information
+
+Requires Bearer token from `/api/auth`. Body includes demographics plus the Web SDK session id.
+
+**Example body**
+
+```json
+{
+  "first_name": "Juan",
+  "middle_name": "Santos",
+  "last_name": "Dela Cruz",
+  "suffix": "JR",
+  "birth_date": "1989-09-12",
+  "face_liveness_session_id": "a1b3fae6-af74-4896-bd58-32a81604de01"
+}
+```
+
+| Field | Notes |
+|-------|-------|
+| `first_name`, `last_name` | Required demographics |
+| `middle_name`, `suffix` | Optional as provided by citizen / SSO profile |
+| `birth_date` | `YYYY-MM-DD` |
+| `face_liveness_session_id` | From Web SDK `result.session_id` |
+
+### QR endpoints
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `POST` | `/api/query/qr/check` | Bearer | QR pre-check |
+| `POST` | `/api/query/qr` | Bearer | QR verify |
+
+Do not invent QR payload fields beyond what the dashboard / live OpenAPI documents.
 
 ---
 
 ## 3. eMessage
 
-**Purpose:** Push SMS messages through the eMessage messaging service.
+**Purpose:** Deliver SMS, email, and in-app notices. The dashboard lists email and in-app as capabilities; **only SMS push is documented below** (paths for email / in-app are not invented here).
 
-**Base URL:** `https://ws-message.e.gov.ph`
+**Base URL (`{{base_url}}`):** `https://ws-message.e.gov.ph` (`EMESSAGE_BASE_URL`)
 
 | Method | Path | Auth | Notes |
 |--------|------|------|-------|
 | `POST` | `/messaging/v1/sms/push` | Header `X-EMESSAGE-Auth` | SMS push |
 
-**Env placeholders:** `EMESSAGE_BASE_URL`, `EMESSAGE_AUTH_TOKEN`
+**Env placeholders:** `EMESSAGE_BASE_URL`, `EMESSAGE_AUTH_TOKEN` (maps to `X-EMESSAGE-Auth` / `{{api_token}}`)
+
+### `POST {{base_url}}/messaging/v1/sms/push` — Send SMS
+
+Sends an SMS to a recipient number.
+
+**Headers**
+
+| Header | Value | Required |
+|--------|-------|----------|
+| `X-EMESSAGE-Auth` | `<API-TOKEN>` | Yes |
+| `Content-Type` | `application/json` | Yes |
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `number` | string | Yes | E.164 format, e.g. `+639090000000` |
+| `message` | string | Yes | SMS body |
+
+**Example body**
+
+```json
+{
+  "number": "+639090000000",
+  "message": "Test message"
+}
+```
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `201 Created` | SMS accepted |
+| `400 Bad Request` | Invalid request |
+| `422 Unprocessable Entity` | Validation failed |
+
+**Example `201` body**
+
+```json
+{
+  "data": {
+    "message": "SMS was successfully created."
+  }
+}
+```
+
+**Notes**
+
+- Adapter / BANGON callers must send E.164 `number` (not a local `to` alias on the wire).
+- Email and in-app delivery are dashboard-listed capabilities; do not call invented paths until the dashboard documents them.
 
 ---
 
 ## 4. eGov AI
 
-**Purpose:** Platform AI capabilities — auth token, assistants, speech, tourism, laws, translation, document extraction, and credits.
+**Purpose:** Metered government AI — mint a short-lived hackathon token from an `access_code`, then call assistants / speech / tourism / laws / translator / document extractor / credits with `Authorization: Bearer <access_token>`.
 
-**Base URL:** `https://egov-ai-core-ws.oueg.info`
+**Base URL (`{{base}}`):** `https://egov-ai-core-ws.oueg.info`
 
-| Capability | Auth | Notes |
-|------------|------|-------|
-| `token` | Dashboard credentials | Obtain access token |
-| `ai_assistant` | Token / API key from dashboard | General assistant |
-| `speech_maker` | Token / API key from dashboard | Speech generation |
-| `tourism` | Token / API key from dashboard | Tourism Q&A |
-| `laws` | Token / API key from dashboard | Legal / reference assistant |
-| `translator` | Token / API key from dashboard | Translation |
-| `document_extractor` | Token / API key from dashboard | Document extraction |
-| `credits` | Token / API key from dashboard | Usage / remaining credits |
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `POST` | `/api/v1/egov/integration/token` | Body `access_code` | Mint Bearer token + credit snapshot |
+| `POST` | `/api/v1/egov/integration/ai_assistant/generate` | Bearer | `{ prompt, category }` → `{ data, session_id }` |
+| `POST` | `/api/v1/egov/integration/speech_maker/generate` | Bearer | Same body/response shape as assistant |
+| `POST` | `/api/v1/egov/integration/tourism/generate` | Bearer | Same body/response shape as assistant |
+| `POST` | `/api/v1/egov/integration/laws_and_regulations/generate` | Bearer | Same body/response shape as assistant |
+| `POST` | `/api/v1/egov/integration/translator/generate` | Bearer | `{ prompt, source_lang, target_lang }` (ISO 639-1) |
+| `POST` | `/api/v1/egov/integration/document_extractor/generate` | Bearer | **multipart/form-data** field `file` (JPEG/PNG/PDF) |
+| `GET` | `/api/v1/egov/integration/credits` | Bearer | Remaining credits / expiry |
 
-Exact HTTP paths for each capability are as exposed by the platform on the dashboard; use the capability names above as the catalog surface.
+**Env placeholders:** `EGOV_AI_BASE_URL`, `EGOV_AI_ACCESS_CODE` (preferred; alias `EGOV_AI_API_KEY`)
 
-**Env placeholders:** `EGOV_AI_BASE_URL`, `EGOV_AI_ACCESS_CODE` (alias: `EGOV_AI_API_KEY`)
+### Auth flow (authoritative)
+
+1. Call `POST …/token` with the dashboard `access_code`.
+2. On `200`, store `access_token` and use it as `Authorization: Bearer {{hackathon_token}}` on all subsequent eGov AI calls.
+3. Do **not** send the access code as an `X-API-Key` on generate/credits routes — Bearer only after mint.
+4. Token / credit exhaustion surfaces as `401` on the token endpoint (and failed Bearer calls thereafter).
+
+### `POST /api/v1/egov/integration/token` — Mint access token
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `access_code` | string | Yes | Dashboard access code (`EGOV_AI_ACCESS_CODE`) |
+
+**Example body**
+
+```json
+{
+  "access_code": "{{access_code}}"
+}
+```
+
+**Example cURL**
+
+```bash
+curl --request POST \
+  --url '{{base}}/api/v1/egov/integration/token' \
+  --header 'Content-Type: application/json' \
+  --data '{
+    "access_code": "{{access_code}}"
+  }'
+```
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `200 OK` | Token minted |
+| `401 Unauthorized` | Invalid / exhausted access code |
+
+**Example `200` body**
+
+```json
+{
+  "access_token": "…",
+  "expires_in_seconds": 3600,
+  "credits_total": 100,
+  "credits_remaining": 97
+}
+```
+
+### Generate endpoints (assistant / speech / tourism / laws)
+
+Shared contract for:
+
+- `POST /api/v1/egov/integration/ai_assistant/generate`
+- `POST /api/v1/egov/integration/speech_maker/generate`
+- `POST /api/v1/egov/integration/tourism/generate`
+- `POST /api/v1/egov/integration/laws_and_regulations/generate`
+
+**Headers:** `Authorization: Bearer {{hackathon_token}}`, `Content-Type: application/json`
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `prompt` | string | Yes | User / system prompt text |
+| `category` | string | Yes | Category label (example: `"PH"`) |
+
+**Example body**
+
+```json
+{
+  "prompt": "Explain senior citizen benefits in plain language.",
+  "category": "PH"
+}
+```
+
+**Example `200` body**
+
+```json
+{
+  "data": "…generated text…",
+  "session_id": "…"
+}
+```
+
+### `POST /api/v1/egov/integration/translator/generate`
+
+**Headers:** Bearer + JSON
+
+**Request body**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `prompt` | string | Yes | Text to translate |
+| `source_lang` | string | Yes | ISO 639-1 source (e.g. `en`) |
+| `target_lang` | string | Yes | ISO 639-1 target (e.g. `fil`) |
+
+**Example `200` body**
+
+```json
+{
+  "original_prompt": "…",
+  "source_lang": "en",
+  "target_lang": "fil",
+  "translate_from": { "code": "en", "label": "English" },
+  "translated_prompt": "…",
+  "transliterated_prompt": "…"
+}
+```
+
+### `POST /api/v1/egov/integration/document_extractor/generate`
+
+**Headers:** Bearer (no JSON `Content-Type` — multipart boundary is set by the client)
+
+**Body:** `multipart/form-data` with a single file field named **`file`**. Accepted types: JPEG, PNG, PDF.
+
+**Example `200` body**
+
+```json
+{
+  "data": "<html>…extracted content…</html>"
+}
+```
+
+### `GET /api/v1/egov/integration/credits`
+
+**Headers:** `Authorization: Bearer {{hackathon_token}}`
+
+**Example `200` body**
+
+```json
+{
+  "credits_total": 100,
+  "credits_used": 3,
+  "credits_remaining": 97,
+  "expires_at": "2026-12-31T00:00:00Z"
+}
+```
+
+### Notes (authoritative)
+
+- Paths are under `/api/v1/egov/integration/…` — do not invent alternate roots (e.g. bare `/token`).
+- Laws capability path is `laws_and_regulations/generate` (not `/laws`).
+- Credits is **GET**, not POST.
+- Document extractor is **multipart** only; do not POST a JSON file blob.
+- Secrets (`access_code`) stay server-side in env; never ship them in the Android client.
 
 ---
 
 ## 5. eGovPay
 
-**Purpose:** Payment gateway — generate a transaction, fetch it, or void it.
+**Purpose:** Payment gateway — generate a hosted payment, fetch transaction detail, or void a transaction.
 
-**Base URL:** `https://egovpay-pgi-ws-dev.oueg.info`
+**Base URL:** `https://egovpay-pgi-ws-dev.oueg.info` (`EGOVPAY_BASE_URL`)
 
-| Capability | Auth | Notes |
-|------------|------|-------|
-| Generate payment / transaction | `X-eGovPay-Token` + HMAC digest | Create payable transaction |
-| Get transaction | `X-eGovPay-Token` + HMAC digest | Fetch status / details |
-| Void transaction | `X-eGovPay-Token` + HMAC digest | Void a transaction |
+**Auth header (all endpoints):** `X-eGovPay-Token: {{api_token}}`
 
-HMAC algorithm and signing material come from the dashboard.
+**Content-Type:** `application/json; charset=utf-8`
 
-**Env placeholders:** `EGOVPAY_BASE_URL`, `EGOVPAY_API_KEY` (alias: `EGOVPAY_TOKEN`), optional `EGOVPAY_HMAC_SECRET` (falls back to API key for digest), optional `EGOVPAY_SETTLEMENT_TEMPLATE_UUID`
+Test mode uses a `test_`-prefixed token and does **not** touch live financial networks. Recompute `digest` on every generate request.
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `POST` | `/api/v1/transaction` | `X-eGovPay-Token` + body `digest` | Create payment; returns hosted gateway link |
+| `GET` | `/api/v1/transaction/{{transaction_uuid}}` | `X-eGovPay-Token` | Full transaction detail |
+| `PUT` | `/api/v1/transaction/{{transaction_uuid}}/void` | `X-eGovPay-Token` | Void a transaction |
+
+**Env placeholders:** `EGOVPAY_BASE_URL`, `EGOVPAY_API_KEY` (alias: `EGOVPAY_TOKEN`), `EGOVPAY_SETTLEMENT_TEMPLATE_UUID`, optional `EGOVPAY_HMAC_SECRET` (if set, used as digest key instead of the API token)
+
+### Digest formula (generate only)
+
+```text
+digest = HMAC-SHA256(key, "$amount|$txnid")   // hex digest
+```
+
+PHP equivalent from the dashboard:
+
+```php
+hash_hmac('sha256', "$amount|$txnid", $token);
+```
+
+- **Message:** literal concatenation of `amount`, `|`, and `txnid` (same values as in the JSON body).
+- **Key:** API token by default (`EGOVPAY_API_KEY` / `EGOVPAY_TOKEN`); optional `EGOVPAY_HMAC_SECRET` overrides the key when present.
+- Put `digest` in the **request body** — not as a custom digest header.
+- Do **not** HMAC the full JSON body.
+
+### `POST /api/v1/transaction` — Generate Payment
+
+Creates a payment and returns a hosted gateway URL.
+
+**Required body fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `items` | array of `{ name, amount }` | Line items |
+| `amount` | number (double) | Total amount |
+| `settlement_template_uuid` | uuid | Settlement template (or set via `EGOVPAY_SETTLEMENT_TEMPLATE_UUID`) |
+| `redirect_url` | url | Browser return URL after payment |
+| `txnid` | string | Merchant transaction id |
+| `callback_url` | url | Server callback / webhook URL |
+| `digest` | string | HMAC-SHA256 of `"$amount|$txnid"` (see above) |
+
+**Optional body fields**
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `currency` | string | e.g. `PHP` |
+| `mobile` | string | Payer mobile |
+| `email` | string | Payer email |
+| `name` | string | Payer name |
+| `expires_at` | string | `YYYY-MM-DD HH:MM:SS` |
+| `link_expires_at` | string | `YYYY-MM-DD HH:MM:SS` |
+| `description` | object | Free-form description object |
+
+**Example body**
+
+```json
+{
+  "items": [{ "name": "Benefit disbursement", "amount": 1000 }],
+  "amount": 1000,
+  "settlement_template_uuid": "{{settlement_template_uuid}}",
+  "redirect_url": "https://example.com/pay/return",
+  "txnid": "bangon-txn-001",
+  "callback_url": "https://example.com/pay/callback",
+  "digest": "{{hmac_sha256_hex}}",
+  "currency": "PHP"
+}
+```
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `201 Created` | Payment created |
+| `401 Unauthorized` | Invalid / missing `X-eGovPay-Token` |
+| `422 Unprocessable Entity` | Validation failed (missing fields, bad digest, etc.) |
+
+**Example `201` body**
+
+```json
+{
+  "data": {
+    "uuid": "…",
+    "url": "https://…",
+    "channel": {
+      "refno": "…"
+    }
+  }
+}
+```
+
+### `GET /api/v1/transaction/{{transaction_uuid}}` — Check Transaction
+
+**Headers:** `X-eGovPay-Token` only (no body digest).
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `200 OK` | Transaction detail under `data` |
+| `401 Unauthorized` | Invalid / missing token |
+| `404 Not Found` | Unknown transaction uuid |
+
+**Example `200` shape (fields under `data`)**
+
+Includes at least: `uuid`, `refno`, `txnid`, `environment_type`, `items`, `amount`, `fees`, `currency`, `payment_status`, `channels`, URLs, timestamps, and related metadata as returned by the platform.
+
+### `PUT /api/v1/transaction/{{transaction_uuid}}/void` — Void Transaction
+
+**Headers:** `X-eGovPay-Token` only.
+
+**Responses**
+
+| Status | Description |
+|--------|-------------|
+| `200 OK` | Voided |
+| `400 Bad Request` | Cannot void (e.g. already paid / invalid state) |
+| `401 Unauthorized` | Invalid / missing token |
+| `404 Not Found` | Unknown transaction uuid |
+
+**Example `200` body**
+
+```json
+{
+  "data": {
+    "message": "You have successfully voided this transaction."
+  }
+}
+```
+
+**Notes**
+
+- Only the three endpoints above are catalogued — do not invent extra Pay paths.
+- Adapter injects `settlement_template_uuid` from env when the caller omits it, and always recomputes `digest` before POST.
 
 ---
 
@@ -135,36 +698,66 @@ HMAC algorithm and signing material come from the dashboard.
 
 ## 7. eReport
 
-**Purpose:** Reporting service — datasets, auth token, submit complaint, OTP verification, list/view reports.
+**Purpose:** Let citizens file and track complaints and reports — submit a complaint, verify by OTP, then list and view report status by case number.
 
-**Base URL:** `https://stg-ereport-ws.oueg.info`
+**Base URL:** `https://stg-ereport-ws.oueg.info` (path prefix `/api/integration`)
 
-| Capability | Auth | Notes |
-|------------|------|-------|
-| `datasets` | Token / API key from dashboard | List / query datasets |
-| `token` | Dashboard credentials | Auth token |
-| `submit_complaint` | Token | File a complaint |
-| OTP verify | Token | Verify OTP |
-| List / view reports | Token | Report retrieval |
+**Confirmed against the live dashboard API reference** (`platforms.e.gov.ph/dashboard/api-catalogs/ereport`), 2026-07-22 — corrects earlier guessed paths (`/datasets`, `/submit_complaint`, `/otp/verify`) that 404'd against the live platform.
 
-**Env placeholders:** `EREPORT_BASE_URL`, `EREPORT_ACCESS_TOKEN` (alias: `EREPORT_API_KEY`)
+**Three distinct tokens, not one:**
+1. `access_token` ("integration_token") — from `POST /token`, Bearer for datasets/submit_complaint/verify.
+2. `report_view_token` — from `POST /verify/confirm` (after OTP), header `X-EReport-View-Token` for reports list/view. Separate lifecycle from #1.
+3. `access_code` — the pre-issued env credential used to obtain #1 (same role as other services' API keys).
+
+| Method | Path | Auth | Notes |
+|--------|------|------|-------|
+| `GET` | `/datasets/report_types` | Bearer `access_token` | Fixed 9-type catalog (crime, red_tape, scam, child_abuse, women_abuse, overpricing, fire, accident, gas_station_concerns) |
+| `GET` | `/datasets/regions` | Bearer `access_token` | PSA region list |
+| `GET` | `/datasets/provinces?region_code=` | Bearer `access_token` | Provinces by region |
+| `GET` | `/datasets/municipalities?province_code=` | Bearer `access_token` | Municipalities by province |
+| `GET` | `/datasets/barangays?municipality_code=` | Bearer `access_token` | Barangays by municipality |
+| `POST` | `/token` | none | Body `{access_code}` → `{access_token, expires_at}` |
+| `POST` | `/submit_complaint` | Bearer `access_token` | Body: `mobile, first_name, last_name, gender, complainant_email, report_type, subject, message, evidences[], region_code, province_code, municipality_code, barangay_code, latitude?, longitude?` → `{code, message, case_number}` |
+| `POST` | `/verify/request` | Bearer `access_token` | Body `{email}` → OTP sent, `{code, already_verified, message}` |
+| `POST` | `/verify/confirm` | Bearer `access_token` | Body `{email, otp}` → `{code, report_view_token, expires_at}` |
+| `GET` | `/reports` | Header `X-EReport-View-Token` | Query `q?, page?, limit?`; paginated JSON:API list |
+| `GET` | `/reports/:case_number` | Header `X-EReport-View-Token` | Full report detail (complainant, report_type, address, status, history) |
+
+Dataset and report-list responses use a JSON:API envelope (`{jsonapi, data: [{type, id, attributes}], meta: {pagination}}`); token/complaint/OTP actions return a flatter `{code, message, ...}` shape.
+
+**Report-type mapping note:** no eReport category maps exactly to "benefit not delivered" (BANGON use case). `red_tape` is used as the closest fit for a government-service delay/failure — a judgment call, not an officially sanctioned category.
+
+**Env placeholders:** `EREPORT_BASE_URL`, `EREPORT_ACCESS_TOKEN` (alias: `EREPORT_API_KEY`) — holds the `access_code` used to mint `access_token` via `POST /token`.
 
 ---
 
 ## 8. Face Liveness
 
-**Purpose:** Create a face-liveness session and retrieve the result for identity assurance.
+**Purpose:** Platform **Face Liveness REST API** — create a capture session and retrieve the result (confidence score) for identity assurance gates that use this service directly.
 
 **Base URL:** `https://hackathon-face-liveness-api.e.gov.ph`
 
-| Capability | Auth | Notes |
-|------------|------|-------|
-| Create session | Platform token / API key from dashboard | Start liveness capture session |
-| Get result | Platform token / API key from dashboard | Poll / fetch outcome |
+**Auth:** header `x-api-key: <FACE_LIVENESS_API_KEY>` (not Bearer). Confirmed against dashboard catalog 2026-07-22.
 
-**Pass rule:** treat as verified only when status is `SUCCEEDED` **and** confidence **≥ 95.0**.
+| Capability | Method + path | Body / notes |
+|------------|---------------|--------------|
+| Create session | `POST /v1/liveness/session` | `{ "action": "redirect" \| "post" \| "close", "callback_url"?: string, "delay"?: number }` — `callback_url` required when `action` is `redirect`. Response includes `token` + `url` (citizen opens `url` to capture). |
+| Get result | `GET /v1/liveness/result/:token` | Poll until terminal status. |
+
+**Pass rule:** treat as verified only when status is `SUCCEEDED` **and** confidence **≥ 95.0** (`confidence_score` on the result payload).
 
 **Env placeholders:** `FACE_LIVENESS_BASE_URL`, `FACE_LIVENESS_API_KEY`
+
+**BANGON app surface (keeps API key server-side):** `POST /bangon/liveness/session`, `GET /bangon/liveness/result/:sessionToken` — see [api-android.md](./api-android.md).
+
+### Relationship to eVerify Tier (do not invent bridges)
+
+| Mechanism | Host / service | What you get | Used for |
+|-----------|----------------|--------------|----------|
+| **This API** (`FaceLivenessPort`) | `hackathon-face-liveness-api.e.gov.ph` | Session `token` + `url`; result via `getResult` | Server-side gate (`confirm-identity` after create + capture) |
+| **eVerify Face Liveness Web SDK** | `hackathon-everify-face-liveness.e.gov.ph` script | `result.session_id` | Field **`face_liveness_session_id`** on eVerify `POST /api/query` (see [§2 eVerify](#2-everify)) |
+
+These are **different** platform surfaces. Do not invent an endpoint that converts one session id into the other. For eVerify Tier personal-info verify, follow the Web SDK → `face_liveness_session_id` path in §2.
 
 ---
 

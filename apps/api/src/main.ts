@@ -2,6 +2,7 @@ import {
   createAuthHttpHandlers,
   createBangonHttpHandlers,
   createCaseHttpHandlers,
+  createFaceLivenessHttpHandlers,
   healthResponse,
 } from "@egov/adapters-http";
 import { createEgovPlatformAdapters } from "@egov/adapters-egov-platform";
@@ -39,6 +40,10 @@ const bangon = createBangonHttpHandlers({
 
 const auth = createAuthHttpHandlers({
   sso: platform.sso,
+});
+
+const faceLiveness = createFaceLivenessHttpHandlers({
+  faceLiveness: platform.faceLiveness,
 });
 
 const CORS_HEADERS = {
@@ -136,11 +141,34 @@ const server = createServer(async (req, res) => {
     }
 
     // ─── BANGON ───────────────────────────────────────────────────────────
+    if (method === "POST" && url.pathname === "/bangon/liveness/session") {
+      const body = (await readJson(req)) as {
+        action: "redirect" | "post" | "close";
+        callbackUrl?: string;
+        delay?: number;
+      };
+      const result = await faceLiveness.createSession(body);
+      send(res, result.status, result.body);
+      return;
+    }
+
+    const livenessResult = url.pathname.match(
+      /^\/bangon\/liveness\/result\/([^/]+)$/,
+    );
+    if (method === "GET" && livenessResult?.[1]) {
+      const result = await faceLiveness.getResult(
+        decodeURIComponent(livenessResult[1]),
+      );
+      send(res, result.status, result.body);
+      return;
+    }
+
     if (method === "POST" && url.pathname === "/bangon/confirm-identity") {
       const body = (await readJson(req)) as {
         token: string;
         payload: Record<string, unknown>;
-        sessionId: string;
+        sessionToken?: string;
+        sessionId?: string;
       };
       const result = await bangon.confirmIdentity(body);
       send(res, result.status, result.body);
@@ -199,10 +227,20 @@ const server = createServer(async (req, res) => {
 
     if (method === "POST" && url.pathname === "/bangon/report-non-delivery") {
       const body = (await readJson(req)) as {
-        token: string;
+        accessToken: string;
         citizenId: string;
         benefitId: string;
+        benefitTitle: string;
+        mobile: string;
+        firstName: string;
+        lastName: string;
+        gender: string;
+        email: string;
         description: string;
+        regionCode: string;
+        provinceCode: string;
+        municipalityCode: string;
+        barangayCode: string;
       };
       const result = await bangon.reportNonDelivery(body);
       send(res, result.status, result.body);

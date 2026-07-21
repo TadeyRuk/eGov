@@ -15,7 +15,10 @@ import { createEgovChainAdapter } from "./egov-chain.js";
 import { createEgovPayAdapter } from "./egov-pay.js";
 import { createEMessageAdapter } from "./emessage.js";
 import { createEReportAdapter } from "./ereport.js";
-import { createEVerifyAdapter } from "./everify.js";
+import {
+  createEVerifyAdapter,
+  extractEVerifyAccessToken,
+} from "./everify.js";
 import { createFaceLivenessAdapter } from "./face-liveness.js";
 import { processEnv, type PlatformEnv } from "./http.js";
 import { createEgovSsoAdapter } from "./sso.js";
@@ -66,5 +69,6 @@ export {
   createEMessageAdapter,
   createEReportAdapter,
   createEVerifyAdapter,
+  extractEVerifyAccessToken,
   createFaceLivenessAdapter,
 };

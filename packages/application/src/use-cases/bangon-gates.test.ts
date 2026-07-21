@@ -1,10 +1,12 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ok, err, appError, newId } from "@egov/shared";
-import type {
-  AgentTask,
-  CitizenEligibilityProfile,
-  ServiceCase,
+import {
+  isEligibleForBenefit,
+  type AgentTask,
+  type CitizenEligibilityProfile,
+  type EligibilityRule,
+  type ServiceCase,
 } from "@egov/domain";
 import {
   attachDocument,
@@ -139,7 +141,7 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     assert.equal(result.error.code, "FORBIDDEN");
   });
 
-  it("returns profile when liveness passed", async () => {
+  it("returns uppercase profile when liveness passed", async () => {
     const result = await confirmCitizenIdentity(
       { eVerify },
       {
@@ -156,13 +158,60 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     assert.equal(result.ok, true);
     if (!result.ok) return;
     const profile: CitizenEligibilityProfile = result.value;
-    assert.equal(profile.civilStatus, "widowed");
-    assert.equal(profile.vitalStatus, "alive");
+    assert.equal(profile.civilStatus, "WIDOWED");
+    assert.equal(profile.vitalStatus, "ALIVE");
+  });
+
+  it("rejects invalid date of birth", async () => {
+    const badDob: EVerifyPort = {
+      ...eVerify,
+      async verifyPersonalInfo() {
+        return ok({
+          raw: {
+            date_of_birth: "not-a-date",
+            civil_status: "single",
+            vital_status: "alive",
+          },
+        });
+      },
+    };
+    const result = await confirmCitizenIdentity(
+      { eVerify: badDob },
+      {
+        token: "t",
+        payload: {},
+        liveness: {
+          status: "SUCCEEDED",
+          confidence: 99,
+          passed: true,
+          raw: {},
+        },
+      },
+    );
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.error.code, "VALIDATION");
   });
 });
 
-describe("runAgentTurn needs_human on LLM failure", () => {
-  it("persists needs_human when the LLM fails", async () => {
+describe("isEligibleForBenefit case-insensitive status", () => {
+  it("matches mixed-case profile against uppercase seed rules", () => {
+    const profile: CitizenEligibilityProfile = {
+      dateOfBirth: new Date("1950-01-01"),
+      civilStatus: "Widowed",
+      vitalStatus: "Alive",
+    };
+    const rule: EligibilityRule = {
+      minAge: 60,
+      civilStatusIn: ["WIDOWED"],
+      vitalStatusIn: ["ALIVE"],
+    };
+    assert.equal(isEligibleForBenefit(profile, rule, clock.now()), true);
+  });
+});
+
+describe("runAgentTurn blocked on LLM failure", () => {
+  function makeTaskHarness() {
     const store = new Map<string, AgentTask>();
     const tasks: AgentTaskRepository = {
       async getById(id) {
@@ -217,6 +266,12 @@ describe("runAgentTurn needs_human on LLM failure", () => {
         return ok(undefined);
       },
     };
+
+    return { tasks, retainingMailbox, events };
+  }
+
+  it("persists blocked when the LLM fails", async () => {
+    const { tasks, retainingMailbox, events } = makeTaskHarness();
     const llm: LlmPort = {
       async complete() {
         return err(appError("UNAVAILABLE", "down"));
@@ -243,6 +298,37 @@ describe("runAgentTurn needs_human on LLM failure", () => {
     const updated = await tasks.getById(dispatched.value.id);
     assert.equal(updated.ok, true);
     if (!updated.ok) return;
-    assert.equal(updated.value.status, "needs_human");
+    assert.equal(updated.value.status, "blocked");
+  });
+
+  it("persists completed when the LLM succeeds", async () => {
+    const { tasks, retainingMailbox, events } = makeTaskHarness();
+    const llm: LlmPort = {
+      async complete() {
+        return ok({ content: "done" });
+      },
+    };
+
+    const dispatched = await dispatchAgentTask(
+      { tasks, mailbox: retainingMailbox, clock },
+      {
+        stage: "build",
+        summary: "implement feature",
+        correlationId: newId("corr"),
+      },
+    );
+    assert.equal(dispatched.ok, true);
+    if (!dispatched.ok) return;
+
+    const turn = await runAgentTurn(
+      { tasks, mailbox: retainingMailbox, llm, events, clock },
+      "builder",
+    );
+    assert.equal(turn.ok, true);
+
+    const updated = await tasks.getById(dispatched.value.id);
+    assert.equal(updated.ok, true);
+    if (!updated.ok) return;
+    assert.equal(updated.value.status, "completed");
   });
 });

@@ -18,6 +18,10 @@ export function createEgovSsoAdapter(env: PlatformEnv): EgovSsoPort {
     envOrDefault(env, "EGOV_SSO_BASE_URL", DEFAULT_BASE_URLS.sso);
 
   return {
+    /**
+     * `POST /api/token` — body must include scope `SSO_AUTHENTICATION` for
+     * standard login (see docs/platform-apis.md). Partner secret never leaves env.
+     */
     async exchangeToken(
       input: EgovSsoTokenRequest,
     ): Promise<Result<EgovSsoToken>> {

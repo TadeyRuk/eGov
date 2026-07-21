@@ -14,6 +14,25 @@ import {
   type PlatformEnv,
 } from "./http.js";
 
+/**
+ * Official eVerify auth wraps the token under `data`:
+ * `{ "data": { "access_token", "token_type", "expires_at" } }`.
+ * Flat `access_token` / `token` kept as fallbacks for older shapes.
+ */
+export function extractEVerifyAccessToken(
+  json: Record<string, unknown>,
+): string {
+  const data = json.data;
+  if (data && typeof data === "object" && !Array.isArray(data)) {
+    const nested = data as Record<string, unknown>;
+    const fromData = nested.access_token ?? nested.token;
+    if (fromData != null && String(fromData).length > 0) {
+      return String(fromData);
+    }
+  }
+  return String(json.access_token ?? json.token ?? "");
+}
+
 export function createEVerifyAdapter(env: PlatformEnv): EVerifyPort {
   const base = () =>
     envOrDefault(env, "EVERIFY_BASE_URL", DEFAULT_BASE_URLS.everify);
@@ -55,9 +74,7 @@ export function createEVerifyAdapter(env: PlatformEnv): EVerifyPort {
         }),
       });
       if (!res.ok) return res;
-      const token = String(
-        res.value.json.token ?? res.value.json.access_token ?? "",
-      );
+      const token = extractEVerifyAccessToken(res.value.json);
       return ok({ token, raw: res.value.json });
     },
 

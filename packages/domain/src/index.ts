@@ -187,8 +187,14 @@ function ageAt(dateOfBirth: Date, now: Date): number {
   return age;
 }
 
+function normalizeStatus(value: string): string {
+  return value.trim().toUpperCase();
+}
+
 /** Pure eligibility check — no I/O. Fund status is checked separately
- * (DBM Compass) before a benefit is even offered as a match candidate. */
+ * (DBM Compass) before a benefit is even offered as a match candidate.
+ * Civil/vital status compares case-insensitively so eVerify casing
+ * variants (e.g. "Alive") still match seed rules ("ALIVE"). */
 export function isEligibleForBenefit(
   profile: CitizenEligibilityProfile,
   rule: EligibilityRule,
@@ -197,17 +203,17 @@ export function isEligibleForBenefit(
   const age = ageAt(profile.dateOfBirth, now);
   if (rule.minAge !== undefined && age < rule.minAge) return false;
   if (rule.maxAge !== undefined && age > rule.maxAge) return false;
-  if (
-    rule.civilStatusIn !== undefined &&
-    !rule.civilStatusIn.includes(profile.civilStatus)
-  ) {
-    return false;
+  if (rule.civilStatusIn !== undefined) {
+    const civil = normalizeStatus(profile.civilStatus);
+    if (!rule.civilStatusIn.some((s) => normalizeStatus(s) === civil)) {
+      return false;
+    }
   }
-  if (
-    rule.vitalStatusIn !== undefined &&
-    !rule.vitalStatusIn.includes(profile.vitalStatus)
-  ) {
-    return false;
+  if (rule.vitalStatusIn !== undefined) {
+    const vital = normalizeStatus(profile.vitalStatus);
+    if (!rule.vitalStatusIn.some((s) => normalizeStatus(s) === vital)) {
+      return false;
+    }
   }
   return true;
 }

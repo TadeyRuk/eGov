@@ -54,7 +54,7 @@ apps → adapters → application → domain
 1. Agents communicate only through `AgentMailbox`.  
 2. Agents do not share mutable process state.  
 3. Production mutations require an application use case.  
-4. `needs_approval` is mandatory for ship-stage and for any change that alters case outcomes.  
+4. Human gate (`blocked` / `needs_human`) is mandatory for ship-stage and for any change that alters case outcomes.  
 5. LLM output is untrusted input until verified against [criteria.md](./criteria.md).
 
 ## Team / process boundaries
