@@ -13,6 +13,8 @@
 <p align="center">
   <a href="docs/architecture.md"><strong>Architecture</strong></a>
   ·
+  <a href="docs/api-android.md"><strong>Android API</strong></a>
+  ·
   <a href="eGov_PH_SuperApp_System_Architecture.md"><strong>Pitch Spec</strong></a>
   ·
   <a href="docs/platform-apis.md"><strong>Platform APIs</strong></a>
@@ -167,7 +169,7 @@ packages/
   adapters-http/
   adapters-ai/
   adapters-messaging/
-docs/                  # architecture, platform-apis, tasks, criteria
+docs/                  # architecture, api-android, platform-apis, tasks, criteria
 eGov_PH_SuperApp_System_Architecture.md
 tooling/check-hygiene.mjs
 ```
@@ -208,18 +210,19 @@ See [`.env.example`](.env.example). Dashboard-shaped names are preferred (adapte
 | `EVERIFY_CLIENT_ID` / `EVERIFY_CLIENT_SECRET` | eVerify |
 | `FACE_LIVENESS_API_KEY` | Face Liveness |
 | `EMESSAGE_AUTH_TOKEN` | eMessage |
-| `EGOV_AI_ACCESS_CODE` | eGov AI |
+| `EGOV_AI_ACCESS_CODE` (alias `EGOV_AI_API_KEY`) | eGov AI — mint Bearer via `/api/v1/egov/integration/token` |
 | `EGOVPAY_API_KEY` (+ optional `EGOVPAY_HMAC_SECRET`, settlement UUID) | eGovPay |
 | `EGOVCHAIN_RPC_URL` / `EGOVCHAIN_CHAIN_ID` | eGovChain |
 | `EREPORT_ACCESS_TOKEN` | eReport |
 | `DBM_COMPASS_API_KEY` | DBM Compass |
 
-Optional smoke overrides: `SMOKE_SSO_EXCHANGE_CODE`, `SMOKE_SMS_TO`, `SMOKE_PAY_TRANSACTION_ID`.
+Optional smoke overrides: `SMOKE_SSO_EXCHANGE_CODE`, `SMOKE_SSO_SCOPE` (default `SSO_AUTHENTICATION`), `SMOKE_SMS_TO`, `SMOKE_PAY_TRANSACTION_ID`.
 
 ## Docs
 
 | Doc | Role |
 |-----|------|
+| [docs/api-android.md](docs/api-android.md) | Frozen HTTP contract for the Android BANGON client |
 | [docs/architecture.md](docs/architecture.md) | Layers, ports, B.A.N.G.O.N built vs vision |
 | [eGov_PH_SuperApp_System_Architecture.md](eGov_PH_SuperApp_System_Architecture.md) | Hackathon pitch / SuperApp spec |
 | [docs/platform-apis.md](docs/platform-apis.md) | Official 9-service reference |
