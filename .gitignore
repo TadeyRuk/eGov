@@ -17,3 +17,4 @@ secrets/
 .claude/settings.local.json
 
 .pnpm-store/
+.vercel

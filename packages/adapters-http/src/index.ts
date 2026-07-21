@@ -2,6 +2,7 @@ import {
   advanceCaseStatus,
   anchorBenefitMatch,
   attachDocument,
+  completeSsoAuthentication,
   confirmCitizenIdentity,
   disburseBenefit,
   exchangeSsoToken,
@@ -19,16 +20,15 @@ import {
   type AttachDocumentDeps,
   type BenefitCatalogPort,
   type BenefitMatchRepository,
+  type CompleteSsoAuthenticationDeps,
   type ConfirmCitizenIdentityDeps,
   type DisburseBenefitDeps,
-  type ExchangeSsoTokenDeps,
   type ExplainEligibilityDeps,
   type FaceLivenessPort,
   type FaceLivenessSessionAction,
   type FindEligibleBenefitsDeps,
   type GetFaceLivenessResultDeps,
   type GetServiceCaseDeps,
-  type GetSsoCitizenProfileDeps,
   type NotifyEligibilityDeps,
   type ReportBenefitNonDeliveryDeps,
   type StartFaceLivenessSessionDeps,
@@ -354,7 +354,7 @@ export function createBangonHttpHandlers(
 
 // ─── Auth (citizen SSO) ───────────────────────────────────────────────────
 
-export type AuthHttpDeps = ExchangeSsoTokenDeps & GetSsoCitizenProfileDeps;
+export type AuthHttpDeps = CompleteSsoAuthenticationDeps;
 
 export type AuthHttpHandlers = {
   exchangeSso(body: {
@@ -363,6 +363,11 @@ export type AuthHttpHandlers = {
     scope?: string;
   }): Promise<HttpResponse>;
   ssoProfile(body: { accessToken: string }): Promise<HttpResponse>;
+  /** Preferred client endpoint: exchange and profile lookup stay server-side. */
+  completeSso(body: {
+    exchangeCode: string;
+    scope?: string;
+  }): Promise<HttpResponse>;
 };
 
 export function createAuthHttpHandlers(deps: AuthHttpDeps): AuthHttpHandlers {
@@ -381,6 +386,20 @@ export function createAuthHttpHandlers(deps: AuthHttpDeps): AuthHttpHandlers {
           accessToken: body.accessToken,
         }),
       );
+    },
+    async completeSso(body) {
+      const result = await completeSsoAuthentication(
+        deps,
+        {
+          exchangeCode: body.exchangeCode,
+          ...(body.scope !== undefined ? { scope: body.scope } : {}),
+        },
+      );
+      if (!result.ok) return toHttpResponse(result);
+      return {
+        status: 200,
+        body: { authenticated: true, profile: result.value.raw },
+      };
     },
   };
 }

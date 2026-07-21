@@ -2,7 +2,11 @@ import assert from "node:assert/strict";
 import { describe, it } from "node:test";
 import { ok, err, appError } from "@egov/shared";
 import type { EgovSsoPort } from "../ports/index.js";
-import { exchangeSsoToken, getSsoCitizenProfile } from "./auth.js";
+import {
+  completeSsoAuthentication,
+  exchangeSsoToken,
+  getSsoCitizenProfile,
+} from "./auth.js";
 
 describe("SSO auth use cases", () => {
   it("exchangeSsoToken forwards exchangeCode and scope", async () => {
@@ -73,6 +77,33 @@ describe("SSO auth use cases", () => {
     assert.equal(result.ok, true);
     if (!result.ok) return;
     assert.deepEqual(result.value.raw, { sub: "citizen-1" });
+  });
+
+  it("completes SSO without returning the temporary access token", async () => {
+    const sso: EgovSsoPort = {
+      async exchangeToken(input) {
+        assert.deepEqual(input, {
+          exchangeCode: "code_complete",
+          scope: "SSO_AUTHENTICATION",
+        });
+        return ok({ accessToken: "temporary_token", raw: {} });
+      },
+      async authenticatePartner(accessToken) {
+        assert.equal(accessToken, "temporary_token");
+        return ok({ raw: { uniqid: "citizen-1", email: "citizen@example.test" } });
+      },
+    };
+    const result = await completeSsoAuthentication(
+      { sso },
+      { exchangeCode: "code_complete" },
+    );
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.deepEqual(result.value.raw, {
+      uniqid: "citizen-1",
+      email: "citizen@example.test",
+    });
+    assert.equal("accessToken" in result.value, false);
   });
 
   it("propagates SSO adapter failure", async () => {

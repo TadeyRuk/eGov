@@ -1,0 +1,6 @@
+.git
+.local
+.vercel
+.env
+node_modules
+apps/android
