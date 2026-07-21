@@ -54,11 +54,11 @@ async function fundableBenefits(
   for (const benefit of all.value) {
     const fundCheck = await deps.dbmCompass.query({
       dataset: benefit.fundCheck.dataset,
-      query: benefit.fundCheck.query,
+      query: benefit.fundCheck.query as Record<string, string | number | boolean>,
     });
-    // Fail closed on transport/auth errors. `ok` means the DBM query
-    // succeeded — funded-field parsing in `raw` waits on Phase 0.5
-    // OpenAPI alignment (no invented dashboard response shape).
+    // Fail closed on transport/auth errors. `ok` means the GET /api/v1/records/*
+    // call succeeded — interpreting cascade/totals for "enough budget" can be
+    // tightened once seed fundCheck params are agency-specific.
     if (fundCheck.ok) fundable.push(benefit);
   }
   return ok(fundable);

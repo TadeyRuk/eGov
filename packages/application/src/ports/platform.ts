@@ -414,12 +414,17 @@ export type EReportPort = {
 };
 
 // ─── DBM Compass ────────────────────────────────────────────────────────────
+// Grounded on docs/platform-apis.md §9 — GET /api/v1/records/* with X-API-Key.
 
 export type DbmCompassDataset = "SAAODB" | "NCA" | "SARO" | "LGSF";
 
+/** Query-string params for GET record/dashboard endpoints (stringified by adapter). */
+export type DbmCompassParams = Readonly<Record<string, string | number | boolean>>;
+
 export type DbmCompassQueryInput = {
   readonly dataset: DbmCompassDataset;
-  readonly query: PlatformJson;
+  /** Mapped to GET query string on `/api/v1/records/{saaodb|nca|saro|lgsf}`. */
+  readonly query: DbmCompassParams;
 };
 
 export type DbmCompassQueryResult = {
@@ -427,6 +432,76 @@ export type DbmCompassQueryResult = {
   readonly raw: PlatformJson;
 };
 
+export type DbmSaaodbRecordsParams = {
+  readonly reportYear: number;
+  readonly period: "Q1" | "Q2" | "Q3" | "Q4" | "FY" | string;
+  readonly page: number;
+  readonly limit: number;
+  readonly class?: "PS" | "MOOE" | "FINEX" | "CO" | string;
+  readonly sheetScope?: "summary" | "agency" | "sucs" | string;
+  readonly entityName?: string;
+};
+
+export type DbmSaaodbDashboardParams = {
+  readonly reportYear: number;
+  readonly sheetScope: "summary" | "agency" | "sucs" | string;
+};
+
+export type DbmSaaodbEntitiesParams = {
+  readonly reportYear: number;
+  readonly sheetScope: "agency" | "sucs" | string;
+  readonly expandParent?: string;
+  readonly expandEntity?: string;
+  readonly expandEntityParent?: string;
+};
+
+export type DbmNcaRecordsParams = {
+  readonly budgetYear: number;
+  readonly deptCode?: string;
+  readonly agencyCode?: string;
+  readonly operatingUnitCode?: string;
+  readonly expenseClass?: string;
+  readonly page?: number;
+  readonly limit?: number;
+};
+
+export type DbmSaroRecordsParams = {
+  readonly saroNo?: string;
+  readonly deptCode?: string;
+  readonly agencyCode?: string;
+  readonly expenseClass?: string;
+  readonly page?: number;
+  readonly limit?: number;
+};
+
+export type DbmLgsfRecordsParams = {
+  readonly fiscalYear?: number;
+  readonly programCode?: "FALGU" | "GEF" | "GGG" | "SBDP" | "SAFPB" | string;
+  readonly regionCode?: string;
+  readonly province?: string;
+  readonly cityMunicipality?: string;
+  readonly page?: number;
+  readonly limit?: number;
+};
+
+export type DbmLgsfDashboardParams = {
+  readonly programCode: "FALGU" | "GEF" | "GGG" | "SBDP" | "SAFPB" | string;
+  readonly reportYear?: number;
+  readonly region?: string;
+  readonly province?: string;
+  readonly municipality?: string;
+  readonly page?: number;
+  readonly limit?: number;
+};
+
 export type DbmCompassPort = {
+  /** GET `/api/v1/records/{dataset}` — convenience used by BANGON fund-check. */
   query(input: DbmCompassQueryInput): Promise<Result<DbmCompassQueryResult>>;
+  getSaaodbRecords(params: DbmSaaodbRecordsParams): Promise<Result<PlatformJson>>;
+  getSaaodbDashboard(params: DbmSaaodbDashboardParams): Promise<Result<PlatformJson>>;
+  getSaaodbEntities(params: DbmSaaodbEntitiesParams): Promise<Result<PlatformJson>>;
+  getNcaRecords(params: DbmNcaRecordsParams): Promise<Result<PlatformJson>>;
+  getSaroRecords(params: DbmSaroRecordsParams): Promise<Result<PlatformJson>>;
+  getLgsfRecords(params: DbmLgsfRecordsParams): Promise<Result<PlatformJson>>;
+  getLgsfDashboard(params: DbmLgsfDashboardParams): Promise<Result<PlatformJson>>;
 };

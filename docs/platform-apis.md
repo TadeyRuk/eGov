@@ -23,7 +23,7 @@ This document catalogs the nine platform services below. Do not invent endpoints
 | 6 | [eGovChain](#6-egovchain) | `https://hackathon-blockchain.e.gov.ph` | JSON-RPC 2.0 (chain id `13371`) |
 | 7 | [eReport](#7-ereport) | `https://stg-ereport-ws.oueg.info` | Token + OTP flows |
 | 8 | [Face Liveness](#8-face-liveness) | `https://hackathon-face-liveness-api.e.gov.ph` | Platform token / API key from dashboard |
-| 9 | [DBM Compass](#9-dbm-compass) | `https://dbm-ws.oueg.info` | Header `X-API-Key` |
+| 9 | [DBM Compass](#9-dbm-compass) | `https://dbm-ws.oueg.info` | Header `X-API-Key`; `GET /api/v1/records/…` |
 
 Related UI (not an API port): blockchain explorer `https://hackathon-explorer.e.gov.ph`
 
@@ -763,18 +763,122 @@ These are **different** platform surfaces. Do not invent an endpoint that conver
 
 ## 9. DBM Compass
 
-**Purpose:** Query DBM fiscal / allotment datasets (SAAODB, NCA, SARO, LGSF).
+**Purpose:** Centralized Open Monitoring Platform for Appropriations and Spending Statistics — programmatic access to public DBM budget-execution data (SAAODB, NCA, SARO, LGSF records and dashboard summaries).
 
-**Base URL:** `https://dbm-ws.oueg.info`
+**Base URL (`{{baseUrl}}`):** `https://dbm-ws.oueg.info`
 
-| Dataset | Auth | Notes |
-|---------|------|-------|
-| SAAODB | Header `X-API-Key` | Allotment / obligation related queries |
-| NCA | Header `X-API-Key` | Notice of Cash Allocation |
-| SARO | Header `X-API-Key` | Special Allotment Release Order |
-| LGSF | Header `X-API-Key` | Local Government Support Fund |
+**Auth (all endpoints):** header `X-API-Key: {{apiKey}}`
+
+All listed routes are **GET** with query parameters (not POST JSON bodies).
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/api/v1/records/saaodb` | Paginated SAAODB records |
+| `GET` | `/api/v1/records/saaodb/dashboard` | SAAODB cascade / rates summary |
+| `GET` | `/api/v1/records/saaodb/entities` | Hierarchical department → agency → fund sources |
+| `GET` | `/api/v1/records/nca` | Paginated NCA records |
+| `GET` | `/api/v1/records/saro` | Paginated SARO records |
+| `GET` | `/api/v1/records/lgsf` | Paginated LGSF records |
+| `GET` | `/api/v1/records/lgsf/dashboard` | LGSF KPIs + projects |
 
 **Env placeholders:** `DBM_COMPASS_BASE_URL`, `DBM_COMPASS_API_KEY`
+
+### `GET /api/v1/records/saaodb` — SAAODB records
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `reportYear` | integer | Yes | Fiscal report year (e.g. `2026`) |
+| `period` | string | Yes | `Q1` \| `Q2` \| `Q3` \| `Q4` \| `FY` |
+| `class` | string | No | `PS` \| `MOOE` \| `FINEX` \| `CO` |
+| `sheetScope` | string | No | `summary` \| `agency` \| `sucs` |
+| `entityName` | string | No | Partial match on entity name |
+| `page` | integer | Yes | Page (starts at 1) |
+| `limit` | integer | Yes | Page size (max `1000`) |
+
+Record fields (examples): `id`, `fileVersionId`, `sourceRow`, `sheetScope`, `reportYear`, `asOfDate`, `period`, `isPreliminary`, `entityName`, `fundSource`, `class`, `appropriations`, `adjustments`, `totalAvailableAppropriations`, `allotments`, `obligations`, `unobligatedAllotments`, `disbursements`, `unpaidObligationsDue`, `unpaidObligationsNotDue`, `unpaidObligationsTotal`, `createdAt`.
+
+```bash
+curl --request GET \
+  --url '{{baseUrl}}/api/v1/records/saaodb?reportYear=2026&period=FY&class=PS&sheetScope=summary&entityName=Agriculture&page=1&limit=100' \
+  --header 'X-API-Key: {{apiKey}}'
+```
+
+### `GET /api/v1/records/saaodb/dashboard` — SAAODB dashboard summary
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `reportYear` | integer | Yes | Fiscal report year |
+| `sheetScope` | string | Yes | `summary` \| `agency` \| `sucs` |
+
+**Example `200` shape:** `reportYear`, `sheetScope`, `cascade` (appropriations, adjustments, totalAvailable, allotments, obligations, unobligated, disbursements, unreleased), `rates` (obligationRate, disbRateOblig, disbRateAppro), `classBreakdown[]`, `appropriationSplit`, `topEntities`.
+
+### `GET /api/v1/records/saaodb/entities` — hierarchical entities
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `reportYear` | Yes | Fiscal report year |
+| `sheetScope` | Yes | `agency` \| `sucs` |
+| `expandParent` | No | Department name → child agencies |
+| `expandEntity` | No | Agency name → fund sources |
+| `expandEntityParent` | No | Disambiguate same-named agencies |
+
+### `GET /api/v1/records/nca` — NCA records
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `budgetYear` | integer | Yes | Fiscal budget year |
+| `deptCode` | string | No | UACS department code |
+| `agencyCode` | string | No | UACS agency code |
+| `operatingUnitCode` | string | No | Operating unit code |
+| `expenseClass` | string | No | Expense class UACS code |
+| `page` | integer | No | Default `1` |
+| `limit` | integer | No | Default `100` |
+
+**Response:** `{ data, total, page, limit }`.
+
+### `GET /api/v1/records/saro` — SARO records
+
+| Parameter | Type | Required | Description |
+|-----------|------|----------|-------------|
+| `saroNo` | string | No | Exact SARO number |
+| `deptCode` | string | No | UACS department code |
+| `agencyCode` | string | No | UACS agency code |
+| `expenseClass` | string | No | UACS expense class |
+| `page` | integer | No | Default `1` |
+| `limit` | integer | No | Default `100` |
+
+**Response:** `{ data, total, page, limit }`. SARO objects include `saroNo`, `deptCode`, `agencyCode`, `expenseClass`, `amount`, `dateIssued`.
+
+### `GET /api/v1/records/lgsf` — LGSF records
+
+All query params optional (default pagination applies):
+
+| Parameter | Description | Example |
+|-----------|-------------|---------|
+| `fiscalYear` | Program budget year | `2026` |
+| `programCode` | `FALGU` \| `GEF` \| `GGG` \| `SBDP` \| `SAFPB` | `FALGU` |
+| `regionCode` | Region UACS/geo code | `PH030000000` |
+| `province` | Province name | `Bulacan` |
+| `cityMunicipality` | City/municipality | `Malolos` |
+| `page` / `limit` | Pagination | `1` / `100` |
+
+### `GET /api/v1/records/lgsf/dashboard` — LGSF dashboard
+
+| Parameter | Required | Description |
+|-----------|----------|-------------|
+| `programCode` | Yes | `FALGU` \| `GEF` \| `GGG` \| `SBDP` \| `SAFPB` |
+| `reportYear` | No | Fiscal year for KPIs |
+| `region` | No | GADM canonical name (e.g. `Region III`) |
+| `province` / `municipality` | No | Name filters |
+| `page` / `limit` | No | Projects list (default page `1`, limit `25`, max `200`) |
+
+**Response:** `programCode`, `reportYear`, `kpis` (totalReleased, projectCount, lguCount, …), `trend`, `projects` (`rows`, `total`, `page`, `pageSize`).
+
+### Notes (authoritative)
+
+- Do **not** invent POST `/saaodb/query`-style paths — official surface is `GET /api/v1/records/…`.
+- BANGON fund-check should call these GET endpoints with real query params (e.g. SAAODB `reportYear` + `period` + pagination).
+- Adapter maps `X-API-Key` from `DBM_COMPASS_API_KEY`.
 
 ---
 

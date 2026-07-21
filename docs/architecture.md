@@ -68,7 +68,7 @@ Credentials: [platforms.e.gov.ph/dashboard](https://platforms.e.gov.ph/dashboard
 | `EgovPayPort` | eGovPay | `https://egovpay-pgi-ws-dev.oueg.info` |
 | `EgovChainPort` | eGovChain JSON-RPC | `https://hackathon-blockchain.e.gov.ph` (chain `13371`) |
 | `EReportPort` | eReport | `https://stg-ereport-ws.oueg.info` |
-| `DbmCompassPort` | DBM Compass | `https://dbm-ws.oueg.info` |
+| `DbmCompassPort` | DBM Compass (`GET /api/v1/records/*`, `X-API-Key`) | `https://dbm-ws.oueg.info` |
 
 **Adapters** implement those ports:
 

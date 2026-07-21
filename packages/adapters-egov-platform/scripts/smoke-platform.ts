@@ -282,20 +282,18 @@ async function smokeDbm(p: EgovPlatformAdapters): Promise<void> {
     fail("dbm-compass", "missing DBM_COMPASS_API_KEY");
     return;
   }
-  const res = await p.dbmCompass.query({ dataset: "SAAODB", query: {} });
+  const year = Number(envGet("SMOKE_DBM_REPORT_YEAR") ?? "2026");
+  const res = await p.dbmCompass.getSaaodbRecords({
+    reportYear: year,
+    period: "FY",
+    page: 1,
+    limit: 10,
+  });
   if (!res.ok) {
-    // Auth accepted but empty query rejected still counts as reachability
-    if (
-      res.error.code === "VALIDATION" ||
-      (res.error.code === "UNAVAILABLE" && /HTTP 4\d\d/.test(res.error.message))
-    ) {
-      pass("dbm-compass", `reached platform (${res.error.code})`);
-      return;
-    }
     fail("dbm-compass", errMsg(res.error));
     return;
   }
-  pass("dbm-compass", "SAAODB query ok");
+  pass("dbm-compass", `GET /api/v1/records/saaodb ok (year=${year})`);
 }
 
 async function main(): Promise<void> {

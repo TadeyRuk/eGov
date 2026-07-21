@@ -109,7 +109,14 @@ const SEED_BENEFITS: readonly Benefit[] = [
     rule: { minAge: 60, vitalStatusIn: ["ALIVE"] },
     fundCheck: {
       dataset: "SAAODB",
-      query: { agency: "SSS", program: "senior_pension" },
+      // Official GET /api/v1/records/saaodb required params (entityName optional filter).
+      query: {
+        reportYear: 2026,
+        period: "FY",
+        page: 1,
+        limit: 100,
+        entityName: "Social Security",
+      },
     },
   },
   {
@@ -120,7 +127,7 @@ const SEED_BENEFITS: readonly Benefit[] = [
     rule: { minAge: 60, vitalStatusIn: ["ALIVE"] },
     fundCheck: {
       dataset: "NCA",
-      query: { agency: "PhilHealth", program: "senior_subsidy" },
+      query: { budgetYear: 2026, page: 1, limit: 100 },
     },
   },
   {
@@ -131,7 +138,7 @@ const SEED_BENEFITS: readonly Benefit[] = [
     rule: { civilStatusIn: ["WIDOWED"], vitalStatusIn: ["ALIVE"] },
     fundCheck: {
       dataset: "SARO",
-      query: { agency: "DSWD", program: "widowed_assistance" },
+      query: { page: 1, limit: 100 },
     },
   },
 ];
