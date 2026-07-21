@@ -51,7 +51,7 @@ The credential/document self-service model adds four passing policy-gate tests: 
 
 | Check | Result |
 |---|---:|
-| Monorepo automated tests | PASS — 59/59 |
+| Monorepo automated tests | PASS — 65/65 |
 | TypeScript build/typecheck | PASS |
 | Repository hygiene/secret check | PASS |
 | Java Android debug APK build | PASS |
@@ -63,6 +63,8 @@ The credential/document self-service model adds four passing policy-gate tests: 
 | Local card-ledger read | PASS — deployed synthetic card returned |
 
 The APK is generated at `apps/android-sso-java/app/build/outputs/apk/debug/app-debug.apk` and contains only public client configuration plus the public Vercel backend URL.
+
+The eMessage integration includes five passing categorized-notification policy tests plus one persistence contract test: all category templates, exact-context deduplication, same-category cooldown, five-message daily cap, requirements validation, and privacy-minimized delivery metadata. The actual eMessage sandbox push was also verified separately with an explicitly designated test recipient; phone numbers and message bodies are excluded from saved reports.
 
 ## Safe nine-service platform smoke
 

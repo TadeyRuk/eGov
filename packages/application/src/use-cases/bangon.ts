@@ -18,13 +18,18 @@ import {
   type EgovAiPort,
   type EgovChainPort,
   type EgovPayPort,
-  type EMessagePort,
   type EReportPort,
   type EVerifyPort,
   type FaceLivenessResult,
   type HashPort,
   type PlatformJson,
 } from "../ports/index.js";
+import {
+  sendBenefitNotification,
+  type BenefitNotificationOutcome,
+  type SendBenefitNotificationDeps,
+  type SendBenefitNotificationInput,
+} from "./benefit-notifications.js";
 import { isFundedFromDbmResult } from "./dbm-fund.js";
 
 // ─── findEligibleBenefits ───────────────────────────────────────────────────
@@ -129,25 +134,35 @@ export async function findEligibleBenefits(
 
 // ─── notifyEligibility ──────────────────────────────────────────────────────
 
-export type NotifyEligibilityDeps = {
-  readonly eMessage: EMessagePort;
-};
+export type NotifyEligibilityDeps = SendBenefitNotificationDeps;
 
 export type NotifyEligibilityInput = {
   readonly citizenPhone: string;
+  readonly recipientKey: string;
   readonly benefitTitle: string;
+  readonly contextKey: string;
+  readonly category?: SendBenefitNotificationInput["category"];
+  readonly requirements?: readonly string[];
+  readonly statusText?: string;
+  readonly actionText?: string;
+  readonly deadlineText?: string;
 };
 
 export async function notifyEligibility(
   deps: NotifyEligibilityDeps,
   input: NotifyEligibilityInput,
-): Promise<Result<void>> {
-  const sent = await deps.eMessage.pushSms({
-    number: input.citizenPhone,
-    message: `eGov PH Alert: You may be eligible for ${input.benefitTitle}. Open the official BANGON app to view and confirm.`,
+): Promise<Result<BenefitNotificationOutcome>> {
+  return sendBenefitNotification(deps, {
+    citizenPhone: input.citizenPhone,
+    recipientKey: input.recipientKey,
+    benefitTitle: input.benefitTitle,
+    contextKey: input.contextKey,
+    category: input.category ?? "QUALIFICATION_RESULT",
+    ...(input.requirements !== undefined ? { requirements: input.requirements } : {}),
+    ...(input.statusText !== undefined ? { statusText: input.statusText } : {}),
+    ...(input.actionText !== undefined ? { actionText: input.actionText } : {}),
+    ...(input.deadlineText !== undefined ? { deadlineText: input.deadlineText } : {}),
   });
-  if (!sent.ok) return sent;
-  return ok(undefined);
 }
 
 // ─── disburseBenefit ────────────────────────────────────────────────────────

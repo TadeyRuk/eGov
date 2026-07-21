@@ -98,4 +98,27 @@ export type BenefitMatchRepository = {
   save(match: BenefitMatch): Promise<Result<BenefitMatch>>;
 };
 
+export type BenefitNotificationCategory =
+  | "BENEFIT_ANNOUNCEMENT"
+  | "QUALIFICATION_RESULT"
+  | "REQUIREMENTS_NEEDED"
+  | "APPLICATION_STATUS"
+  | "ACTION_REMINDER";
+
+/** Privacy-minimized delivery record. Phone numbers and message bodies are
+ * never persisted; adapters receive only deterministic digests. */
+export type BenefitNotificationRecord = {
+  readonly id: string;
+  readonly recipientDigest: string;
+  readonly contextDigest: string;
+  readonly category: BenefitNotificationCategory;
+  readonly sentAt: Date;
+};
+
+export type BenefitNotificationRepository = {
+  hasContext(recipientDigest: string, contextDigest: string): Promise<Result<boolean>>;
+  listSince(recipientDigest: string, since: Date): Promise<Result<readonly BenefitNotificationRecord[]>>;
+  save(record: BenefitNotificationRecord): Promise<Result<BenefitNotificationRecord>>;
+};
+
 export * from "./platform.js";

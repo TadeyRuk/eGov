@@ -269,9 +269,36 @@ Persists matches server-side; use returned `id` values for later steps.
 
 ### `POST /bangon/matches/:matchId/notify`
 
-**Body:** `{ "citizenPhone": "+63…" }`  
-**200:** empty success / `null`-ish void — treat 200 as sent  
+The same endpoint supports one contextual SMS per benefit event. `category` defaults to `QUALIFICATION_RESULT`.
+
+```json
+{
+  "citizenPhone": "+639000000000",
+  "category": "REQUIREMENTS_NEEDED",
+  "contextKey": "requirements-v2",
+  "requirements": ["Valid government ID", "Signed application form"]
+}
+```
+
+Categories and required context:
+
+| Category | Additional body |
+|---|---|
+| `BENEFIT_ANNOUNCEMENT` | none |
+| `QUALIFICATION_RESULT` | none |
+| `REQUIREMENTS_NEEDED` | non-empty `requirements` array |
+| `APPLICATION_STATUS` | `statusText` |
+| `ACTION_REMINDER` | `actionText`; optional `deadlineText` |
+
+`contextKey` is the stable agency event/version identifier. The server hashes it with the recipient and category for idempotency. When omitted, it defaults to the match ID plus category.
+
+**200:** `{ "status": "SENT|SUPPRESSED_DUPLICATE|SUPPRESSED_CATEGORY_COOLDOWN|SUPPRESSED_DAILY_LIMIT", "category": "…", "deliveryId": "…" }`
+
+**400:** invalid phone/category or missing category-specific context
+
 **404:** match or benefit missing
+
+The policy permits at most one message for the same context, one message per category every six hours, and five total benefit messages per recipient in 24 hours. SMS bodies contain no links or OTP language. The delivery ledger stores only recipient/context digests, category, ID, and timestamp—not phone numbers or message bodies. The current in-memory repository enforces this per running process; production must bind the port to durable storage with an atomic idempotency constraint.
 
 ### `POST /bangon/matches/:matchId/disburse`
 

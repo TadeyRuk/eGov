@@ -102,7 +102,7 @@ flowchart LR
 | Liveness | `FaceLivenessPort` | Live person (`SUCCEEDED` + confidence ≥ 95) |
 | Identity | `EVerifyPort` | PSA fields → `CitizenEligibilityProfile` |
 | Match | `findEligibleBenefits` | Pure rules over fundable catalog only |
-| Notify | `notifyEligibility` → eMessage | SMS with no links / no OTPs |
+| Notify | `notifyEligibility` → categorized eMessage policy | Announcement, qualification, requirements, status, or reminder; no links/OTPs; duplicate, cooldown, and daily-limit suppression |
 | Disburse | `disburseBenefit` → eGovPay | Financial benefits only |
 | Anchor | `anchorBenefitMatch` → eGovChain | Tamper-evident hash of match |
 | Explain | `explainEligibility` → eGov AI | Plain-language help (post-decision) |
@@ -150,7 +150,7 @@ Latest showcase verification (2026-07-22): the Tolvaris DBM Compass duplicate-de
 | eGov SSO | Server-side exchange/profile, Vercel widget, Java WebView APK; secrets never enter browser/APK | Live config, validation route, Chrome widget mount |
 | eVerify | Token authentication and Tier personal-information query contracts | Safe platform smoke + unit response-shape tests |
 | Face Liveness | Create session, localhost/device camera redirect, poll result; pass only at `SUCCEEDED` and ≥95 confidence | Live write smoke when explicitly enabled |
-| eMessage | SMS adapter with server-side token | Configuration check; live send only with `--write` and explicit number |
+| eMessage | Categorized SMS adapter with server-side token, dedupe/cooldown/daily cap | Live push verified with an explicit designated number; routine smoke remains read-only |
 | eGov AI | Assistant, Speech, Tourism, Laws, Translator, Document Extractor, Credits | Tool-level response times and credit-aware live AI KPI |
 | AI tool calling | Main Assistant returns a structured tool plan; Laws/Translator/Speech resolve through `auto/on/off` policies | Five orchestration behavior tests + live KPI |
 | eGovPay | Generate, transaction detail, and void; correct HMAC behavior strips leading test-mode prefix for digest key | Unit tests + safe unknown-transaction probe |

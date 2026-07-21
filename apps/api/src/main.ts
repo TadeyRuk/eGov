@@ -39,6 +39,7 @@ const bangon = createBangonHttpHandlers({
   dbmCompass: platform.dbmCompass,
   clock,
   matches: persistence.matches,
+  notifications: persistence.notifications,
   eMessage: platform.emessage,
   eGovPay: platform.egovPay,
   eGovChain: platform.egovChain,
@@ -313,7 +314,15 @@ const server = createServer(async (req, res) => {
       const matchId = bangonAction[1];
       const action = bangonAction[2];
       if (action === "notify") {
-        const body = (await readJson(req)) as { citizenPhone: string };
+        const body = (await readJson(req)) as {
+          citizenPhone: string;
+          category?: "BENEFIT_ANNOUNCEMENT" | "QUALIFICATION_RESULT" | "REQUIREMENTS_NEEDED" | "APPLICATION_STATUS" | "ACTION_REMINDER";
+          contextKey?: string;
+          requirements?: readonly string[];
+          statusText?: string;
+          actionText?: string;
+          deadlineText?: string;
+        };
         const result = await bangon.notify(matchId, body);
         send(res, result.status, result.body);
         return;

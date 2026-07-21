@@ -3,7 +3,8 @@ info:
   title: B.A.N.G.O.N Integration API
   version: 1.0.0
   description: |
-    Observable AI orchestration and signed Tolvaris agency publishing endpoints.
+    Observable AI orchestration, categorized eMessage benefit notifications,
+    and signed Tolvaris agency publishing endpoints.
     Agency private keys are never sent to this API; clients sign the exact request bytes with Ed25519.
 servers:
   - url: http://localhost:8787
@@ -38,6 +39,33 @@ paths:
           description: Invalid request
         "503":
           description: Token or main Assistant unavailable; includes completed KPI metrics
+  /bangon/matches/{matchId}/notify:
+    post:
+      summary: Send a categorized, rate-limited benefit SMS through eMessage
+      parameters:
+        - name: matchId
+          in: path
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/BenefitNotificationRequest"
+      responses:
+        "200":
+          description: Sent or safely suppressed by idempotency/rate policy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BenefitNotificationOutcome"
+        "400":
+          description: Invalid phone, category, or required category context
+        "404":
+          description: Benefit match or benefit not found
+        "503":
+          description: eMessage or notification persistence unavailable
   /tolvaris/projects:
     post:
       summary: Publish a public DBM Compass project using an agency-signed request
@@ -99,6 +127,36 @@ components:
       description: Base64 Ed25519 signature of the canonical signature message
       schema: { type: string }
   schemas:
+    BenefitNotificationCategory:
+      type: string
+      enum: [BENEFIT_ANNOUNCEMENT, QUALIFICATION_RESULT, REQUIREMENTS_NEEDED, APPLICATION_STATUS, ACTION_REMINDER]
+    BenefitNotificationRequest:
+      type: object
+      required: [citizenPhone]
+      properties:
+        citizenPhone: { type: string, pattern: "^\\+?[0-9 ()-]{10,20}$" }
+        category:
+          $ref: "#/components/schemas/BenefitNotificationCategory"
+        contextKey:
+          type: string
+          description: Stable agency event/version key; defaults to match ID plus category
+        requirements:
+          type: array
+          maxItems: 5
+          items: { type: string }
+        statusText: { type: string }
+        actionText: { type: string }
+        deadlineText: { type: string }
+    BenefitNotificationOutcome:
+      type: object
+      required: [status, category]
+      properties:
+        status:
+          type: string
+          enum: [SENT, SUPPRESSED_DUPLICATE, SUPPRESSED_CATEGORY_COOLDOWN, SUPPRESSED_DAILY_LIMIT]
+        category:
+          $ref: "#/components/schemas/BenefitNotificationCategory"
+        deliveryId: { type: string }
     ToolPolicy:
       type: string
       enum: [auto, on, off]

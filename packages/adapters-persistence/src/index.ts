@@ -2,6 +2,8 @@ import type {
   AgentTaskRepository,
   BenefitCatalogPort,
   BenefitMatchRepository,
+  BenefitNotificationRecord,
+  BenefitNotificationRepository,
   CitizenRepository,
   DocumentStore,
   HashPort,
@@ -179,6 +181,22 @@ export function createInMemoryBenefitMatchRepository(): BenefitMatchRepository {
   };
 }
 
+export function createInMemoryBenefitNotificationRepository(): BenefitNotificationRepository {
+  const records: BenefitNotificationRecord[] = [];
+  return {
+    async hasContext(recipientDigest, contextDigest) {
+      return ok(records.some((record) => record.recipientDigest === recipientDigest && record.contextDigest === contextDigest));
+    },
+    async listSince(recipientDigest, since) {
+      return ok(records.filter((record) => record.recipientDigest === recipientDigest && record.sentAt >= since));
+    },
+    async save(record) {
+      records.push(record);
+      return ok(record);
+    },
+  };
+}
+
 export type InMemoryPersistence = {
   readonly citizens: CitizenRepository;
   readonly cases: ServiceCaseRepository;
@@ -187,6 +205,7 @@ export type InMemoryPersistence = {
   readonly benefits: BenefitCatalogPort;
   readonly hash: HashPort;
   readonly matches: BenefitMatchRepository;
+  readonly notifications: BenefitNotificationRepository;
 };
 
 export function createInMemoryPersistence(): InMemoryPersistence {
@@ -198,5 +217,6 @@ export function createInMemoryPersistence(): InMemoryPersistence {
     benefits: createInMemoryBenefitCatalog(),
     hash: createNodeHashAdapter(),
     matches: createInMemoryBenefitMatchRepository(),
+    notifications: createInMemoryBenefitNotificationRepository(),
   };
 }

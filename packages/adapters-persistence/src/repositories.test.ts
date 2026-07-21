@@ -123,4 +123,21 @@ describe("in-memory repository ports (contract)", () => {
     assert.equal(a, b);
     assert.equal(a.length, 64);
   });
+
+  it("BenefitNotificationRepository stores only delivery metadata", async () => {
+    const { notifications } = createInMemoryPersistence();
+    const record = {
+      id: "notification-1",
+      recipientDigest: "recipient-digest",
+      contextDigest: "context-digest",
+      category: "REQUIREMENTS_NEEDED" as const,
+      sentAt: clock(),
+    };
+    const saved = await notifications.save(record);
+    assert.equal(saved.ok, true);
+    const duplicate = await notifications.hasContext(record.recipientDigest, record.contextDigest);
+    assert.equal(duplicate.ok && duplicate.value, true);
+    const listed = await notifications.listSince(record.recipientDigest, new Date("2026-07-20T00:00:00.000Z"));
+    assert.equal(listed.ok && listed.value.length, 1);
+  });
 });

@@ -20,6 +20,8 @@ import {
   type AttachDocumentDeps,
   type BenefitCatalogPort,
   type BenefitMatchRepository,
+  type BenefitNotificationCategory,
+  type BenefitNotificationRepository,
   type CompleteSsoAuthenticationDeps,
   type ConfirmCitizenIdentityDeps,
   type DisburseBenefitDeps,
@@ -182,6 +184,7 @@ export type BangonHttpDeps = ConfirmCitizenIdentityDeps &
   ReportBenefitNonDeliveryDeps & {
     readonly benefits: BenefitCatalogPort;
     readonly matches: BenefitMatchRepository;
+    readonly notifications: BenefitNotificationRepository;
     /** Server-side liveness lookup — never trust client-supplied scores. */
     readonly faceLiveness: FaceLivenessPort;
   };
@@ -205,7 +208,15 @@ export type BangonHttpHandlers = {
     citizenId: string;
     profile: { dateOfBirth: string; civilStatus: string; vitalStatus: string };
   }): Promise<HttpResponse>;
-  notify(matchId: string, body: { citizenPhone: string }): Promise<HttpResponse>;
+  notify(matchId: string, body: {
+    citizenPhone: string;
+    category?: BenefitNotificationCategory;
+    contextKey?: string;
+    requirements?: readonly string[];
+    statusText?: string;
+    actionText?: string;
+    deadlineText?: string;
+  }): Promise<HttpResponse>;
   disburse(
     matchId: string,
     body: {
@@ -304,7 +315,14 @@ export function createBangonHttpHandlers(
       if (!loaded.ok) return toHttpResponse(loaded);
       const result = await notifyEligibility(deps, {
         citizenPhone: body.citizenPhone,
+        recipientKey: loaded.value.match.citizenId,
         benefitTitle: loaded.value.benefit.title,
+        contextKey: body.contextKey?.trim() || `${matchId}:${body.category ?? "QUALIFICATION_RESULT"}`,
+        ...(body.category !== undefined ? { category: body.category } : {}),
+        ...(body.requirements !== undefined ? { requirements: body.requirements } : {}),
+        ...(body.statusText !== undefined ? { statusText: body.statusText } : {}),
+        ...(body.actionText !== undefined ? { actionText: body.actionText } : {}),
+        ...(body.deadlineText !== undefined ? { deadlineText: body.deadlineText } : {}),
       });
       return toHttpResponse(result);
     },

@@ -1,6 +1,6 @@
 {
   "schemaVersion": "1.0",
-  "generatedAt": "2026-07-21T21:18:09.374Z",
+  "generatedAt": "2026-07-21T21:58:17.442Z",
   "datasetId": "tolvaris-synthetic-government-demo-2026",
   "isSynthetic": true,
   "disclaimer": "All people, agencies, businesses, projects, payments, reports, documents, amounts, anomalies, identifiers, and transactions represented as test data are synthetic hackathon demonstrations. They are not claims about real government activity.",
@@ -19,15 +19,15 @@
   "verificationSummary": {
     "automatedTests": {
       "result": "PASS",
-      "passed": 59,
-      "total": 59
+      "passed": 65,
+      "total": 65
     },
     "typecheckAndBuild": {
       "result": "PASS"
     },
     "repositoryHygiene": {
       "result": "PASS",
-      "trackedFilesChecked": 177
+      "trackedFilesChecked": 179
     },
     "aiOrchestration": {
       "result": "PASS",
@@ -1180,7 +1180,7 @@
       ]
     },
     "platformSmoke": {
-      "generatedAt": "2026-07-21T20:16:14.538Z",
+      "generatedAt": "2026-07-21T21:58:15.830Z",
       "kind": "platform-smoke-kpi",
       "writeEnabled": false,
       "summary": {
@@ -1199,7 +1199,7 @@
           "name": "everify",
           "status": "pass",
           "detail": "authenticate ok (token issued)",
-          "durationMs": 931.33
+          "durationMs": 757.33
         },
         {
           "name": "face-liveness",
@@ -1211,37 +1211,37 @@
           "name": "emessage",
           "status": "skip",
           "detail": "creds present; pass --write and SMOKE_SMS_TO to push SMS",
-          "durationMs": 0.09
+          "durationMs": 0.1
         },
         {
           "name": "egov-ai",
           "status": "pass",
           "detail": "token ok (credits_remaining=200)",
-          "durationMs": 402.1
+          "durationMs": 518.16
         },
         {
           "name": "egov-pay",
           "status": "pass",
           "detail": "token get reached platform (VALIDATION; expected for probe id)",
-          "durationMs": 577.14
+          "durationMs": 533.8
         },
         {
           "name": "egov-chain",
           "status": "pass",
           "detail": "eth_blockNumber ok",
-          "durationMs": 189.65
+          "durationMs": 490.41
         },
         {
           "name": "ereport",
           "status": "pass",
           "detail": "token + getReportTypes ok (report_types=12)",
-          "durationMs": 838.14
+          "durationMs": 707.78
         },
         {
           "name": "dbm-compass",
           "status": "pass",
           "detail": "GET /api/v1/records/saaodb ok (year=2026)",
-          "durationMs": 546.9
+          "durationMs": 573.58
         }
       ]
     }
