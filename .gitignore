@@ -10,5 +10,8 @@ coverage/
 .DS_Store
 .remember/
 .claude/
+AGENTS.md
+.local/
+postman/*.local.postman_environment.json
 
 .pnpm-store/

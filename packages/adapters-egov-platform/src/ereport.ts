@@ -18,16 +18,19 @@ export function createEReportAdapter(env: PlatformEnv): EReportPort {
   const base = () =>
     envOrDefault(env, "EREPORT_BASE_URL", DEFAULT_BASE_URLS.eReport);
 
+  function configuredToken(token?: string): Result<string> {
+    if (token?.trim()) return ok(token.trim());
+    return requireEnv(env, "EREPORT_ACCESS_TOKEN");
+  }
+
   async function headers(token?: string): Promise<Result<Record<string, string>>> {
-    const apiKey = requireEnv(env, "EREPORT_API_KEY");
-    if (!apiKey.ok) return apiKey;
-    const h: Record<string, string> = {
+    const accessToken = configuredToken(token);
+    if (!accessToken.ok) return accessToken;
+    return ok({
       "content-type": "application/json",
       accept: "application/json",
-      "X-API-Key": apiKey.value,
-    };
-    if (token) h.authorization = `Bearer ${token}`;
-    return ok(h);
+      authorization: `Bearer ${accessToken.value}`,
+    });
   }
 
   async function post(
@@ -63,13 +66,10 @@ export function createEReportAdapter(env: PlatformEnv): EReportPort {
     datasets(input) {
       return get("/datasets", input);
     },
-    async token(credentials?: PlatformJson): Promise<Result<EReportTokenResult>> {
-      const result = await post("/token", { payload: credentials ?? {} });
-      if (!result.ok) return result;
-      const token = String(
-        result.value.raw.token ?? result.value.raw.access_token ?? "",
-      );
-      return ok({ token, raw: result.value.raw });
+    async token(_credentials?: PlatformJson): Promise<Result<EReportTokenResult>> {
+      const token = configuredToken();
+      if (!token.ok) return token;
+      return ok({ token: token.value, raw: { source: "configured_access_token" } });
     },
     submitComplaint(input) {
       return post("/submit_complaint", input);

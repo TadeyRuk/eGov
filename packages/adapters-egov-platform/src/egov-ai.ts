@@ -5,7 +5,7 @@ import type {
   EgovAiTokenResult,
   PlatformJson,
 } from "@egov/application";
-import { ok, type Result } from "@egov/shared";
+import { appError, err, ok, type Result } from "@egov/shared";
 import {
   DEFAULT_BASE_URLS,
   envOrDefault,
@@ -14,39 +14,35 @@ import {
   type PlatformEnv,
 } from "./http.js";
 
-/**
- * Path map is intentionally thin — exact paths may be refined against live OpenAPI
- * from the dashboard without changing the port surface.
- */
+const API_PREFIX = "/api/v1/egov/integration";
+
 const PATHS = {
-  token: "/token",
-  ai_assistant: "/ai_assistant",
-  speech_maker: "/speech_maker",
-  tourism: "/tourism",
-  laws: "/laws",
-  translator: "/translator",
-  document_extractor: "/document_extractor",
-  credits: "/credits",
+  token: `${API_PREFIX}/token`,
+  ai_assistant: `${API_PREFIX}/ai_assistant/generate`,
+  speech_maker: `${API_PREFIX}/speech_maker/generate`,
+  tourism: `${API_PREFIX}/tourism/generate`,
+  laws: `${API_PREFIX}/laws_and_regulations/generate`,
+  translator: `${API_PREFIX}/translator/generate`,
+  document_extractor: `${API_PREFIX}/document_extractor/generate`,
+  credits: `${API_PREFIX}/credits`,
 } as const;
 
 export function createEgovAiAdapter(env: PlatformEnv): EgovAiPort {
   const base = () =>
     envOrDefault(env, "EGOV_AI_BASE_URL", DEFAULT_BASE_URLS.egovAi);
 
-  async function post(
+  async function postGeneration(
     path: string,
     input: EgovAiRequest,
   ): Promise<Result<EgovAiResponse>> {
-    const apiKey = requireEnv(env, "EGOV_AI_API_KEY");
-    if (!apiKey.ok) return apiKey;
+    if (!input.token?.trim()) {
+      return err(appError("VALIDATION", "eGov AI generation requires a bearer token"));
+    }
     const headers: Record<string, string> = {
       "content-type": "application/json",
       accept: "application/json",
-      "X-API-Key": apiKey.value,
+      authorization: `Bearer ${input.token}`,
     };
-    if (input.token) {
-      headers.authorization = `Bearer ${input.token}`;
-    }
     const res = await platformFetch(`${base()}${path}`, {
       method: "POST",
       headers,
@@ -58,33 +54,50 @@ export function createEgovAiAdapter(env: PlatformEnv): EgovAiPort {
 
   return {
     async token(credentials?: PlatformJson): Promise<Result<EgovAiTokenResult>> {
-      const result = await post(PATHS.token, { payload: credentials ?? {} });
-      if (!result.ok) return result;
+      const accessCode = requireEnv(env, "EGOV_AI_ACCESS_CODE");
+      if (!accessCode.ok) return accessCode;
+      const res = await platformFetch(`${base()}${PATHS.token}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify({ ...(credentials ?? {}), access_code: accessCode.value }),
+      });
+      if (!res.ok) return res;
       const token = String(
-        result.value.raw.token ?? result.value.raw.access_token ?? "",
+        res.value.json.token ?? res.value.json.access_token ?? "",
       );
-      return ok({ token, raw: result.value.raw });
+      if (!token) {
+        return err(appError("VALIDATION", "eGov AI token response did not include an access token"));
+      }
+      return ok({ token, raw: res.value.json });
     },
     aiAssistant(input) {
-      return post(PATHS.ai_assistant, input);
+      return postGeneration(PATHS.ai_assistant, input);
     },
     speechMaker(input) {
-      return post(PATHS.speech_maker, input);
+      return postGeneration(PATHS.speech_maker, input);
     },
     tourism(input) {
-      return post(PATHS.tourism, input);
+      return postGeneration(PATHS.tourism, input);
     },
     laws(input) {
-      return post(PATHS.laws, input);
+      return postGeneration(PATHS.laws, input);
     },
     translator(input) {
-      return post(PATHS.translator, input);
+      return postGeneration(PATHS.translator, input);
     },
     documentExtractor(input) {
-      return post(PATHS.document_extractor, input);
+      return postGeneration(PATHS.document_extractor, input);
     },
-    credits(input) {
-      return post(PATHS.credits, input);
+    async credits(input) {
+      if (!input.token?.trim()) {
+        return err(appError("VALIDATION", "eGov AI credits requires a bearer token"));
+      }
+      const res = await platformFetch(`${base()}${PATHS.credits}`, {
+        method: "GET",
+        headers: { accept: "application/json", authorization: `Bearer ${input.token}` },
+      });
+      if (!res.ok) return res;
+      return ok({ raw: res.value.json });
     },
   };
 }

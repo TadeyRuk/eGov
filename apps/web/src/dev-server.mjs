@@ -8,20 +8,34 @@ const html = `<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
-    <title>eGov</title>
+    <title>eGovPH Sign In</title>
     <style>
       :root { color-scheme: light; font-family: "IBM Plex Sans", "Segoe UI", sans-serif; }
       body { margin: 0; min-height: 100vh; display: grid; place-items: center;
         background: linear-gradient(160deg, #e8f1f5 0%, #f7faf8 45%, #eef2e8 100%); color: #143042; }
-      main { text-align: center; max-width: 36rem; padding: 2rem; }
-      h1 { font-family: "IBM Plex Serif", Georgia, serif; font-weight: 600; letter-spacing: -0.02em; font-size: 3rem; margin: 0 0 0.5rem; }
-      p { margin: 0; line-height: 1.5; opacity: 0.85; }
+      main { width: min(38rem, calc(100% - 2rem)); padding: 3rem 0; }
+      section { background: rgba(255,255,255,.92); border: 1px solid #d6e1e5; border-radius: 1.25rem;
+        box-shadow: 0 1.25rem 4rem rgba(18,48,66,.12); padding: clamp(1.5rem, 6vw, 3rem); }
+      .eyebrow { color: #245f77; font-size: .8rem; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+      h1 { font-family: "IBM Plex Serif", Georgia, serif; font-weight: 600; letter-spacing: -0.02em;
+        font-size: clamp(2.2rem, 7vw, 3.4rem); margin: .45rem 0 .8rem; }
+      p { margin: 0; line-height: 1.6; opacity: 0.82; }
+      a.button { display: block; margin-top: 1.75rem; padding: .95rem 1.2rem; border-radius: .75rem;
+        background: #075985; color: white; text-align: center; text-decoration: none; font-weight: 700; }
+      a.button:hover { background: #064d71; }
+      .note { margin-top: 1.25rem; padding-top: 1.25rem; border-top: 1px solid #dce5e8; font-size: .92rem; }
+      code { color: #164e63; }
     </style>
   </head>
   <body>
     <main>
-      <h1>eGov</h1>
-      <p>Web shell placeholder. API and orchestrator packages own runtime behavior until Phase 4.</p>
+      <section>
+        <div class="eyebrow">Official account connection</div>
+        <h1>Sign in with eGovPH</h1>
+        <p>Continue to the official eGovPH website. Your eGovPH password is never entered into or stored by this website.</p>
+        <a class="button" href="https://e.gov.ph/">Continue to eGovPH</a>
+        <p class="note">The official website may direct you to the eGovPH mobile app for citizen sign-in and verification.</p>
+      </section>
     </main>
   </body>
 </html>`;

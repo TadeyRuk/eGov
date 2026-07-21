@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="fil">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="Documentation ng capabilities at integration boundaries ng eGovAI Translator." />
+    <title>eGovAI Translator — Capability Documentation</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #14243a;
+        --muted: #5d6b7c;
+        --blue: #0b5cce;
+        --blue-dark: #073b84;
+        --blue-soft: #edf4ff;
+        --gold: #edae2e;
+        --green: #16745d;
+        --red: #b83b3b;
+        --paper: #fbfaf6;
+        --surface: #ffffff;
+        --line: #dce2e7;
+        --code: #0c1b2f;
+      }
+
+      * { box-sizing: border-box; }
+      html { scroll-behavior: smooth; }
+      body {
+        margin: 0;
+        color: var(--ink);
+        background: var(--paper);
+        font: 15px/1.65 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+      a { color: var(--blue); }
+      code { font-family: "SFMono-Regular", Consolas, monospace; }
+
+      .topbar {
+        border-bottom: 1px solid var(--line);
+        background: var(--surface);
+      }
+      .topbar-inner {
+        width: min(1180px, calc(100% - 36px));
+        min-height: 68px;
+        margin: auto;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 24px;
+      }
+      .brand { display: flex; align-items: center; gap: 12px; color: var(--ink); text-decoration: none; font-weight: 800; }
+      .brand-mark { display: grid; place-items: center; width: 38px; height: 38px; border-radius: 10px; color: white; background: var(--blue); }
+      .brand small { display: block; color: var(--muted); font-size: 10px; letter-spacing: .12em; text-transform: uppercase; }
+      .status { padding: 6px 11px; border: 1px solid #b9d9cb; border-radius: 999px; color: var(--green); background: #f1fbf6; font-size: 12px; font-weight: 750; }
+
+      .layout {
+        width: min(1180px, calc(100% - 36px));
+        margin: 0 auto;
+        display: grid;
+        grid-template-columns: 230px minmax(0, 790px);
+        gap: 64px;
+        justify-content: center;
+      }
+      aside { padding: 46px 0; }
+      .toc { position: sticky; top: 24px; }
+      .toc-title { margin: 0 0 12px; color: var(--muted); font-size: 11px; font-weight: 800; letter-spacing: .12em; text-transform: uppercase; }
+      .toc a { display: block; padding: 7px 10px; border-left: 2px solid var(--line); color: var(--muted); text-decoration: none; font-size: 13px; }
+      .toc a:hover { border-color: var(--blue); color: var(--blue); background: var(--blue-soft); }
+
+      main { min-width: 0; padding: 58px 0 90px; }
+      .eyebrow { margin: 0 0 12px; color: var(--blue); font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
+      h1, h2, h3 { color: var(--ink); line-height: 1.2; }
+      h1 { margin: 0 0 18px; font-family: Georgia, serif; font-size: clamp(40px, 6vw, 62px); letter-spacing: -.045em; }
+      h2 { margin: 54px 0 15px; padding-top: 8px; font-family: Georgia, serif; font-size: 31px; letter-spacing: -.025em; }
+      h3 { margin: 0 0 8px; font-size: 16px; }
+      p { margin: 0 0 17px; }
+      .lead { max-width: 720px; color: var(--muted); font-size: 18px; }
+      .meta { display: flex; flex-wrap: wrap; gap: 18px; margin: 26px 0 0; padding: 14px 0; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); color: var(--muted); font-size: 12px; }
+      .meta strong { color: var(--ink); }
+
+      .callout { margin: 24px 0; padding: 18px 20px; border-left: 4px solid var(--blue); border-radius: 0 10px 10px 0; background: var(--blue-soft); }
+      .callout.warning { border-color: var(--gold); background: #fff8e7; }
+      .callout strong { display: block; margin-bottom: 4px; }
+      .callout p { margin: 0; color: var(--muted); }
+
+      .capabilities { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+      .card { padding: 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+      .card-number { display: inline-block; margin-bottom: 18px; color: var(--blue); font: 800 12px/1 "SFMono-Regular", Consolas, monospace; }
+      .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+      .table-wrap { overflow-x: auto; margin: 18px 0; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); }
+      table { width: 100%; border-collapse: collapse; min-width: 650px; }
+      th, td { padding: 13px 15px; border-bottom: 1px solid var(--line); text-align: left; vertical-align: top; }
+      th { color: var(--blue-dark); background: var(--blue-soft); font-size: 12px; letter-spacing: .04em; text-transform: uppercase; }
+      td { font-size: 14px; }
+      tr:last-child td { border-bottom: 0; }
+
+      pre { margin: 16px 0; padding: 20px; overflow-x: auto; border-radius: 12px; color: #dce9f7; background: var(--code); font: 13px/1.7 "SFMono-Regular", Consolas, monospace; }
+      .key { color: #85c6ff; }
+      .value { color: #ffd37b; }
+      .comment { color: #8395aa; }
+      .endpoint { display: flex; align-items: center; gap: 10px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-family: "SFMono-Regular", Consolas, monospace; font-size: 13px; overflow-x: auto; }
+      .method { padding: 4px 7px; border-radius: 5px; color: white; background: var(--green); font-size: 11px; font-weight: 800; }
+
+      .checklist { margin: 16px 0; padding: 0; list-style: none; }
+      .checklist li { position: relative; margin: 9px 0; padding-left: 28px; }
+      .checklist li::before { content: "✓"; position: absolute; left: 0; color: var(--green); font-weight: 900; }
+      .checklist.no li::before { content: "×"; color: var(--red); }
+
+      .flow { display: grid; grid-template-columns: repeat(5, 1fr); align-items: stretch; gap: 8px; margin: 20px 0; }
+      .flow-step { position: relative; padding: 14px 10px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); text-align: center; font-size: 12px; font-weight: 700; }
+      .flow-step:not(:last-child)::after { content: "→"; position: absolute; z-index: 2; right: -11px; top: 50%; transform: translateY(-50%); color: var(--blue); }
+
+      footer { padding: 22px 0; border-top: 1px solid var(--line); color: var(--muted); background: var(--surface); font-size: 12px; }
+      footer div { width: min(1180px, calc(100% - 36px)); margin: auto; }
+
+      @media (max-width: 820px) {
+        .layout { display: block; }
+        aside { padding: 22px 0 0; }
+        .toc { position: static; display: flex; flex-wrap: wrap; gap: 5px; }
+        .toc-title { width: 100%; }
+        .toc a { border: 1px solid var(--line); border-radius: 999px; padding: 5px 10px; background: var(--surface); }
+        main { padding-top: 38px; }
+        .flow { grid-template-columns: 1fr; }
+        .flow-step:not(:last-child)::after { content: "↓"; right: auto; left: 50%; top: auto; bottom: -14px; transform: translateX(-50%); }
+      }
+      @media (max-width: 560px) {
+        .capabilities { grid-template-columns: 1fr; }
+        .status { display: none; }
+        h1 { font-size: 42px; }
+      }
+    </style>
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="topbar-inner">
+        <a class="brand" href="#overview">
+          <span class="brand-mark">文</span>
+          <span>eGovAI Translator <small>Capability documentation</small></span>
+        </a>
+        <span class="status">Hackathon API · Documented surface</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside>
+        <nav class="toc" aria-label="Table of contents">
+          <p class="toc-title">On this page</p>
+          <a href="#overview">Overview</a>
+          <a href="#capabilities">Capabilities</a>
+          <a href="#use-cases">Use cases</a>
+          <a href="#contract">API contract</a>
+          <a href="#workflow">Recommended workflow</a>
+          <a href="#limitations">Limitations</a>
+          <a href="#training">Training and tuning</a>
+        </nav>
+      </aside>
+
+      <main id="overview">
+        <p class="eyebrow">eGovAI integration reference</p>
+        <h1>Translator capabilities</h1>
+        <p class="lead">Ang Translator ay isang text-transformation capability para gawing mas accessible ang government information sa iba't ibang wika. Tumatanggap ito ng source text at language codes, pagkatapos ay nagbabalik ng translated text.</p>
+        <div class="meta">
+          <span><strong>Interface:</strong> HTTPS + JSON</span>
+          <span><strong>Authentication:</strong> Bearer token</span>
+          <span><strong>Category:</strong> Translation</span>
+          <span><strong>Review:</strong> Required for critical content</span>
+        </div>
+
+        <div class="callout">
+          <strong>Scope summary</strong>
+          <p>Prompt-based translation ito. Hindi ito automatic publishing system, legal certification service, o partner-controlled model-training API.</p>
+        </div>
+
+        <h2 id="capabilities">Core capabilities</h2>
+        <div class="capabilities">
+          <article class="card"><span class="card-number">01</span><h3>Direct text translation</h3><p>Magsalin ng announcements, instructions, FAQs, labels, at service descriptions mula source language patungo sa target language.</p></article>
+          <article class="card"><span class="card-number">02</span><h3>Citizen-service localization</h3><p>Gumawa ng multilingual versions ng public-service content para sa web, mobile, kiosk, email, o help-desk workflow.</p></article>
+          <article class="card"><span class="card-number">03</span><h3>Form guidance</h3><p>Isalin ang form labels, documentary requirements, status messages, at next-step instructions.</p></article>
+          <article class="card"><span class="card-number">04</span><h3>Document-text translation</h3><p>Isalin ang permitted text na nakuha muna sa Document Extractor o ibang approved OCR workflow.</p></article>
+          <article class="card"><span class="card-number">05</span><h3>Multilingual support replies</h3><p>Tulungan ang service desk na maghanda ng sagot sa wikang mas madaling maunawaan ng citizen.</p></article>
+          <article class="card"><span class="card-number">06</span><h3>Language metadata</h3><p>Gamitin ang source at target language codes upang gawing predictable ang translation request at response handling.</p></article>
+        </div>
+
+        <h2 id="use-cases">Example use cases</h2>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Use case</th><th>Source content</th><th>Expected output</th><th>Review level</th></tr></thead>
+            <tbody>
+              <tr><td>Appointment notice</td><td>Schedule, location, requirements</td><td>Citizen-facing translated notice</td><td>Standard review</td></tr>
+              <tr><td>Application status</td><td>Status and next steps</td><td>Short translated update</td><td>Standard review</td></tr>
+              <tr><td>Form instructions</td><td>Fields and submission steps</td><td>Localized guidance</td><td>Process-owner review</td></tr>
+              <tr><td>Legal information</td><td>Public legal explanation</td><td>Translated explanation</td><td>Legal review required</td></tr>
+              <tr><td>Emergency notice</td><td>Safety instructions</td><td>Urgent multilingual message</td><td>Authorized reviewer required</td></tr>
+              <tr><td>OCR workflow</td><td>Extracted document text</td><td>Translated extracted text</td><td>Compare with source image</td></tr>
+            </tbody>
+          </table>
+        </div>
+
+        <h2 id="contract">API contract</h2>
+        <p>Ang kasalukuyang hackathon request ay gumagamit ng translation endpoint sa ibaba. Panatilihin ang access token sa backend; huwag ilagay ito sa browser HTML o client-side JavaScript.</p>
+        <div class="endpoint"><span class="method">POST</span><span>/api/v1/egov/integration/translator/generate</span></div>
+
+        <h3 style="margin-top:24px">Request example</h3>
+        <pre>Authorization: Bearer &lt;server-side-token&gt;
+Content-Type: application/json
+
+{
+  <span class="key">"prompt"</span>: <span class="value">"Your appointment is confirmed."</span>,
+  <span class="key">"source_lang"</span>: <span class="value">"en"</span>,
+  <span class="key">"target_lang"</span>: <span class="value">"fil"</span>
+}</pre>
+
+        <h3>Conceptual response</h3>
+        <pre>{
+  <span class="key">"data"</span>: <span class="value">"Kumpirmado na ang iyong appointment."</span>,
+  <span class="key">"source_lang"</span>: <span class="value">"en"</span>,
+  <span class="key">"target_lang"</span>: <span class="value">"fil"</span>
+}</pre>
+        <p><small>Ang eksaktong response fields at supported language codes ay dapat kumpirmahin sa current dashboard contract bago i-hard-code.</small></p>
+
+        <h2 id="workflow">Recommended workflow</h2>
+        <div class="flow" aria-label="Recommended translation workflow">
+          <div class="flow-step">1. Validate input</div>
+          <div class="flow-step">2. Call backend</div>
+          <div class="flow-step">3. Translate</div>
+          <div class="flow-step">4. Human review</div>
+          <div class="flow-step">5. Publish</div>
+        </div>
+        <ul class="checklist">
+          <li>Validate source text, length, and approved language codes.</li>
+          <li>Remove personal data that is not required for translation.</li>
+          <li>Preserve dates, amounts, reference numbers, and official names.</li>
+          <li>Compare high-impact translations against the original text.</li>
+          <li>Record the source version and review status when publishing official content.</li>
+        </ul>
+
+        <h2 id="limitations">Limitations and safeguards</h2>
+        <ul class="checklist no">
+          <li>Hindi guaranteed na perfect ang grammar, terminology, o regional-language nuance.</li>
+          <li>Hindi nito pinapatunayang legally equivalent ang translated legal text.</li>
+          <li>Hindi dapat direktang mag-publish ng emergency, medical, eligibility, o legal instructions nang walang review.</li>
+          <li>Hindi dapat magpadala ng unnecessary citizen records o sensitive identifiers.</li>
+          <li>Hindi dapat mag-assume ng language support na wala sa official catalog.</li>
+        </ul>
+        <div class="callout warning">
+          <strong>Fail visibly</strong>
+          <p>Kung unsupported ang language, incomplete ang response, o uncertain ang salin, ipakita ang review/error state sa halip na maglabas ng translation na parang verified.</p>
+        </div>
+
+        <h2 id="training">Training and tuning</h2>
+        <p>Sa documented hackathon surface, ang customization ay ginagawa sa request text at workflow. Walang exposed endpoint para sa dataset upload, fine-tuning job, custom model deployment, o training metrics.</p>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Approach</th><th>Available?</th><th>Kahulugan</th></tr></thead>
+            <tbody>
+              <tr><td>Prompting</td><td>Yes</td><td>Source text at language instructions sa bawat request.</td></tr>
+              <tr><td>Workflow rules</td><td>Yes, application-side</td><td>Validation, review, audit, at publishing controls sa sariling application.</td></tr>
+              <tr><td>Document grounding</td><td>Application design</td><td>Magbigay lamang ng approved source content na kailangang isalin.</td></tr>
+              <tr><td>Fine-tuning/training</td><td>Not exposed</td><td>Walang documented training dataset o custom-model API para sa partner.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </main>
+    </div>
+
+    <footer><div>eGovAI Translator capability documentation · Standalone HTML · Walang embedded credentials o live API calls</div></footer>
+  </body>
+</html>

@@ -19,7 +19,7 @@ export function createEgovPayAdapter(env: PlatformEnv): EgovPayPort {
     envOrDefault(env, "EGOVPAY_BASE_URL", DEFAULT_BASE_URLS.egovPay);
 
   async function signedHeaders(body: string): Promise<Result<Record<string, string>>> {
-    const token = requireEnv(env, "EGOVPAY_TOKEN");
+    const token = requireEnv(env, "EGOVPAY_API_KEY");
     if (!token.ok) return token;
     const secret = requireEnv(env, "EGOVPAY_HMAC_SECRET");
     if (!secret.ok) return secret;
@@ -32,9 +32,23 @@ export function createEgovPayAdapter(env: PlatformEnv): EgovPayPort {
     });
   }
 
+  function tokenHeaders(): Result<Record<string, string>> {
+    const token = requireEnv(env, "EGOVPAY_API_KEY");
+    if (!token.ok) return token;
+    return ok({
+      "content-type": "application/json; charset=utf-8",
+      accept: "application/json",
+      "X-eGovPay-Token": token.value,
+    });
+  }
+
   function asTx(json: Record<string, unknown>): EgovPayTransaction {
+    const nested = json.data;
+    const data = nested && typeof nested === "object" && !Array.isArray(nested)
+      ? (nested as Record<string, unknown>)
+      : json;
     const transactionId = String(
-      json.transaction_id ?? json.transactionId ?? json.id ?? "",
+      data.uuid ?? data.transaction_uuid ?? data.transactionId ?? data.id ?? "",
     );
     return {
       ...(transactionId ? { transactionId } : {}),
@@ -61,10 +75,10 @@ export function createEgovPayAdapter(env: PlatformEnv): EgovPayPort {
     async getTransaction(
       transactionId: string,
     ): Promise<Result<EgovPayTransaction>> {
-      const headers = await signedHeaders("");
+      const headers = tokenHeaders();
       if (!headers.ok) return headers;
       const res = await platformFetch(
-        `${base()}/transaction/${encodeURIComponent(transactionId)}`,
+        `${base()}/api/v1/transaction/${encodeURIComponent(transactionId)}`,
         { method: "GET", headers: headers.value },
       );
       if (!res.ok) return res;
@@ -73,14 +87,13 @@ export function createEgovPayAdapter(env: PlatformEnv): EgovPayPort {
 
     async voidTransaction(
       transactionId: string,
-      payload: PlatformJson = {},
+      _payload: PlatformJson = {},
     ): Promise<Result<EgovPayTransaction>> {
-      const body = JSON.stringify(payload);
-      const headers = await signedHeaders(body);
+      const headers = tokenHeaders();
       if (!headers.ok) return headers;
       const res = await platformFetch(
-        `${base()}/transaction/${encodeURIComponent(transactionId)}/void`,
-        { method: "POST", headers: headers.value, body },
+        `${base()}/api/v1/transaction/${encodeURIComponent(transactionId)}/void`,
+        { method: "PUT", headers: headers.value },
       );
       if (!res.ok) return res;
       return ok(asTx(res.value.json));

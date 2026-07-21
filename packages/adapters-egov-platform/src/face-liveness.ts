@@ -5,7 +5,7 @@ import type {
   PlatformJson,
 } from "@egov/application";
 import { isFaceLivenessPassed } from "@egov/application";
-import { ok, type Result } from "@egov/shared";
+import { appError, err, ok, type Result } from "@egov/shared";
 import {
   DEFAULT_BASE_URLS,
   envOrDefault,
@@ -32,9 +32,13 @@ export function createFaceLivenessAdapter(env: PlatformEnv): FaceLivenessPort {
     async createSession(
       payload: PlatformJson = {},
     ): Promise<Result<FaceLivenessSession>> {
+      const path = env.get("FACE_LIVENESS_CREATE_SESSION_PATH")?.trim();
+      if (!path) {
+        return err(appError("UNAVAILABLE", "Face Liveness create-session path is not confirmed; set FACE_LIVENESS_CREATE_SESSION_PATH from the official dashboard contract"));
+      }
       const headers = await authHeaders();
       if (!headers.ok) return headers;
-      const res = await platformFetch(`${base()}/api/session`, {
+      const res = await platformFetch(`${base()}${path.startsWith("/") ? path : `/${path}`}`, {
         method: "POST",
         headers: headers.value,
         body: JSON.stringify(payload),
@@ -47,10 +51,15 @@ export function createFaceLivenessAdapter(env: PlatformEnv): FaceLivenessPort {
     },
 
     async getResult(sessionId: string): Promise<Result<FaceLivenessResult>> {
+      const template = env.get("FACE_LIVENESS_RESULT_PATH_TEMPLATE")?.trim();
+      if (!template || !template.includes("{session_id}")) {
+        return err(appError("UNAVAILABLE", "Face Liveness result path is not confirmed; set FACE_LIVENESS_RESULT_PATH_TEMPLATE with a {session_id} placeholder from the official dashboard contract"));
+      }
       const headers = await authHeaders();
       if (!headers.ok) return headers;
+      const path = template.replace("{session_id}", encodeURIComponent(sessionId));
       const res = await platformFetch(
-        `${base()}/api/session/${encodeURIComponent(sessionId)}/result`,
+        `${base()}${path.startsWith("/") ? path : `/${path}`}`,
         { method: "GET", headers: headers.value },
       );
       if (!res.ok) return res;

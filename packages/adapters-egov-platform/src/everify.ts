@@ -55,8 +55,17 @@ export function createEVerifyAdapter(env: PlatformEnv): EVerifyPort {
         }),
       });
       if (!res.ok) return res;
+      const nested = res.value.json.data;
+      const data: PlatformJson =
+        nested && typeof nested === "object" && !Array.isArray(nested)
+          ? (nested as PlatformJson)
+          : {};
       const token = String(
-        res.value.json.token ?? res.value.json.access_token ?? "",
+        data.token ??
+          data.access_token ??
+          res.value.json.token ??
+          res.value.json.access_token ??
+          "",
       );
       return ok({ token, raw: res.value.json });
     },

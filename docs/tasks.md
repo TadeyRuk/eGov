@@ -11,18 +11,18 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] Stub in-memory adapters and composition roots
 - [x] Document official platform catalog in `docs/platform-apis.md`
 - [x] Add platform ports + `@egov/adapters-egov-platform` (env-backed fetch)
-- [ ] Add root scripts: `build`, `typecheck`, `test` (smoke)
+- [x] Add root scripts: `build`, `typecheck`, `test` (read-only eGovChain smoke)
 - [ ] Add CI workflow for typecheck on PR
 
 ## Phase 0.5 — Platform verticals
 
-- [ ] Validate SSO token + partner auth against hackathon SSO with dashboard credentials
+- [x] Validate SSO token + partner auth using the dashboard's designated hackathon test identity and single-use exchange code
 - [ ] Validate eVerify auth + query + QR flows
 - [ ] Face liveness session/result with `SUCCEEDED` && confidence ≥ 95.0 gate in a use case
 - [ ] eMessage SMS push smoke test
-- [ ] eGov AI token + one assistant call; decide composition vs local `LlmPort`
+- [x] eGov AI token + one assistant call; current hackathon API is prompt-based and returns text + session id
 - [ ] eGovPay generate/get/void with HMAC digest verification
-- [ ] eGovChain `eth_blockNumber` smoke via thin JSON-RPC port
+- [x] eGovChain `eth_blockNumber` smoke via thin JSON-RPC port
 - [ ] eReport datasets + submit/OTP path
 - [ ] DBM Compass SAAODB/NCA/SARO/LGSF query smoke
 - [ ] Align adapter path maps with live OpenAPI from the dashboard (no invented endpoints)

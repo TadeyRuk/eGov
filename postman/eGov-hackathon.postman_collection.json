@@ -1,0 +1,182 @@
+{
+  "info": {
+    "_postman_id": "59a34282-bf92-4dc9-b81e-23dc0aa27211",
+    "name": "eGov Hackathon API Smoke Tests",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Credential-free smoke tests for the supplied eGov Hackathon endpoints."
+  },
+  "item": [
+    {
+      "name": "01 - Generate access token",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"access_code\": \"{{access_code}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{base}}/api/v1/egov/integration/token"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns 200', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json();",
+        "pm.expect(body.access_token).to.be.a('string').and.not.empty;",
+        "pm.expect(body.expires_in_seconds).to.be.a('number');",
+        "pm.environment.set('hackathon_token', body.access_token);"
+      ] } }]
+    },
+    {
+      "name": "02 - Token credits",
+      "request": {
+        "method": "GET",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }],
+        "url": "{{base}}/api/v1/egov/integration/credits"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns 200', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json();",
+        "pm.expect(body.credits_remaining).to.be.a('number');",
+        "pm.expect(body.credits_total).to.be.a('number');"
+      ] } }]
+    },
+    {
+      "name": "03 - AI Assistant",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"prompt\": \"How can I access a digital TIN ID through eGov?\",\n  \"category\": \"PH\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{base}}/api/v1/egov/integration/ai_assistant/generate"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns generated response', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.data).to.be.a('string'); pm.expect(body.session_id).to.be.a('string');"
+      ] } }]
+    },
+    {
+      "name": "04 - Speech Maker",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"prompt\": \"Give a short speech about digital public services in the Philippines.\",\n  \"category\": \"PH\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{base}}/api/v1/egov/integration/speech_maker/generate"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns generated response', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.data).to.be.a('string'); pm.expect(body.session_id).to.be.a('string');"
+      ] } }]
+    },
+    {
+      "name": "05 - Tourism Content Generator",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"prompt\": \"Provide a concise two-day itinerary for Boracay.\",\n  \"category\": \"PH\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{base}}/api/v1/egov/integration/tourism/generate"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns generated response', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.data).to.be.a('string'); pm.expect(body.session_id).to.be.a('string');"
+      ] } }]
+    },
+    {
+      "name": "06 - Laws and Regulations",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"prompt\": \"What is the purpose of this eGov information service?\",\n  \"category\": \"PH\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{base}}/api/v1/egov/integration/laws_and_regulations/generate"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns generated response', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.data).to.be.a('string'); pm.expect(body.session_id).to.be.a('string');"
+      ] } }]
+    },
+    {
+      "name": "07 - Translator",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }, { "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"prompt\": \"Digital services should be accessible to every citizen.\",\n  \"source_lang\": \"en\",\n  \"target_lang\": \"fil\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{base}}/api/v1/egov/integration/translator/generate"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns translation', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.original_prompt).to.be.a('string'); pm.expect(body.translated_prompt).to.be.a('string'); pm.expect(body.source_lang).to.eql('en'); pm.expect(body.target_lang).to.eql('fil');"
+      ] } }]
+    },
+    {
+      "name": "08 - Document Extractor (requires permitted fixture)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{hackathon_token}}" }],
+        "body": { "mode": "formdata", "formdata": [{ "key": "file", "type": "file", "src": "{{document_file}}" }] },
+        "url": "{{base}}/api/v1/egov/integration/document_extractor/generate"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns extracted content', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.data).to.be.a('string');"
+      ] } }]
+    },
+    {
+      "name": "09 - eGovChain - chain ID",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"eth_chainId\",\n  \"params\": [],\n  \"id\": 1\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{egovchain_rpc_url}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns JSON-RPC success', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.jsonrpc).to.eql('2.0'); pm.expect(body.id).to.eql(1); pm.expect(body.result).to.eql('0x343b');"
+      ] } }]
+    },
+    {
+      "name": "10 - eGovChain - latest block",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"jsonrpc\": \"2.0\",\n  \"method\": \"eth_blockNumber\",\n  \"params\": [],\n  \"id\": 2\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{egovchain_rpc_url}}"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns JSON-RPC success', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.jsonrpc).to.eql('2.0'); pm.expect(body.id).to.eql(2); pm.expect(body.result).to.match(/^0x[0-9a-f]+$/i);"
+      ] } }]
+    },
+    {
+      "name": "11 - eGov SSO - exchange token (dashboard credentials required)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"exchange_code\": \"{{egov_sso_exchange_code}}\",\n  \"scope\": \"{{egov_sso_scope}}\",\n  \"partner_code\": \"{{egov_sso_partner_code}}\",\n  \"partner_secret\": \"{{egov_sso_partner_secret}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{egov_sso_base}}/api/token"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns an SSO access token', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body.access_token).to.be.a('string').and.not.empty; pm.environment.set('egov_sso_access_token', body.access_token);"
+      ] } }]
+    },
+    {
+      "name": "12 - eGov SSO - partner authentication (requires SSO token)",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Authorization", "value": "Bearer {{egov_sso_access_token}}" }],
+        "url": "{{egov_sso_base}}/api/partner/sso_authentication"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns authenticated partner response', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); pm.expect(body).to.be.an('object'); pm.expect(body.data).to.be.an('object');"
+      ] } }]
+    },
+    {
+      "name": "13 - eVerify - authenticate",
+      "request": {
+        "method": "POST",
+        "header": [{ "key": "Content-Type", "value": "application/json" }],
+        "body": { "mode": "raw", "raw": "{\n  \"client_id\": \"{{everify_client_id}}\",\n  \"client_secret\": \"{{everify_client_secret}}\"\n}", "options": { "raw": { "language": "json" } } },
+        "url": "{{everify_base}}/api/auth"
+      },
+      "event": [{ "listen": "test", "script": { "exec": [
+        "pm.test('returns an eVerify token', () => pm.response.to.have.status(200));",
+        "const body = pm.response.json(); const token = body.data?.access_token || body.access_token || body.token; pm.expect(token).to.be.a('string').and.not.empty; pm.environment.set('everify_token', token);"
+      ] } }]
+    }
+  ]
+}
