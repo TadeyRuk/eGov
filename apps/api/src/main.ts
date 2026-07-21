@@ -55,9 +55,10 @@ const server = createServer(async (req, res) => {
     }
 
     if (method === "POST" && url.pathname === "/auth/egov/exchange") {
-      const body = (await readJson(req)) as { exchangeCode?: string };
-      if (!body.exchangeCode?.trim()) { send(res, 400, { error: "exchangeCode is required" }); return; }
-      const token = await egovSso.exchangeToken({ exchangeCode: body.exchangeCode.trim(), scope: process.env.EGOV_SSO_SCOPE ?? "" });
+      const body = (await readJson(req)) as { code?: string; exchangeCode?: string };
+      const exchangeCode = body.code?.trim() ?? body.exchangeCode?.trim();
+      if (!exchangeCode) { send(res, 400, { error: "code is required" }); return; }
+      const token = await egovSso.exchangeToken({ exchangeCode, scope: process.env.EGOV_SSO_SCOPE ?? "" });
       if (!token.ok || !token.value.accessToken) { send(res, 401, { error: "eGov token exchange failed" }); return; }
       const profile = await egovSso.authenticatePartner(token.value.accessToken);
       if (!profile.ok) { send(res, 401, { error: "eGov profile request failed" }); return; }

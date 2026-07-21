@@ -10,6 +10,7 @@
   },
   "include": ["src"],
   "references": [
+    { "path": "../../packages/adapters-egov-platform" },
     { "path": "../../packages/adapters-http" },
     { "path": "../../packages/adapters-messaging" },
     { "path": "../../packages/adapters-persistence" },

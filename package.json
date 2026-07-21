@@ -10,7 +10,9 @@
     "test:egov-hackathon": "postman collection run postman/eGov-hackathon.postman_collection.json --environment .local/postman/eGov-hackathon.local.postman_environment.json --bail failure",
     "dev:api": "pnpm --filter @egov/api dev",
     "dev:orchestrator": "pnpm --filter @egov/orchestrator dev",
-    "dev:web": "pnpm --filter @egov/web dev"
+    "dev:web": "pnpm --filter @egov/web dev",
+    "build:android": "bash -c 'set -a; source .env; set +a; export ANDROID_HOME=\"$PWD/.local/android-sdk\"; export ANDROID_SDK_ROOT=\"$ANDROID_HOME\"; cd apps/android && ./gradlew assembleDebug'",
+    "install:android": "bash -c '.local/android-sdk/platform-tools/adb install -r apps/android/app/build/outputs/apk/debug/app-debug.apk'"
   },
   "engines": {
     "node": ">=20"

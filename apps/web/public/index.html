@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="egov-environment" content="STAGING" />
+    <meta name="egov-client-id" content="" />
+    <meta name="egov-sso-onsuccess" content="CUSTOM_ONSUCCESS_FUNCTION" />
+    <title>eGovPH SSO Test</title>
+  </head>
+  <body>
+    <h1>eGovPH SSO Test</h1>
+    <p id="status">Use the official widget to sign in.</p>
+    <div id="egov-sso-widget-button"></div>
+    <div id="egov-sso-widget-portal"></div>
+
+    <script>
+      async function CUSTOM_ONSUCCESS_FUNCTION(exchangeCode) {
+        const status = document.querySelector("#status");
+        if (typeof exchangeCode !== "string" || !exchangeCode) { status.textContent = "Sign-in did not return an exchange code."; return; }
+        status.textContent = "Sign-in successful. Verifying with the application backend…";
+        const response = await fetch("/api/auth/egov/exchange", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ code: exchangeCode }) });
+        const body = await response.json().catch(() => ({}));
+        status.textContent = response.ok ? JSON.stringify(body.profile, null, 2) : "The widget succeeded but the backend exchange failed.";
+      }
+      async function loadWidget() {
+        const config = await fetch("/api/config", { cache: "no-store" }).then((r) => r.json());
+        if (!config.clientId) throw new Error("Missing eGov SSO client ID");
+        document.querySelector('meta[name="egov-client-id"]').content = config.clientId;
+        const script = document.createElement("script"); script.src = "https://widgets.e.gov.ph/egov-hackathon-sso-widget.js"; script.async = true; script.defer = true; document.body.append(script);
+      }
+      loadWidget().catch(() => { document.querySelector("#status").textContent = "SSO configuration is unavailable."; });
+    </script>
+  </body>
+</html>

@@ -1,11 +1,23 @@
-# eGov Android SSO shell
+# Android eGovPH SSO test app
 
-This native WebView shell loads an HTTPS-hosted eGov SSO widget checker. It deliberately contains no partner secret, token, or profile persistence.
+Minimal Java Android app for the official staging SSO widget. The widget page is bundled in the APK, so the app does not depend on a laptop-hosted website.
 
-Build with an HTTPS checker URL:
+The app receives the one-time exchange code only long enough to report success. It does not display, log, persist, or exchange the code, and it never contains the partner secret.
+
+## Build
+
+Set the public SSO client ID through a Gradle property or environment variable:
 
 ```bash
-gradle assembleDebug -PssoCheckerUrl=https://your-https-host/
+./gradlew assembleDebug -PssoClientId=YOUR_CLIENT_ID
 ```
 
-The HTTPS backend receives the widget's exchange code and performs the token/profile exchange server-side. Do not use an HTTP localhost address or embed the partner secret in the APK.
+The resulting APK is `app/build/outputs/apk/debug/app-debug.apk`.
+
+## Install on a connected device
+
+```bash
+adb install -r app/build/outputs/apk/debug/app-debug.apk
+```
+
+Complete mobile number/email, OTP, and MPIN only inside the official widget. Do not place the partner secret in this Android project.

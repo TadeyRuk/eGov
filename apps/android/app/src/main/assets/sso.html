@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="egov-environment" content="STAGING" />
+    <meta name="egov-client-id" content="__EGOV_SSO_CLIENT_ID__" />
+    <meta name="egov-sso-onsuccess" content="CUSTOM_ONSUCCESS_FUNCTION" />
+    <title>eGovPH SSO Test</title>
+  </head>
+  <body>
+    <h1>eGovPH SSO Test</h1>
+    <div id="egov-sso-widget-button"></div>
+    <div id="egov-sso-widget-portal"></div>
+    <script>
+      function CUSTOM_ONSUCCESS_FUNCTION(exchangeCode) {
+        AndroidSso.onExchangeCode(exchangeCode || "");
+      }
+      function showProfile(payload) { document.body.insertAdjacentHTML('beforeend', '<pre></pre>'); document.querySelector('pre').textContent = payload; }
+    </script>
+    <script async defer src="https://widgets.e.gov.ph/egov-hackathon-sso-widget.js"></script>
+  </body>
+</html>

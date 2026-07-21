@@ -37,7 +37,8 @@ Credentials come **only** from the dashboard. Copy [`.env.example`](.env.example
 ```
 apps/
   api/              # HTTP composition root
-  web/              # UI shell
+  web/              # Minimal browser-based eGovPH SSO widget client
+  android/          # Minimal Java Android eGovPH SSO widget client
   orchestrator/     # multi-AI agent runtime
 packages/
   domain/           # entities & invariants (no I/O)
@@ -64,6 +65,21 @@ npx pnpm@9.15.0 typecheck
 pnpm --filter @egov/api dev
 pnpm --filter @egov/orchestrator dev
 ```
+
+## Minimal eGovPH SSO clients
+
+The repository contains two independent test clients. Both use the official staging widget and stop after receiving a one-time exchange code; neither client stores credentials or embeds the partner secret.
+
+```bash
+# Browser client at http://127.0.0.1:5173
+pnpm dev:web
+
+# Java Android APK
+pnpm build:android
+pnpm install:android
+```
+
+Set `EGOV_SSO_CLIENT_ID` in the ignored local `.env`. The Android app bundles its widget page and does not require the web app or laptop server at runtime.
 
 Requires Node 20+ and [pnpm](https://pnpm.io) 9.x.
 
