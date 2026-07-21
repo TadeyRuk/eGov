@@ -14,7 +14,7 @@ Claude Code **project subagents** live in [`.claude/agents/`](.claude/agents/). 
 | Folder | Agents |
 |--------|--------|
 | `.claude/agents/pipeline/` | `architect`, `designer`, `builder`, `verifier`, `ops` |
-| `.claude/agents/specialists/` | `scout`, `domain-lead`, `researcher`, `tech-lead`, `frontend`, `backend`, `data`, `api`, `security`, `qa`, `devops`, `ship-lead`, `critic` |
+| `.claude/agents/specialists/` | `scout`, `domain-lead`, `researcher`, `tech-lead`, `frontend`, `backend`, `data`, `api`, `security`, `qa`, `devops`, `ship-lead`, `critic`, `hackathon` |
 | `.claude/agents/platform/` | `platform` (all 9 eGov API Platform services) |
 
 When routing, use Claude Code’s Task/Agent tool with the matching subagent. Read that agent’s markdown for charter and hard rules.
@@ -91,6 +91,7 @@ Definitions are the markdown files under **`.claude/agents/`** (source of truth)
 | `ops` | Ship readiness / fallbacks | Ship stage |
 | `ship-lead` | Release go/no-go | Cut a release |
 | `critic` | Adversarial review | After major packets / PRs |
+| `hackathon` | Audit against hackathon judging mechanics (`docs/hackathon-mechanics.md`) | Score checks, scope debates, pre-demo audits |
 
 ### Agent talk protocol (how they “talk to each other”)
 
@@ -134,6 +135,7 @@ Agents do not chat endlessly. They communicate through **structured handoffs**:
 | “Is this safe / ready?” | `security` + `qa` + `verifier` |
 | “Ship / deploy / CI” | `devops` + `ops` + `ship-lead` |
 | “Review this plan/PR” | `critic` |
+| “How are we tracking for the hackathon / are we submission-ready” | `hackathon` |
 
 ### Summoning checklist (Orchestrator must do this)
 
@@ -168,6 +170,7 @@ Constraints: CLAUDE.md + that agent’s .md hard rules; Handoff Packet output
   - `docs/requirements.md` — DomainLead output
   - `docs/architecture.md` + `docs/adr/` — Architect output
   - `docs/handoffs/` — optional saved packets for long threads
+  - `docs/hackathon-mechanics.md` — captured hackathon judging criteria + event context; source of truth for the `hackathon` agent
 - Secrets never in the repo; use env / `~/.config/egov/` if needed later.
 
 ---
@@ -244,3 +247,4 @@ Phrases the Orchestrator should recognize:
 
 - **2026-07-21** — Initial orchestration playbook.
 - **2026-07-21** — Registered Claude Code subagents under `.claude/agents/` (pipeline, specialists, platform); roster points at those files.
+- **2026-07-21** — Captured hackathon judging mechanics (`docs/hackathon-mechanics.md`) from event slides; added `hackathon` specialist agent to audit repo/scope against those weighted criteria.
