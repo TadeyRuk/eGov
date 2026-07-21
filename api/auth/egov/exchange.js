@@ -43,7 +43,7 @@ async function handler(request, response) {
       headers: { "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({
         exchange_code: code,
-        scope: process.env.EGOV_SSO_SCOPE?.trim() ?? "",
+        scope: process.env.EGOV_SSO_SCOPE?.trim() || "SSO_AUTHENTICATION",
         partner_code: partnerCode,
         partner_secret: partnerSecret,
       }),
