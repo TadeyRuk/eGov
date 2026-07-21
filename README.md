@@ -99,6 +99,57 @@ Ground truth: [docs/architecture.md](docs/architecture.md) · [Tolvaris ledger m
 
 Latest showcase verification (2026-07-22): **44/44 automated tests passed** and the Tolvaris DBM Compass duplicate-detection KPI passed **7/7 checks**. Exact-key lookup p95 was **206.69 ms** and contextual-fingerprint lookup p95 was **207.76 ms** across the documented 15-iteration showcase run, against a 2,000 ms target. See [docs/test-results.md](docs/test-results.md) for transaction evidence and rerun commands.
 
+## Tolvaris blockchain schema (UML/ER)
+
+```mermaid
+erDiagram
+    EGOV_USER_COMMITMENT ||--o{ CARD_RECORD : owns
+    AGENCY ||--o{ PUBLIC_PROJECT : implements
+    PUBLIC_PROJECT ||--o{ BUDGET_SNAPSHOT : reports
+
+    EGOV_USER_COMMITMENT {
+        bytes32 ownerCommitment PK "HMAC of eGov subject"
+    }
+
+    CARD_RECORD {
+        string cardType "plaintext category"
+        bytes32 cardFingerprint UK "HMAC; no raw card number"
+        uint64 anchoredAt
+    }
+
+    AGENCY {
+        string agencyCode PK "plaintext"
+        string agencyName "plaintext"
+    }
+
+    PUBLIC_PROJECT {
+        bytes32 projectKey PK "hash(dataset + sourceRecordId)"
+        bytes32 projectFingerprint UK "hash(dataset + agency + title + location)"
+        string dataset "plaintext"
+        string sourceRecordId "plaintext"
+        string title "plaintext"
+        string location "plaintext"
+        string agencyCode FK "plaintext"
+        string implementingUnit "plaintext"
+        string sourceUrl "plaintext"
+    }
+
+    BUDGET_SNAPSHOT {
+        uint256 snapshotIndex PK "append-only per project"
+        uint32 fiscalYear "plaintext"
+        string asOfDate "plaintext"
+        uint256 appropriationsCentavos "plaintext"
+        uint256 allotmentsCentavos "plaintext"
+        uint256 obligationsCentavos "plaintext"
+        uint256 disbursementsCentavos "plaintext"
+        string status "plaintext"
+        bytes32 sourcePayloadHash "integrity/version check"
+        uint64 recordedAt
+    }
+```
+
+The DBM Compass side deliberately keeps public project and expenditure fields readable. Exact source-key and contextual fingerprint hashes are lookup/deduplication indexes, while the complete payload hash detects changed source versions. Citizen names, raw IDs, credentials, bank data, and incidental PII never belong in either public project records or the public chain. Detailed normalization rules are in [docs/tolvaris-ledgers.md](docs/tolvaris-ledgers.md).
+
 ## System Architecture
 
 Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters.
