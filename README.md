@@ -328,22 +328,78 @@ See [the accountability and analytics guide](docs/accountability-and-analytics.m
 
 ## System Architecture
 
-Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters.
+Hexagonal monorepo (repo folder / GitHub: `eGov`). Domain never imports adapters. Click the PNG for the full-resolution component architecture; the editable Mermaid source is in [`docs/diagrams/system-architecture.mmd`](docs/diagrams/system-architecture.mmd).
+
+[![B.A.N.G.O.N and Tolvaris system architecture](docs/diagrams/system-architecture.png)](docs/diagrams/system-architecture.png)
+
+The full diagram covers client/partner boundaries, deployment surfaces, application use cases, domain and ports, infrastructure adapters, the official nine-service eGov API Platform, protected off-chain data, eGovChain registries, analytics, and operational KPIs.
+
+### Mermaid UML component overview
 
 ```mermaid
-flowchart TB
-  Client[Android B.A.N.G.O.N client]
-  Api[apps/api]
-  UC[B.A.N.G.O.N use cases]
-  Domain[domain Benefit rules]
-  Catalog[BenefitCatalogPort]
-  Platform[adapters-egov-platform]
-  Ext[eGov API Platform 9 services]
+flowchart LR
+  subgraph Clients[Client and partner boundary]
+    Android[Android B.A.N.G.O.N]
+    Web[Vercel web + SSO widget]
+    Agency[Agency Ed25519 signer]
+    Reviewer[Agency / COA / legal reviewer]
+  end
 
-  Client --> Api --> UC
-  UC --> Domain
-  UC --> Catalog
-  UC --> Platform --> Ext
+  subgraph Runtime[Deployment surfaces]
+    WebFn[Web serverless SSO]
+    API[apps/api]
+    Orch[apps/orchestrator]
+    Ops[Health / smoke / KPI / logs]
+  end
+
+  subgraph Core[Hexagonal application core]
+    HTTP[adapters-http]
+    UC[@egov/application<br/>benefits + AI + accountability]
+    Domain[@egov/domain<br/>rules and invariants]
+    Ports[repository / event / hash / platform ports]
+    HTTP --> UC --> Domain
+    UC --> Ports
+  end
+
+  subgraph Infra[Infrastructure adapters]
+    Platform[adapters-egov-platform]
+    Persist[adapters-persistence]
+    Events[adapters-messaging]
+    AI[adapters-ai]
+  end
+
+  subgraph External[Official eGov API Platform]
+    Identity[SSO / eVerify / Face Liveness]
+    CitizenOps[eMessage / eGovPay / eReport]
+    Intelligence[Assistant / Laws / Translator / Speech / OCR]
+    DBM[DBM Compass]
+    RPC[eGovChain JSON-RPC]
+  end
+
+  subgraph Data[Privacy and accountability data]
+    Vault[Encrypted off-chain identity / evidence vault]
+    Analytics[Analytics read model + anomaly signals]
+    Registries[Project / ledger / benefit / report / payment / document registries]
+  end
+
+  Android --> API
+  Web --> WebFn --> API
+  Agency -->|signed project request| API
+  Reviewer --> API
+  API --> HTTP
+  Orch --> Ports
+  Ops -. monitors .-> API
+  Ports --> Platform
+  Ports --> Persist --> Vault
+  Ports --> Events --> Analytics
+  Ports --> AI
+  Platform --> Identity
+  Platform --> CitizenOps
+  Platform --> Intelligence
+  Platform --> DBM
+  Platform --> RPC --> Registries
+  Registries --> Analytics --> Reviewer
+  Vault -. commitments and digests only .-> Registries
 ```
 
 | Layer | Package | Responsibility |

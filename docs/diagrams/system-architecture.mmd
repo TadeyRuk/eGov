@@ -1,0 +1,135 @@
+flowchart LR
+  %% B.A.N.G.O.N / Tolvaris component architecture
+
+  subgraph Clients["Client and partner boundary"]
+    direction LR
+    Android["&lt;&lt;client&gt;&gt;<br/>Android B.A.N.G.O.N"]
+    Web["&lt;&lt;client&gt;&gt;<br/>Vercel web + SSO widget"]
+    Agency["&lt;&lt;partner&gt;&gt;<br/>Agency system<br/>Ed25519 request signer"]
+    Reviewer["&lt;&lt;actor&gt;&gt;<br/>Agency / COA / legal reviewer"]
+  end
+
+  subgraph Runtime["Application deployment surfaces"]
+    direction LR
+    WebFn["&lt;&lt;serverless&gt;&gt;<br/>Web config + SSO exchange"]
+    API["&lt;&lt;application&gt;&gt;<br/>apps/api<br/>HTTP composition root"]
+    Orchestrator["&lt;&lt;application&gt;&gt;<br/>apps/orchestrator<br/>delivery workflow"]
+    KPI["&lt;&lt;operations&gt;&gt;<br/>Health, smoke, KPI,<br/>structured JSON logs"]
+  end
+
+  subgraph Hexagonal["Hexagonal application core"]
+    direction TB
+    HTTP["&lt;&lt;inbound adapter&gt;&gt;<br/>adapters-http<br/>validation + request IDs"]
+
+    subgraph UseCases["@egov/application — use cases and ports"]
+      direction LR
+      Bangon["Benefit workflow<br/>fund → verify → match<br/>notify → pay → anchor"]
+      AIFlow["AI orchestration<br/>Assistant + Laws +<br/>Translator + Speech"]
+      Accountability["Accountability pipelines<br/>signed projects + eReport<br/>news RAG + document OCR"]
+    end
+
+    Domain["&lt;&lt;domain&gt;&gt;<br/>@egov/domain<br/>eligibility rules, entities,<br/>invariants, domain events"]
+    Ports["&lt;&lt;ports&gt;&gt;<br/>repositories, event bus,<br/>hash, eGov platform APIs"]
+
+    HTTP --> Bangon
+    HTTP --> AIFlow
+    HTTP --> Accountability
+    Bangon --> Domain
+    AIFlow --> Domain
+    Accountability --> Domain
+    Bangon --> Ports
+    AIFlow --> Ports
+    Accountability --> Ports
+  end
+
+  subgraph Adapters["Infrastructure adapters"]
+    direction LR
+    PlatformAdapter["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-egov-platform<br/>env-backed fetch + JSON-RPC"]
+    Persistence["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-persistence<br/>repositories + document store"]
+    Messaging["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-messaging<br/>event bus"]
+    AIAdapter["&lt;&lt;outbound adapter&gt;&gt;<br/>adapters-ai<br/>LLM + agent mailbox"]
+  end
+
+  subgraph PrivateData["Protected off-chain boundary"]
+    direction LR
+    Vault["Encrypted identity / evidence vault<br/>citizen, reporter, payment,<br/>OCR source details"]
+    ReadModel["Analytics read model<br/>trial balance, utilization,<br/>duplicate + anomaly rules"]
+    Reports["Local/private reports<br/>KPI timings + safe failures<br/>no prompts, tokens, or PII"]
+  end
+
+  subgraph Chain["eGovChain — chain 13371"]
+    direction LR
+    ProjectRegistry["Public project registry<br/>Agency → Project → Snapshot"]
+    Ledger["General ledger<br/>JournalEntry → JournalLine"]
+    BenefitRegistry["Benefit registry<br/>Program → Eligibility → Notice"]
+    ReportRegistry["Report registry<br/>commitments + disclosure decisions"]
+    PaymentRegistry["Payment proof registry<br/>private citizen / public business"]
+    DocumentRegistry["Document proof registry<br/>private / gated / public"]
+  end
+
+  subgraph Official["Official eGov API Platform"]
+    direction LR
+    Identity["eGov SSO<br/>eVerify<br/>Face Liveness"]
+    CitizenOps["eMessage<br/>eGovPay<br/>eReport"]
+    Intelligence["eGov AI<br/>Assistant / Laws / Translator<br/>Speech / Document Extractor"]
+    GovernmentData["DBM Compass<br/>SAAODB / NCA / SARO / LGSF"]
+    Rpc["eGovChain JSON-RPC<br/>call / submit / receipt / logs"]
+  end
+
+  Android -->|"HTTPS JSON"| API
+  Web --> WebFn
+  WebFn -->|"exchange code only"| API
+  Agency -->|"signed POST /tolvaris/projects"| API
+  Reviewer -->|"review and disclosure decisions"| API
+  API --> HTTP
+  Orchestrator --> Ports
+  KPI -.-> API
+  KPI -.-> WebFn
+
+  Ports --> PlatformAdapter
+  Ports --> Persistence
+  Ports --> Messaging
+  Ports --> AIAdapter
+
+  PlatformAdapter --> Identity
+  PlatformAdapter --> CitizenOps
+  PlatformAdapter --> Intelligence
+  PlatformAdapter --> GovernmentData
+  PlatformAdapter --> Rpc
+
+  Persistence --> Vault
+  Persistence --> ReadModel
+  Messaging --> ReadModel
+  AIAdapter --> Orchestrator
+  KPI --> Reports
+  ReadModel --> Reviewer
+
+  Rpc --> ProjectRegistry
+  Rpc --> Ledger
+  Rpc --> BenefitRegistry
+  Rpc --> ReportRegistry
+  Rpc --> PaymentRegistry
+  Rpc --> DocumentRegistry
+
+  Vault -. "hash / HMAC commitment only" .-> BenefitRegistry
+  Vault -. "evidence digest only" .-> ReportRegistry
+  Vault -. "individual proof only" .-> PaymentRegistry
+  Vault -. "content digest only" .-> DocumentRegistry
+  ProjectRegistry --> ReadModel
+  Ledger --> ReadModel
+
+  classDef client fill:#e0f2fe,stroke:#0369a1,color:#0c4a6e,stroke-width:1.5px;
+  classDef runtime fill:#ede9fe,stroke:#6d28d9,color:#3b0764,stroke-width:1.5px;
+  classDef core fill:#dcfce7,stroke:#15803d,color:#14532d,stroke-width:1.5px;
+  classDef adapter fill:#fef3c7,stroke:#b45309,color:#78350f,stroke-width:1.5px;
+  classDef private fill:#fee2e2,stroke:#b91c1c,color:#7f1d1d,stroke-width:1.5px;
+  classDef chain fill:#ecfccb,stroke:#4d7c0f,color:#365314,stroke-width:1.5px;
+  classDef external fill:#f1f5f9,stroke:#475569,color:#0f172a,stroke-width:1.5px;
+
+  class Android,Web,Agency,Reviewer client;
+  class WebFn,API,Orchestrator,KPI runtime;
+  class HTTP,Bangon,AIFlow,Accountability,Domain,Ports core;
+  class PlatformAdapter,Persistence,Messaging,AIAdapter adapter;
+  class Vault,ReadModel,Reports private;
+  class ProjectRegistry,Ledger,BenefitRegistry,ReportRegistry,PaymentRegistry,DocumentRegistry chain;
+  class Identity,CitizenOps,Intelligence,GovernmentData,Rpc external;
