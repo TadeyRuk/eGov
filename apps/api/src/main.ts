@@ -8,8 +8,17 @@ import {
 import { createEgovPlatformAdapters } from "@egov/adapters-egov-platform";
 import { createInMemoryEventBus } from "@egov/adapters-messaging";
 import { createInMemoryPersistence } from "@egov/adapters-persistence";
-import type { Clock } from "@egov/application";
+import {
+  orchestrateEgovAi,
+  type AiToolPolicy,
+  type Clock,
+} from "@egov/application";
+import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
+import {
+  publishSignedAgencyProject,
+  type AgencySignatureHeaders,
+} from "./tolvaris-agency-api.js";
 
 const clock: Clock = { now: () => new Date() };
 const persistence = createInMemoryPersistence();
@@ -58,16 +67,20 @@ const faceLiveness = createFaceLivenessHttpHandlers({
 const CORS_HEADERS = {
   "access-control-allow-origin": "*",
   "access-control-allow-methods": "GET,POST,OPTIONS",
-  "access-control-allow-headers": "content-type,authorization",
+  "access-control-allow-headers": "content-type,authorization,x-request-id,x-agency-key-id,x-agency-timestamp,x-agency-nonce,x-agency-signature",
 } as const;
 
-async function readJson(req: IncomingMessage): Promise<unknown> {
+async function readBody(req: IncomingMessage): Promise<{ raw: string; json: unknown }> {
   const chunks: Buffer[] = [];
   for await (const chunk of req) {
     chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
   }
-  if (chunks.length === 0) return {};
-  return JSON.parse(Buffer.concat(chunks).toString("utf8")) as unknown;
+  const raw = chunks.length === 0 ? "{}" : Buffer.concat(chunks).toString("utf8");
+  return { raw, json: JSON.parse(raw) as unknown };
+}
+
+async function readJson(req: IncomingMessage): Promise<unknown> {
+  return (await readBody(req)).json;
 }
 
 function send(res: ServerResponse, status: number, body: unknown): void {
@@ -83,6 +96,28 @@ function send(res: ServerResponse, status: number, body: unknown): void {
 const server = createServer(async (req, res) => {
   const url = new URL(req.url ?? "/", "http://localhost");
   const method = req.method ?? "GET";
+  const requestIdHeader = req.headers["x-request-id"];
+  const requestId = typeof requestIdHeader === "string" && requestIdHeader.trim()
+    ? requestIdHeader.trim().slice(0, 128)
+    : randomUUID();
+  const requestStarted = performance.now();
+  res.setHeader("x-request-id", requestId);
+  res.once("finish", () => {
+    const status = res.statusCode;
+    const entry = {
+      level: status >= 500 ? "error" : status >= 400 ? "warn" : "info",
+      event: "http_request",
+      requestId,
+      method,
+      path: url.pathname,
+      status,
+      durationMs: Number((performance.now() - requestStarted).toFixed(2)),
+    };
+    const line = JSON.stringify(entry);
+    if (status >= 500) console.error(line);
+    else if (status >= 400) console.warn(line);
+    else console.log(line);
+  });
 
   try {
     if (method === "OPTIONS") {
@@ -94,6 +129,64 @@ const server = createServer(async (req, res) => {
     if (method === "GET" && url.pathname === "/health") {
       const health = healthResponse();
       send(res, health.status, health.body);
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/ai/orchestrate") {
+      const body = (await readJson(req)) as {
+        prompt: string;
+        category?: string;
+        sourceLang?: string;
+        targetLang?: string;
+        translator?: AiToolPolicy;
+        speech?: AiToolPolicy;
+        laws?: AiToolPolicy;
+      };
+      const result = await orchestrateEgovAi(
+        {
+          egovAi: platform.egovAi,
+          log(entry) {
+            const line = JSON.stringify({
+              level: entry.status === "failed" ? "error" : "info",
+              ...entry,
+            });
+            if (entry.status === "failed") console.error(line);
+            else console.log(line);
+          },
+        },
+        { ...body, correlationId: requestId },
+      );
+      if (result.ok) {
+        send(res, 200, result.value);
+      } else {
+        const status = result.error.code === "VALIDATION" ? 400 : 503;
+        send(res, status, {
+          error: { code: result.error.code, message: result.error.message },
+          metrics: result.metrics,
+        });
+      }
+      return;
+    }
+
+    if (method === "POST" && url.pathname === "/tolvaris/projects") {
+      const body = await readBody(req);
+      const header = (name: string): string => {
+        const value = req.headers[name];
+        return typeof value === "string" ? value.trim() : "";
+      };
+      const headers: AgencySignatureHeaders = {
+        keyId: header("x-agency-key-id"),
+        timestamp: header("x-agency-timestamp"),
+        nonce: header("x-agency-nonce"),
+        signature: header("x-agency-signature"),
+      };
+      const result = await publishSignedAgencyProject({
+        rawBody: body.raw,
+        parsedBody: body.json,
+        headers,
+        correlationId: requestId,
+      });
+      send(res, result.status, result.body);
       return;
     }
 
@@ -273,11 +366,18 @@ const server = createServer(async (req, res) => {
 
     send(res, 404, { error: { code: "NOT_FOUND", message: "Route not found" } });
   } catch (cause) {
+    console.error(JSON.stringify({
+      level: "error",
+      event: "http_unhandled_error",
+      requestId,
+      method,
+      path: url.pathname,
+      errorType: cause instanceof Error ? cause.name : "UnknownError",
+    }));
     send(res, 500, {
       error: {
         code: "INTERNAL",
         message: "Unexpected server error",
-        cause: String(cause),
       },
     });
   }

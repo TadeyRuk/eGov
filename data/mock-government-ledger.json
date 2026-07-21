@@ -1,0 +1,155 @@
+{
+  "schemaVersion": "1.0.0",
+  "datasetId": "tolvaris-synthetic-government-demo-2026",
+  "isSynthetic": true,
+  "disclaimer": "All agencies, projects, amounts, documents, signatures, anomalies, and transactions in this dataset are synthetic hackathon demonstration data. They are not claims about real government activity.",
+  "currency": "PHP",
+  "amountUnit": "centavos",
+  "agencies": [
+    {
+      "code": "DPWH-MOCK",
+      "name": "Public Works Demonstration Agency (Synthetic)",
+      "signerKeyId": "dpwh-mock-ed25519-2026"
+    },
+    {
+      "code": "DOH-MOCK",
+      "name": "Public Health Demonstration Agency (Synthetic)",
+      "signerKeyId": "doh-mock-ed25519-2026"
+    },
+    {
+      "code": "DSWD-MOCK",
+      "name": "Social Welfare Demonstration Agency (Synthetic)",
+      "signerKeyId": "dswd-mock-ed25519-2026"
+    }
+  ],
+  "projects": [
+    {
+      "dataset": "LGSF",
+      "sourceRecordId": "MOCK-LGSF-DPWH-001",
+      "title": "Synthetic Flood Resilience Upgrade",
+      "location": "Demo Province, Philippines",
+      "agencyCode": "DPWH-MOCK",
+      "implementingUnit": "Synthetic Regional Engineering Office",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "budget": {
+        "fiscalYear": 2026,
+        "asOfDate": "2026-07-22",
+        "appropriationsCentavos": "10000000000",
+        "allotmentsCentavos": "8000000000",
+        "obligationsCentavos": "7200000000",
+        "disbursementsCentavos": "6500000000",
+        "status": "ONGOING"
+      }
+    },
+    {
+      "dataset": "LGSF",
+      "sourceRecordId": "MOCK-LGSF-DOH-001",
+      "title": "Synthetic Rural Health Equipment Program",
+      "location": "Demo Health District, Philippines",
+      "agencyCode": "DOH-MOCK",
+      "implementingUnit": "Synthetic Health Facilities Office",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "budget": {
+        "fiscalYear": 2026,
+        "asOfDate": "2026-07-22",
+        "appropriationsCentavos": "5000000000",
+        "allotmentsCentavos": "4500000000",
+        "obligationsCentavos": "4700000000",
+        "disbursementsCentavos": "4300000000",
+        "status": "FOR_REVIEW"
+      }
+    },
+    {
+      "dataset": "LGSF",
+      "sourceRecordId": "MOCK-LGSF-DSWD-001",
+      "title": "Synthetic Emergency Livelihood Support",
+      "location": "Demo Social Protection Region, Philippines",
+      "agencyCode": "DSWD-MOCK",
+      "implementingUnit": "Synthetic Livelihood Program Office",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "budget": {
+        "fiscalYear": 2026,
+        "asOfDate": "2026-07-22",
+        "appropriationsCentavos": "3000000000",
+        "allotmentsCentavos": "2500000000",
+        "obligationsCentavos": "2000000000",
+        "disbursementsCentavos": "2700000000",
+        "status": "FOR_REVIEW"
+      }
+    }
+  ],
+  "journalEntries": [
+    {
+      "agencyCode": "DPWH-MOCK",
+      "entryId": "MOCK-DPWH-OPENING-001",
+      "postingDate": "2026-01-01",
+      "description": "Synthetic opening fund balance",
+      "sourceDocumentId": "MOCK-OPENING-DPWH-2026",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "lines": [
+        { "accountCode": "10104040-MOCK", "accountName": "Cash - Synthetic Treasury Account", "accountType": "ASSET", "fundCode": "101", "programCode": "OPENING", "projectSourceRecordId": "", "debitCentavos": "10000000000", "creditCentavos": "0" },
+        { "accountCode": "30101010-MOCK", "accountName": "Synthetic Government Equity", "accountType": "EQUITY", "fundCode": "101", "programCode": "OPENING", "projectSourceRecordId": "", "debitCentavos": "0", "creditCentavos": "10000000000" }
+      ]
+    },
+    {
+      "agencyCode": "DPWH-MOCK",
+      "entryId": "MOCK-DPWH-DISBURSE-001",
+      "postingDate": "2026-07-22",
+      "description": "Synthetic flood resilience project disbursement",
+      "sourceDocumentId": "MOCK-DV-DPWH-001",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "lines": [
+        { "accountCode": "50213050-MOCK", "accountName": "Synthetic Infrastructure Project Expense", "accountType": "EXPENSE", "fundCode": "101", "programCode": "FLOOD-RESILIENCE", "projectSourceRecordId": "MOCK-LGSF-DPWH-001", "debitCentavos": "6500000000", "creditCentavos": "0" },
+        { "accountCode": "10104040-MOCK", "accountName": "Cash - Synthetic Treasury Account", "accountType": "ASSET", "fundCode": "101", "programCode": "FLOOD-RESILIENCE", "projectSourceRecordId": "MOCK-LGSF-DPWH-001", "debitCentavos": "0", "creditCentavos": "6500000000" }
+      ]
+    },
+    {
+      "agencyCode": "DOH-MOCK",
+      "entryId": "MOCK-DOH-OPENING-001",
+      "postingDate": "2026-01-01",
+      "description": "Synthetic opening fund balance",
+      "sourceDocumentId": "MOCK-OPENING-DOH-2026",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "lines": [
+        { "accountCode": "10104040-MOCK", "accountName": "Cash - Synthetic Treasury Account", "accountType": "ASSET", "fundCode": "101", "programCode": "OPENING", "projectSourceRecordId": "", "debitCentavos": "5000000000", "creditCentavos": "0" },
+        { "accountCode": "30101010-MOCK", "accountName": "Synthetic Government Equity", "accountType": "EQUITY", "fundCode": "101", "programCode": "OPENING", "projectSourceRecordId": "", "debitCentavos": "0", "creditCentavos": "5000000000" }
+      ]
+    },
+    {
+      "agencyCode": "DOH-MOCK",
+      "entryId": "MOCK-DOH-DISBURSE-001",
+      "postingDate": "2026-07-22",
+      "description": "Synthetic rural health equipment disbursement",
+      "sourceDocumentId": "MOCK-DV-DOH-001",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "lines": [
+        { "accountCode": "50203010-MOCK", "accountName": "Synthetic Medical Equipment Expense", "accountType": "EXPENSE", "fundCode": "101", "programCode": "RURAL-HEALTH", "projectSourceRecordId": "MOCK-LGSF-DOH-001", "debitCentavos": "4300000000", "creditCentavos": "0" },
+        { "accountCode": "10104040-MOCK", "accountName": "Cash - Synthetic Treasury Account", "accountType": "ASSET", "fundCode": "101", "programCode": "RURAL-HEALTH", "projectSourceRecordId": "MOCK-LGSF-DOH-001", "debitCentavos": "0", "creditCentavos": "4300000000" }
+      ]
+    },
+    {
+      "agencyCode": "DSWD-MOCK",
+      "entryId": "MOCK-DSWD-OPENING-001",
+      "postingDate": "2026-01-01",
+      "description": "Synthetic opening fund balance",
+      "sourceDocumentId": "MOCK-OPENING-DSWD-2026",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "lines": [
+        { "accountCode": "10104040-MOCK", "accountName": "Cash - Synthetic Treasury Account", "accountType": "ASSET", "fundCode": "101", "programCode": "OPENING", "projectSourceRecordId": "", "debitCentavos": "3000000000", "creditCentavos": "0" },
+        { "accountCode": "30101010-MOCK", "accountName": "Synthetic Government Equity", "accountType": "EQUITY", "fundCode": "101", "programCode": "OPENING", "projectSourceRecordId": "", "debitCentavos": "0", "creditCentavos": "3000000000" }
+      ]
+    },
+    {
+      "agencyCode": "DSWD-MOCK",
+      "entryId": "MOCK-DSWD-DISBURSE-001",
+      "postingDate": "2026-07-22",
+      "description": "Synthetic emergency livelihood support disbursement",
+      "sourceDocumentId": "MOCK-DV-DSWD-001",
+      "sourceUrl": "https://dbm.gov.ph/",
+      "lines": [
+        { "accountCode": "50299010-MOCK", "accountName": "Synthetic Livelihood Support Expense", "accountType": "EXPENSE", "fundCode": "101", "programCode": "LIVELIHOOD", "projectSourceRecordId": "MOCK-LGSF-DSWD-001", "debitCentavos": "2700000000", "creditCentavos": "0" },
+        { "accountCode": "10104040-MOCK", "accountName": "Cash - Synthetic Treasury Account", "accountType": "ASSET", "fundCode": "101", "programCode": "LIVELIHOOD", "projectSourceRecordId": "MOCK-LGSF-DSWD-001", "debitCentavos": "0", "creditCentavos": "2700000000" }
+      ]
+    }
+  ]
+}

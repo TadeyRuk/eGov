@@ -1,0 +1,173 @@
+openapi: 3.1.0
+info:
+  title: B.A.N.G.O.N Integration API
+  version: 1.0.0
+  description: |
+    Observable AI orchestration and signed Tolvaris agency publishing endpoints.
+    Agency private keys are never sent to this API; clients sign the exact request bytes with Ed25519.
+servers:
+  - url: http://localhost:8787
+    description: Local application API
+paths:
+  /health:
+    get:
+      summary: Application process health
+      responses:
+        "200":
+          description: Process is accepting requests
+  /ai/orchestrate:
+    post:
+      summary: Main eGov AI assistant with optional Laws, Translator, and Speech Maker tools
+      description: |
+        `auto` lets the main Assistant choose an optional tool. `on` forces it and `off` disables it.
+        Optional tool failures return the main answer with `status: degraded` and per-tool KPI/log data.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AiOrchestrationRequest"
+      responses:
+        "200":
+          description: Completed or degraded orchestration
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AiOrchestrationResponse"
+        "400":
+          description: Invalid request
+        "503":
+          description: Token or main Assistant unavailable; includes completed KPI metrics
+  /tolvaris/projects:
+    post:
+      summary: Publish a public DBM Compass project using an agency-signed request
+      description: |
+        Signature message is five newline-delimited values:
+        `timestamp`, `nonce`, `POST`, `/tolvaris/projects`, and lowercase SHA-256 hex of the exact request body bytes.
+        Sign that UTF-8 message with the agency Ed25519 private key and send the Base64 signature.
+        Timestamp must be within five minutes and each nonce can be used once. The allowlisted public key is bound
+        to one agency code. Exact and contextual duplicate indexes are checked before blockchain submission.
+      parameters:
+        - $ref: "#/components/parameters/AgencyKeyId"
+        - $ref: "#/components/parameters/AgencyTimestamp"
+        - $ref: "#/components/parameters/AgencyNonce"
+        - $ref: "#/components/parameters/AgencySignature"
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PublicProject"
+      responses:
+        "201":
+          description: Project and optional initial budget snapshot published
+        "400":
+          description: Invalid project payload
+        "401":
+          description: Unknown key, stale timestamp, or invalid signature
+        "403":
+          description: Key is not authorized for the submitted agency code
+        "409":
+          description: Used nonce, exact source duplicate, or contextual project duplicate
+        "502":
+          description: Blockchain submission failed; failure is logged without request contents
+        "503":
+          description: Agency key registry or Tolvaris publisher is not configured
+components:
+  parameters:
+    AgencyKeyId:
+      name: X-Agency-Key-Id
+      in: header
+      required: true
+      schema: { type: string }
+    AgencyTimestamp:
+      name: X-Agency-Timestamp
+      in: header
+      required: true
+      description: RFC 3339 timestamp within five minutes of server time
+      schema: { type: string, format: date-time }
+    AgencyNonce:
+      name: X-Agency-Nonce
+      in: header
+      required: true
+      description: Unique 16–128 character URL-safe value
+      schema: { type: string, minLength: 16, maxLength: 128 }
+    AgencySignature:
+      name: X-Agency-Signature
+      in: header
+      required: true
+      description: Base64 Ed25519 signature of the canonical signature message
+      schema: { type: string }
+  schemas:
+    ToolPolicy:
+      type: string
+      enum: [auto, on, off]
+    AiOrchestrationRequest:
+      type: object
+      required: [prompt]
+      properties:
+        prompt: { type: string, minLength: 1 }
+        category: { type: string, default: PH }
+        sourceLang: { type: string, default: en }
+        targetLang: { type: string, default: fil }
+        translator: { $ref: "#/components/schemas/ToolPolicy" }
+        speech: { $ref: "#/components/schemas/ToolPolicy" }
+        laws: { $ref: "#/components/schemas/ToolPolicy" }
+    ToolMetric:
+      type: object
+      required: [tool, status, durationMs]
+      properties:
+        tool: { type: string, enum: [token, assistant, laws, translator, speech] }
+        status: { type: string, enum: [ok, failed, skipped] }
+        durationMs: { type: number, minimum: 0 }
+        message: { type: string }
+    AiOrchestrationResponse:
+      type: object
+      required: [status, answer, assistantAnswer, decision, metrics]
+      properties:
+        status: { type: string, enum: [ok, degraded] }
+        answer: { type: string }
+        assistantAnswer: { type: string }
+        translatedAnswer: { type: string }
+        speechOutput: { type: string }
+        legalAnalysis: { type: string }
+        decision:
+          type: object
+          required: [laws, translator, speech, sourceLang, targetLang, reason]
+          properties:
+            translator: { type: boolean }
+            speech: { type: boolean }
+            laws: { type: boolean }
+            sourceLang: { type: string }
+            targetLang: { type: string }
+            reason: { type: string }
+        metrics:
+          type: object
+          required: [totalDurationMs, tools]
+          properties:
+            totalDurationMs: { type: number }
+            tools:
+              type: array
+              items: { $ref: "#/components/schemas/ToolMetric" }
+    PublicProject:
+      type: object
+      required: [dataset, sourceRecordId, title, location, agencyCode, implementingUnit, sourceUrl]
+      properties:
+        dataset: { type: string, examples: [LGSF] }
+        sourceRecordId: { type: string }
+        title: { type: string }
+        location: { type: string }
+        agencyCode: { type: string }
+        implementingUnit: { type: string }
+        sourceUrl: { type: string, format: uri }
+        budget:
+          type: object
+          required: [fiscalYear, asOfDate, appropriationsCentavos, allotmentsCentavos, obligationsCentavos, disbursementsCentavos, status]
+          properties:
+            fiscalYear: { type: integer }
+            asOfDate: { type: string, format: date }
+            appropriationsCentavos: { type: string, pattern: "^[0-9]+$" }
+            allotmentsCentavos: { type: string, pattern: "^[0-9]+$" }
+            obligationsCentavos: { type: string, pattern: "^[0-9]+$" }
+            disbursementsCentavos: { type: string, pattern: "^[0-9]+$" }
+            status: { type: string }

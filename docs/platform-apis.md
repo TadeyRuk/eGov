@@ -687,10 +687,32 @@ Includes at least: `uuid`, `refno`, `txnid`, `environment_type`, `items`, `amoun
 **Chain id:** `13371`  
 **Explorer:** `https://hackathon-explorer.e.gov.ph`
 
-| Interface | Auth | Notes |
-|-----------|------|-------|
-| JSON-RPC 2.0 `POST` to base URL | As required by platform | Generic `call(method, params)` |
-| Convenience methods (examples) | — | `eth_call`, `eth_sendRawTransaction`, `eth_getTransactionReceipt`, `eth_blockNumber`, `eth_getBalance` |
+The chain interface is **one HTTP `POST` JSON-RPC endpoint, not a collection of REST paths**. The operation is selected by the JSON body `method`. The authenticated dashboard page could not be refreshed during the final audit because the CDP browser session had expired; therefore this table distinguishes methods actually exercised on eGovChain from standard Ethereum-compatible candidates that must be feature-probed before use. The standard method semantics are documented by [ethereum.org's JSON-RPC reference](https://ethereum.org/developers/docs/apis/json-rpc/).
+
+| JSON-RPC method | Project use | Verification / policy |
+|---|---|---|
+| `eth_chainId` | Refuse the wrong network | Live verified: `0x343b` / `13371` |
+| `eth_blockNumber` | Node freshness and KPI | Live verified |
+| `eth_getBalance` | Signer/account diagnostics | Adapter convenience method; read-only |
+| `eth_call` | Read contract getters and simulate invariant/duplicate rejection | Live used by registry KPIs |
+| `eth_sendRawTransaction` | Broadcast an already signed deployment/write | Live verified; backend signer only |
+| `eth_getTransactionReceipt` | Confirm success, block, and contract creation | Live verified |
+| `eth_getTransactionByHash` | Retrieve calldata/provenance for a known transaction | Live verified by the Tolvaris marker round-trip |
+| `eth_getBlockByNumber` / `eth_getBlockByHash` | Block/timestamp audit view | Standard candidate; bounded read-only use |
+| `eth_getCode` | Confirm a registry address contains contract bytecode | Standard candidate; deployment verification |
+| `eth_getLogs` | Index registry events over a bounded block range | Standard candidate; paginate/range-limit |
+| `eth_getTransactionCount` | Signer nonce management | Standard candidate; backend only |
+| `eth_estimateGas` / `eth_gasPrice` | Prepare authorized writes | Standard candidate; never assume hackathon zero-fee behavior in production |
+
+The adapter exposes a generic `call(method, params)` so application code does not pretend every Ethereum client method is enabled by this node. Public HTTP routes must use an allowlist; never expose unrestricted JSON-RPC proxying, account-management/debug methods, or a private key.
+
+Applied uses in this repository:
+
+- `eth_call`: exact/contextual project duplicate checks, card/project/ledger/accountability record read-back, and privacy-invariant simulations;
+- signed transaction + `eth_sendRawTransaction`: registry deployments and synthetic authorized records;
+- receipts: confirmation and explorer evidence;
+- `eth_getTransactionByHash`: Tolvaris marker/calldata round-trip;
+- `eth_chainId` and `eth_blockNumber`: platform availability and latency KPIs.
 
 BANGON `anchorBenefitMatch` hashes locally and only calls `EgovChainPort.call` when `EGOVCHAIN_ANCHOR_METHOD` is set to a **dashboard-documented** method. Do not invent names such as `egov_anchorHash`.
 

@@ -1,0 +1,50 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tolvaris Synthetic Transparency Dashboard</title>
+    <style>
+      body { font-family: system-ui, sans-serif; max-width: 1100px; margin: 2rem auto; padding: 0 1rem; color: #17202a; }
+      .warning { padding: 1rem; border: 2px solid #b45309; background: #fff7ed; }
+      .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: .75rem; margin: 1rem 0; }
+      .card { border: 1px solid #d1d5db; padding: 1rem; border-radius: .5rem; }
+      .value { font-size: 1.5rem; font-weight: 700; }
+      .bar { height: .8rem; background: #e5e7eb; border-radius: 1rem; overflow: hidden; }
+      .bar span { display: block; height: 100%; background: #0f766e; }
+      table { border-collapse: collapse; width: 100%; margin: 1rem 0; }
+      th, td { border: 1px solid #d1d5db; padding: .55rem; text-align: left; vertical-align: top; }
+      code { word-break: break-all; }
+    </style>
+  </head>
+  <body>
+    <p><a href="/">← eGovPH SSO test</a></p>
+    <h1>Tolvaris Transparency Analytics</h1>
+    <p class="warning" id="disclaimer">Loading synthetic dataset…</p>
+    <div class="grid" id="kpis"></div>
+    <h2>Project utilization</h2>
+    <div id="projects"></div>
+    <h2>Trial balance and accounting equation</h2>
+    <div id="balance"></div>
+    <h2>Deterministic review signals</h2>
+    <p>These signals are not legal findings and do not prove wrongdoing. AI/Laws analysis can suggest relevant sources, but a qualified human reviewer must verify the records and law.</p>
+    <table><thead><tr><th>Rule</th><th>Project</th><th>Explanation</th><th>Status</th></tr></thead><tbody id="anomalies"></tbody></table>
+    <h2>Blockchain references</h2>
+    <div id="chain"></div>
+    <script>
+      const peso = centavos => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP" }).format(Number(centavos) / 100);
+      fetch("/data/mock-government-analytics.json", { cache: "no-store" }).then(r => r.json()).then(data => {
+        disclaimer.textContent = data.disclaimer;
+        const cards = [
+          ["Agencies", data.kpis.agencies], ["Projects", data.kpis.projects], ["Balanced entries", `${data.kpis.balancedJournalEntries}/${data.kpis.journalEntries}`],
+          ["Total debit", peso(data.kpis.totalDebitCentavos)], ["Total credit", peso(data.kpis.totalCreditCentavos)], ["Review signals", data.kpis.anomalyCount],
+        ];
+        kpis.innerHTML = cards.map(([label, value]) => `<div class="card"><div>${label}</div><div class="value">${value}</div></div>`).join("");
+        projects.innerHTML = data.projects.map(p => `<article class="card"><strong>${p.title}</strong><br>${p.agencyCode} · ${p.sourceRecordId}<p>${peso(p.disbursementsCentavos)} disbursed / ${peso(p.allotmentsCentavos)} allotted (${p.utilizationPercent}%)</p><div class="bar"><span style="width:${Math.min(p.utilizationPercent, 100)}%"></span></div><small>Status: ${p.status}</small></article>`).join("");
+        balance.innerHTML = `<div class="card"><strong>Debit = Credit:</strong> ${peso(data.kpis.totalDebitCentavos)} = ${peso(data.kpis.totalCreditCentavos)}; difference ${peso(data.kpis.trialBalanceDifferenceCentavos)}<br><strong>Assets = Liabilities + Equity + Revenue − Expense:</strong> ${peso(data.accountingEquation.assetsCentavos)} = ${peso(data.accountingEquation.rightSideCentavos)}; balanced: ${data.accountingEquation.balanced}</div>`;
+        anomalies.innerHTML = data.anomalies.map(a => `<tr><td>${a.rule}</td><td>${a.sourceRecordId}</td><td>${a.detail}</td><td>${a.legalStatus}</td></tr>`).join("");
+        chain.innerHTML = `<p>Chain ID: <code>${data.chain.chainId}</code></p><p>Project registry: <code>${data.chain.transparencyRegistryAddress}</code></p><p>General ledger: <code>${data.chain.generalLedgerAddress}</code></p><p><a href="${data.chain.explorerBaseUrl}/tx/${data.chain.generalLedgerDeploymentTransactionHash}" rel="noreferrer">View deployment transaction</a></p>`;
+      }).catch(() => { disclaimer.textContent = "Synthetic analytics data could not be loaded."; });
+    </script>
+  </body>
+</html>

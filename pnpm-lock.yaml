@@ -35,6 +35,9 @@ importers:
       '@egov/shared':
         specifier: workspace:*
         version: link:../../packages/shared
+      ethers:
+        specifier: 6.17.0
+        version: 6.17.0
     devDependencies:
       '@types/node':
         specifier: ^22.10.2

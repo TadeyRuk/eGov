@@ -1,0 +1,44 @@
+{
+  "generatedAt": "2026-07-21T19:51:31.695Z",
+  "datasetId": "tolvaris-synthetic-government-demo-2026",
+  "isSynthetic": true,
+  "disclaimer": "All agencies, projects, amounts, documents, signatures, anomalies, and transactions are synthetic hackathon demonstration data. They are not claims about real government activity.",
+  "chain": {
+    "chainId": "13371",
+    "explorerBaseUrl": "https://hackathon-explorer.e.gov.ph",
+    "transparencyRegistryAddress": "0xF08239214177bE7ee21AFEBF61cd3FF31D7eD25A",
+    "generalLedgerAddress": "0x217AD680c000C66a84633Fc1c698C44c4a055B70",
+    "generalLedgerDeploymentTransactionHash": "0x0934aed7372e54c745120343336f2ee3aaeecb6ecc5803acd4bb56a6e448abb3"
+  },
+  "kpis": {
+    "agencies": 3,
+    "projects": 3,
+    "journalEntries": 6,
+    "journalLines": 12,
+    "totalDebitCentavos": "31500000000",
+    "totalCreditCentavos": "31500000000",
+    "trialBalanceDifferenceCentavos": "0",
+    "balancedJournalEntries": 6,
+    "anomalyCount": 3
+  },
+  "accountingEquation": {
+    "assetsCentavos": "4500000000",
+    "liabilitiesCentavos": "0",
+    "equityCentavos": "18000000000",
+    "revenueCentavos": "0",
+    "expenseCentavos": "13500000000",
+    "rightSideCentavos": "4500000000",
+    "differenceCentavos": "0",
+    "balanced": true
+  },
+  "projects": [
+    { "projectKey": "0x407c75b218b12d700efeb7c901b1fb5c05d2ad3715e1807c9b01d98e4eaf0b30", "sourceRecordId": "MOCK-LGSF-DPWH-001", "title": "Synthetic Flood Resilience Upgrade", "location": "Demo Province, Philippines", "agencyCode": "DPWH-MOCK", "appropriationsCentavos": "10000000000", "allotmentsCentavos": "8000000000", "obligationsCentavos": "7200000000", "disbursementsCentavos": "6500000000", "utilizationPercent": 81.25, "status": "ONGOING" },
+    { "projectKey": "0x576ade4c2a7be097dab8c5b1d23221cbcc351736a9d890d47e1697f8a5ddfc99", "sourceRecordId": "MOCK-LGSF-DOH-001", "title": "Synthetic Rural Health Equipment Program", "location": "Demo Health District, Philippines", "agencyCode": "DOH-MOCK", "appropriationsCentavos": "5000000000", "allotmentsCentavos": "4500000000", "obligationsCentavos": "4700000000", "disbursementsCentavos": "4300000000", "utilizationPercent": 95.55, "status": "FOR_REVIEW" },
+    { "projectKey": "0xb18f0324b982addfaf00e883717e3c5b7b185244ec400e5afcdc16577b02a2e3", "sourceRecordId": "MOCK-LGSF-DSWD-001", "title": "Synthetic Emergency Livelihood Support", "location": "Demo Social Protection Region, Philippines", "agencyCode": "DSWD-MOCK", "appropriationsCentavos": "3000000000", "allotmentsCentavos": "2500000000", "obligationsCentavos": "2000000000", "disbursementsCentavos": "2700000000", "utilizationPercent": 108, "status": "FOR_REVIEW" }
+  ],
+  "anomalies": [
+    { "severity": "high", "rule": "OBLIGATION_EXCEEDS_ALLOTMENT", "sourceRecordId": "MOCK-LGSF-DOH-001", "detail": "Obligations are greater than allotments in the published snapshot.", "legalStatus": "REVIEW_SIGNAL_NOT_A_LEGAL_FINDING" },
+    { "severity": "high", "rule": "DISBURSEMENT_EXCEEDS_OBLIGATION", "sourceRecordId": "MOCK-LGSF-DSWD-001", "detail": "Disbursements are greater than obligations in the published snapshot.", "legalStatus": "REVIEW_SIGNAL_NOT_A_LEGAL_FINDING" },
+    { "severity": "high", "rule": "DISBURSEMENT_EXCEEDS_ALLOTMENT", "sourceRecordId": "MOCK-LGSF-DSWD-001", "detail": "Disbursements are greater than allotments in the published snapshot.", "legalStatus": "REVIEW_SIGNAL_NOT_A_LEGAL_FINDING" }
+  ]
+}

@@ -6,6 +6,7 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "tsc -p tsconfig.json && node --test 'dist/**/*.test.js'",
     "dev": "tsx src/main.ts",
     "start": "node dist/main.js"
   },
@@ -15,7 +16,8 @@
     "@egov/adapters-messaging": "workspace:*",
     "@egov/adapters-persistence": "workspace:*",
     "@egov/application": "workspace:*",
-    "@egov/shared": "workspace:*"
+    "@egov/shared": "workspace:*",
+    "ethers": "6.17.0"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

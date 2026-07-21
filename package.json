@@ -15,7 +15,13 @@
     "install:android-sso-java": "bash -c '.local/android-sdk/platform-tools/adb install -r apps/android-sso-java/app/build/outputs/apk/debug/app-debug.apk'",
     "deploy:tolvaris-card": "node tooling/deploy-tolvaris-registry.mjs",
     "deploy:tolvaris-transparency": "node tooling/deploy-tolvaris-transparency-registry.mjs",
-    "kpi:tolvaris-transparency": "node tooling/test-tolvaris-transparency-kpi.mjs"
+    "kpi:tolvaris-transparency": "node tooling/test-tolvaris-transparency-kpi.mjs",
+    "kpi:system": "node tooling/check-system-kpis.mjs",
+    "kpi:ai": "pnpm --filter @egov/application build && pnpm --filter @egov/adapters-egov-platform build && node tooling/test-egov-ai-kpi.mjs",
+    "deploy:mock-government-ledger": "node tooling/deploy-mock-government-ledger.mjs",
+    "deploy:accountability-registries": "node tooling/deploy-accountability-registries.mjs",
+    "kpi:accountability": "node tooling/verify-accountability-registries.mjs",
+    "analyze:mock-government-ledger": "node tooling/analyze-mock-government-ledger.mjs"
   },
   "engines": {
     "node": ">=20"

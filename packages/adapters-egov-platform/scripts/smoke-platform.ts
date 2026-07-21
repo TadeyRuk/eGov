@@ -13,6 +13,8 @@ import {
   processEnv,
   type EgovPlatformAdapters,
 } from "../src/index.js";
+import { mkdir, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 
 type SmokeName =
   | "sso"
@@ -53,6 +55,7 @@ type Row = {
   name: SmokeName;
   status: "pass" | "fail" | "skip";
   detail: string;
+  durationMs: number;
 };
 
 const rows: Row[] = [];
@@ -66,29 +69,19 @@ function hasAny(...keys: string[]): boolean {
 }
 
 function skip(name: SmokeName, detail: string): void {
-  rows.push({ name, status: "skip", detail });
+  rows.push({ name, status: "skip", detail, durationMs: 0 });
 }
 
 function pass(name: SmokeName, detail: string): void {
-  rows.push({ name, status: "pass", detail });
+  rows.push({ name, status: "pass", detail, durationMs: 0 });
 }
 
 function fail(name: SmokeName, detail: string): void {
-  rows.push({ name, status: "fail", detail });
+  rows.push({ name, status: "fail", detail, durationMs: 0 });
 }
 
 function errMsg(error: { message?: string; code?: string; cause?: unknown }): string {
-  const base = `${error.code ?? "ERR"}: ${error.message ?? "unknown"}`;
-  if (error.cause instanceof Error) return `${base} (${error.cause.message})`;
-  if (typeof error.cause === "string") return `${base} (${error.cause})`;
-  if (error.cause != null && typeof error.cause === "object") {
-    try {
-      return `${base} (${JSON.stringify(error.cause)})`;
-    } catch {
-      return base;
-    }
-  }
-  return base;
+  return `${error.code ?? "ERR"}: ${error.message ?? "unknown"}`;
 }
 
 async function smokeSso(_p: EgovPlatformAdapters): Promise<void> {
@@ -334,10 +327,19 @@ async function main(): Promise<void> {
 
   for (const name of ALL) {
     if (!selected.has(name)) continue;
+    const rowIndex = rows.length;
+    const startedAt = performance.now();
     try {
       await runners[name](platform);
     } catch (cause) {
       fail(name, cause instanceof Error ? cause.message : String(cause));
+    }
+    const row = rows[rowIndex];
+    if (row) {
+      rows[rowIndex] = {
+        ...row,
+        durationMs: Number((performance.now() - startedAt).toFixed(2)),
+      };
     }
   }
 
@@ -345,13 +347,33 @@ async function main(): Promise<void> {
   for (const r of rows) {
     const tag =
       r.status === "pass" ? "PASS" : r.status === "skip" ? "SKIP" : "FAIL";
-    console.log(`${tag.padEnd(4)} ${r.name.padEnd(width)}  ${r.detail}`);
+    console.log(`${tag.padEnd(4)} ${r.name.padEnd(width)}  ${String(r.durationMs).padStart(8)} ms  ${r.detail}`);
   }
 
   const failed = rows.filter((r) => r.status === "fail").length;
   const passed = rows.filter((r) => r.status === "pass").length;
   const skipped = rows.filter((r) => r.status === "skip").length;
   console.log(`summary: ${passed} pass, ${skipped} skip, ${failed} fail`);
+  const generatedAt = new Date().toISOString();
+  const reportsDirectory = resolve(process.cwd(), ".local/reports");
+  const report = {
+    generatedAt,
+    kind: "platform-smoke-kpi",
+    writeEnabled: write,
+    summary: { passed, skipped, failed },
+    rows,
+  };
+  await mkdir(reportsDirectory, { recursive: true });
+  await writeFile(
+    resolve(reportsDirectory, `platform-smoke-${generatedAt.replace(/[:.]/g, "-")}.json`),
+    `${JSON.stringify(report, null, 2)}\n`,
+    { mode: 0o600 },
+  );
+  await writeFile(
+    resolve(reportsDirectory, "platform-smoke-latest.json"),
+    `${JSON.stringify(report, null, 2)}\n`,
+    { mode: 0o600 },
+  );
   process.exit(failed > 0 ? 1 : 0);
 }
 

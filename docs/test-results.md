@@ -49,7 +49,7 @@ Synthetic card transaction: `0x29d1706704679f47d0a62f4a4509f0c966401d84ee837be4e
 
 | Check | Result |
 |---|---:|
-| Monorepo automated tests | PASS — 44/44 |
+| Monorepo automated tests | PASS — 55/55 |
 | TypeScript build/typecheck | PASS |
 | Repository hygiene/secret check | PASS |
 | Java Android debug APK build | PASS |
@@ -61,3 +61,47 @@ Synthetic card transaction: `0x29d1706704679f47d0a62f4a4509f0c966401d84ee837be4e
 | Local card-ledger read | PASS — deployed synthetic card returned |
 
 The APK is generated at `apps/android-sso-java/app/build/outputs/apk/debug/app-debug.apk` and contains only public client configuration plus the public Vercel backend URL.
+
+## Synthetic general-ledger analytics
+
+**Result: PASS.** Three synthetic agencies, three projects, three budget snapshots, and six double-entry journal entries were written to and read from eGovChain. All six entries balanced; the contract rejected a simulated unbalanced entry.
+
+| KPI | Result |
+|---|---:|
+| Journal entries / lines | 6 / 12 |
+| Total debit / credit | PHP 315,000,000 / PHP 315,000,000 |
+| Trial-balance difference | PHP 0 |
+| Accounting equation | PASS |
+| Deterministic review signals | 3 |
+
+General-ledger registry: `0x217AD680c000C66a84633Fc1c698C44c4a055B70`; deployment transaction: `0x0934aed7372e54c745120343336f2ee3aaeecb6ecc5803acd4bb56a6e448abb3`.
+
+The review signals are deliberately planted synthetic inconsistencies, not allegations or legal findings. Full reusable output is in `data/mock-government-ledger.json` and `apps/web/public/data/mock-government-analytics.json`.
+
+## Accountability registries
+
+**Result: PASS — 10/10 read-back and privacy checks**, total parallel read-back time **205.72 ms**.
+
+| Registry | Address | Deployment block | Verified record |
+|---|---|---:|---|
+| Benefit / eligibility / eMessage receipt | `0xcebC4bEaF86A06534644fbae7a776757dB98F098` | 158412 | program, pseudonymous eligibility, notification |
+| eReport / external evidence | `0x41F18fEA3BAd560bDfd8d8cB9E1e8f368e84095c` | 158416 | report commitment, unverified media signal |
+| eGovPay proof | `0x7E996e277505deab7deCf211e2e5C52268C18F19` | 158420 | private individual proof, public synthetic business proof |
+| OCR/document proof | `0xb65D9982683b834a307a143Dd33C2c6CC96aC7e6` | 158424 | public synthetic government document |
+
+The payment contract rejected plaintext individual fields, and the document contract rejected public metadata in private mode. Re-run the independent read-only verification with `pnpm kpi:accountability` after loading `.env` and `.local/tolvaris-registry.env`.
+
+## Live eGov AI orchestration KPI
+
+**Result: PASS — 9/9.** One main Assistant request successfully selected/ran Laws, Translator, and Speech; all selected tools returned output and the orchestration status was `ok`.
+
+| Tool | Response time |
+|---|---:|
+| Token | 140.51 ms |
+| Assistant | 9,179.48 ms |
+| Laws | 12,490.72 ms |
+| Translator | 11,607.01 ms |
+| Speech | 12,265.58 ms |
+| Total orchestration | 45,686.11 ms |
+
+The provider's Credits endpoint reported 200 before and after this run. Prompts, generated responses, tokens, and credentials are excluded from the saved KPI report.
