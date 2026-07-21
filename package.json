@@ -21,6 +21,7 @@
     "deploy:mock-government-ledger": "node tooling/deploy-mock-government-ledger.mjs",
     "deploy:accountability-registries": "node tooling/deploy-accountability-registries.mjs",
     "kpi:accountability": "node tooling/verify-accountability-registries.mjs",
+    "weekly:accountability-rag": "pnpm --filter @egov/application build && pnpm --filter @egov/adapters-egov-platform build && node tooling/run-weekly-accountability-rag.mjs",
     "export:simulated-results": "node tooling/export-simulated-test-results.mjs",
     "analyze:mock-government-ledger": "node tooling/analyze-mock-government-ledger.mjs"
   },

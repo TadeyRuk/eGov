@@ -54,6 +54,7 @@ B.A.N.G.O.N is an Android-first government-benefit coordination prototype with a
 | Blockchain normalization/privacy rules | [docs/tolvaris-ledgers.md](docs/tolvaris-ledgers.md) |
 | Accountability, analytics, news RAG, and OCR | [docs/accountability-and-analytics.md](docs/accountability-and-analytics.md) |
 | Government credential/document exchange | [docs/credential-exchange.md](docs/credential-exchange.md) |
+| Weekly graft/corruption RAG pipeline | [docs/weekly-accountability-rag.md](docs/weekly-accountability-rag.md) |
 | Synthetic transparency dashboard | [egov-hackathon.vercel.app/transparency.html](https://egov-hackathon.vercel.app/transparency.html) |
 
 The public website intentionally remains in **STAGING** mode: the official widget stays visible for integration demonstration and displays a warning that production citizen accounts may not work there.
@@ -135,6 +136,7 @@ Seed catalog (hackathon stub — no live agency benefit API among the 9 services
 | eReport accountability | Built; encrypted off-chain identity boundary, public commitments/status/disclosure decisions |
 | eGovPay proof registry | Built; private individual commitments and policy-gated plaintext business mode |
 | Public-interest news RAG | Built as an application use case; retrieved-source allowlist and `UNVERIFIED_MEDIA_SIGNAL` guardrail |
+| Weekly accountability RAG automation | Built; keyword-scoped retrieval → eGov AI normalized JSON → review-gated eReport drafts → optional on-chain unverified signal digests |
 | Government-document OCR | Built as an application use case; strict normalization and public/private document-proof modes |
 | Credential/document self-service gate | Built as a deterministic issuer/holder policy evaluator plus on-chain attestation/request/decision/release schema; external department connectors remain approval-dependent |
 | Multi-agency PSA cascade / barangay rollout | Vision only |

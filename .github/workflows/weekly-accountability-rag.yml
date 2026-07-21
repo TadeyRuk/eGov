@@ -1,0 +1,49 @@
+name: Weekly accountability RAG
+
+on:
+  schedule:
+    # Monday 09:00 Asia/Manila (01:00 UTC).
+    - cron: "0 1 * * 1"
+  workflow_dispatch:
+
+concurrency:
+  group: weekly-accountability-rag
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  normalize-and-anchor:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      EGOV_AI_ACCESS_CODE: ${{ secrets.EGOV_AI_ACCESS_CODE }}
+      EGOV_AI_BASE_URL: ${{ vars.EGOV_AI_BASE_URL }}
+      EGOVCHAIN_RPC_URL: ${{ secrets.EGOVCHAIN_RPC_URL }}
+      EGOVCHAIN_CHAIN_ID: ${{ vars.EGOVCHAIN_CHAIN_ID }}
+      EGOVCHAIN_SIGNER_PRIVATE_KEY: ${{ secrets.EGOVCHAIN_SIGNER_PRIVATE_KEY }}
+      TOLVARIS_REPORT_REGISTRY_ADDRESS: ${{ vars.TOLVARIS_REPORT_REGISTRY_ADDRESS }}
+      ACCOUNTABILITY_RAG_SOURCE_URLS_JSON: ${{ secrets.ACCOUNTABILITY_RAG_SOURCE_URLS_JSON }}
+      ACCOUNTABILITY_RAG_SOURCE_BEARER: ${{ secrets.ACCOUNTABILITY_RAG_SOURCE_BEARER }}
+      ACCOUNTABILITY_RAG_ALLOWED_DOMAINS: ${{ vars.ACCOUNTABILITY_RAG_ALLOWED_DOMAINS }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Normalize weekly evidence and publish unverified signal digests
+        run: pnpm weekly:accountability-rag -- --publish-chain
+      - name: Preserve machine-readable weekly report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: weekly-accountability-rag-${{ github.run_id }}
+          path: .local/reports/weekly-accountability-*.json
+          if-no-files-found: warn
+          retention-days: 90

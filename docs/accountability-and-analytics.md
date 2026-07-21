@@ -56,6 +56,8 @@ These are review signals, not findings. The mock dataset intentionally includes 
 
 `runPublicInterestNewsRag` accepts evidence from a bounded `NewsRetriever`, limits evidence to 20 items, and asks eGov AI to normalize only supplied metadata/snippets. It drops model-produced citations whose URL was not retrieved, marks every result `UNVERIFIED_MEDIA_SIGNAL`, and calls Laws only for possible legal context. On-chain storage is limited to source/project/claim digests, public source metadata, and review status.
 
+`runWeeklyAccountabilityRag` adds the scheduled batch layer: it searches only explicit English/Filipino public-integrity keywords, restricts evidence to the seven-day window, deduplicates URL/content-digest pairs, assigns a deterministic normalized category, and emits code-readable JSON plus `HUMAN_REVIEW_REQUIRED` eReport drafts. The scheduled job may automatically publish unverified signal digests to `TolvarisReportRegistry`; it never automatically files an eReport complaint or converts a media allegation into a finding. Full operations and source schema: [weekly public-integrity RAG](weekly-accountability-rag.md).
+
 News is a lead, never proof. Production retrieval must use an approved allowlist, preserve publisher/title/URL/published time/content digest, respect source terms, and require agency/COA/legal validation before any case action.
 
 ## Government-document OCR

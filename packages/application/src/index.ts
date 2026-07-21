@@ -12,3 +12,4 @@ export * from "./use-cases/government-document-ocr.js";
 export * from "./use-cases/credential-access.js";
 export * from "./use-cases/benefit-notifications.js";
 export * from "./use-cases/public-interest-news-rag.js";
+export * from "./use-cases/weekly-accountability-rag.js";

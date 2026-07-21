@@ -30,6 +30,7 @@ Ordered work from foundation to production line. Check items off in PRs; keep th
 - [x] DBM Compass GET `/api/v1/records/*` + fund parsing — **live smoke PASS (2026-07-22):** `GET /api/v1/records/saaodb ok (year=2026)`. BANGON `isFundedFromDbmResult` reads SAAODB cascade / record totals.
 - [x] Align adapter path maps with live dashboard docs (no invented endpoints) — Face Liveness, eReport, eGovPay digest, eMessage `number`, eGov AI paths, DBM GET records grounded. **Chain:** removed invented `egov_anchorHash`; `anchorBenefitMatch` is local hash + optional `EGOVCHAIN_ANCHOR_METHOD`
 - [x] Add `pnpm smoke:platform` runner (safe probes by default; `--write` for side effects) — confirmed working, this is how the above was run
+- [x] Weekly public-integrity RAG automation — Monday 09:00 Asia/Manila scheduler, explicit English/Filipino graft/corruption keyword gate, eGov AI normalized JSON, human-review-only eReport drafts, and optional `UNVERIFIED_MEDIA_SIGNAL` blockchain publication. Synthetic live chain round-trip passed at block `162644`; production schedule still requires repository secrets/variables and approved JSON evidence sources.
 
 > **Hardening smokes (2026-07-22):** targeted safe probes → **3 pass, 2 skip** (eReport, DBM, Pay GET). Face `--write` → **createSession PASS**. Pay `--write` generate → **422** (needs settlement/payload review). SSO still needs real `SMOKE_SSO_EXCHANGE_CODE`.
 

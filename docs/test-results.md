@@ -51,7 +51,7 @@ The credential/document self-service model adds four passing policy-gate tests: 
 
 | Check | Result |
 |---|---:|
-| Monorepo automated tests | PASS — 65/65 |
+| Monorepo automated tests | PASS — 68/68 |
 | TypeScript build/typecheck | PASS |
 | Repository hygiene/secret check | PASS |
 | Java Android debug APK build | PASS |
@@ -65,6 +65,8 @@ The credential/document self-service model adds four passing policy-gate tests: 
 The APK is generated at `apps/android-sso-java/app/build/outputs/apk/debug/app-debug.apk` and contains only public client configuration plus the public Vercel backend URL.
 
 The eMessage integration includes five passing categorized-notification policy tests plus one persistence contract test: all category templates, exact-context deduplication, same-category cooldown, five-message daily cap, requirements validation, and privacy-minimized delivery metadata. The actual eMessage sandbox push was also verified separately with an explicitly designated test recipient; phone numbers and message bodies are excluded from saved reports.
+
+The weekly accountability RAG adds three passing policy tests: explicit keyword filtering plus deterministic category/draft output, no AI call when nothing matches, and word-boundary protection against Filipino substring false positives. A live synthetic dry run retrieved one allowlisted item, produced one eGov AI-normalized `GHOST_PROJECT` signal and one `HUMAN_REVIEW_REQUIRED` eReport draft, then published and independently read back its `UNVERIFIED_MEDIA_SIGNAL` digests from eGovChain block `162644` (transaction `0xafa40b41f7dc28eac35be7ad51095071550b66a8d6a89210a0e433c32907c671`). No real allegation or complainant data was used.
 
 ## Safe nine-service platform smoke
 
