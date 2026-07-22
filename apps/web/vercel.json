@@ -1,6 +1,6 @@
 {
   "cleanUrls": true,
-  "installCommand": "true",
-  "buildCommand": "true",
-  "outputDirectory": "public"
+  "installCommand": "pnpm install --frozen-lockfile",
+  "buildCommand": "pnpm build",
+  "outputDirectory": "dist"
 }

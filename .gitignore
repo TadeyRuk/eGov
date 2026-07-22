@@ -20,3 +20,4 @@ secrets/
 .vercel
 .local/
 AGENTS.md
+.env*
