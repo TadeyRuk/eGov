@@ -5,7 +5,7 @@ import type {
   EVerifyQueryResult,
   PlatformJson,
 } from "@egov/application";
-import { ok, type Result } from "@egov/shared";
+import { appError, err, ok, type Result } from "@egov/shared";
 import {
   DEFAULT_BASE_URLS,
   envOrDefault,
@@ -75,6 +75,9 @@ export function createEVerifyAdapter(env: PlatformEnv): EVerifyPort {
       });
       if (!res.ok) return res;
       const token = extractEVerifyAccessToken(res.value.json);
+      if (!token.trim()) {
+        return err(appError("UNAVAILABLE", "eVerify auth response did not contain data.access_token"));
+      }
       return ok({ token, raw: res.value.json });
     },
 

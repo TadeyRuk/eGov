@@ -7,7 +7,6 @@ import {
   DISBURSE_LABELS,
   FEATURE_SCREENS,
   HOME_FEATURES,
-  MOCK_IDS,
   REPORT_CATS,
   TABS,
   type Benefit,
@@ -36,7 +35,13 @@ type CitizenProfile = {
   birthDate: string;
   civilStatus: string;
   vitalStatus: string;
+  email?: string;
+  contactNumber?: string;
 };
+
+// Live eGov integrations are the default. Enable the local seeded shell only
+// when explicitly requested with VITE_DEMO_MODE=true.
+const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
 
 /** Local demo session — skips SSO minting so the shell opens already signed in. */
 const DEMO_SESSION: {
@@ -64,9 +69,36 @@ function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
+function loadScriptOnce(id: string, src: string): Promise<void> {
+  const existing = document.getElementById(id) as HTMLScriptElement | null;
+  if (existing?.dataset.loaded === "true") return Promise.resolve();
+  return new Promise((resolve, reject) => {
+    const script = existing ?? document.createElement("script");
+    script.id = id;
+    script.src = src;
+    script.async = true;
+    script.defer = true;
+    script.addEventListener("load", () => {
+      script.dataset.loaded = "true";
+      resolve();
+    }, { once: true });
+    script.addEventListener("error", () => reject(new Error(`Unable to load ${src}`)), {
+      once: true,
+    });
+    if (!existing) document.body.append(script);
+  });
+}
+
 /** Local fallback matches when API/DBM are unavailable in the demo shell. */
 function demoFallbackMatches(): Array<{ id: string; benefitId: string }> {
   return BENEFITS.map((b) => ({ id: `demo-match-${b.id}`, benefitId: b.id }));
+}
+
+function demoTransparencyProjects(): Project[] {
+  return [
+    { id: "demo-project-1", title: "Senior Citizen Assistance", agency: "DSWD", location: "Quezon City", utilization: 82, status: "Ongoing", statusColor: "#D97706" },
+    { id: "demo-project-2", title: "PhilHealth Premium Subsidy", agency: "PhilHealth", location: "Cebu City", utilization: 100, status: "Completed", statusColor: "#16A34A" },
+  ];
 }
 
 function useDeferredOpen(open: boolean, durationMs = 280) {
@@ -122,18 +154,19 @@ export default function App() {
   const [screen, setScreen] = useState(0);
   const [navDir, setNavDir] = useState<NavDirection>("forward");
   const prevScreen = useRef(0);
-  const [philsysId, setPhilsysId] = useState("");
+  const [exchangeCode, setExchangeCode] = useState("");
+  const [identityDraft, setIdentityDraft] = useState({ firstName: "", lastName: "", birthDate: "" });
   const [idError, setIdError] = useState("");
   const [ssoLoading, setSsoLoading] = useState(false);
   const [scanning, setScanning] = useState(false);
   const [scanProgress, setScanProgress] = useState(0);
-  const [scanDone, setScanDone] = useState(false);
-  const [confidence, setConfidence] = useState(0);
+  const [scanDone, setScanDone] = useState(DEMO_MODE);
+  const [confidence, setConfidence] = useState(DEMO_MODE ? 98.4 : 0);
   const [everifyLoading, setEverifyLoading] = useState(false);
-  const [everifyDone, setEverifyDone] = useState(false);
+  const [everifyDone, setEverifyDone] = useState(DEMO_MODE);
   const [everifyError, setEverifyError] = useState("");
   const [profileView, setProfileView] = useState({ ...DEMO_SESSION.profile });
-  const [benefits, setBenefits] = useState<Benefit[]>([]);
+  const [benefits, setBenefits] = useState<Benefit[]>(DEMO_MODE ? BENEFITS : []);
   const [selectedBenefitId, setSelectedBenefitId] = useState<string | null>(null);
   const [disburseStep, setDisburseStep] = useState(0);
   const [disburseBusy, setDisburseBusy] = useState(false);
@@ -151,15 +184,17 @@ export default function App() {
   const [projectsError, setProjectsError] = useState("");
   const [projectsReportYear, setProjectsReportYear] = useState<number | null>(null);
 
-  const accessToken = useRef(DEMO_SESSION.accessToken);
-  const citizenId = useRef(DEMO_SESSION.citizenId);
+  const sessionKind = useRef<"" | "authenticated" | "demo">(DEMO_MODE ? "demo" : "");
+  const citizenId = useRef(DEMO_MODE ? DEMO_SESSION.citizenId : "");
   const livenessSessionToken = useRef("");
+  const eVerifyLivenessSessionId = useRef("");
   const profile = useRef({ ...DEMO_SESSION.profile });
   const matchIds = useRef<string[]>([]);
   const selectedMatchId = useRef("");
   const disbursedAmount = useRef(0);
   const projectsLoadedFor = useRef<number | null>(null);
   const [anchorHash, setAnchorHash] = useState("");
+  const [clientConfig, setClientConfig] = useState<Awaited<ReturnType<typeof api.clientConfig>> | null>(null);
   const [aiMessages, setAiMessages] = useState<AiMessage[]>([
     { role: "ai", text: "Kumusta! Ako si eGov AI. Anong gusto mong malaman tungkol sa iyong benepisyo?" },
   ]);
@@ -174,30 +209,60 @@ export default function App() {
     };
   }, []);
 
+  useEffect(() => {
+    if (DEMO_MODE) return;
+    let cancelled = false;
+    api.clientConfig()
+      .then(async (config) => {
+        if (cancelled) return;
+        setClientConfig(config);
+        if (config.sso.clientId) {
+          const values = {
+            "egov-environment": config.sso.environment || "STAGING",
+            "egov-client-id": config.sso.clientId,
+            "egov-sso-onsuccess": "onEgovSsoSuccess",
+          };
+          for (const [name, content] of Object.entries(values)) {
+            let meta = document.querySelector(`meta[name="${name}"]`) as HTMLMetaElement | null;
+            if (!meta) {
+              meta = document.createElement("meta");
+              meta.name = name;
+              document.head.append(meta);
+            }
+            meta.content = content;
+          }
+          await loadScriptOnce(
+            "egov-sso-widget-script",
+            "https://widgets.e.gov.ph/egov-hackathon-sso-widget.js",
+          );
+        }
+        if (config.eVerify.publicKey) {
+          await loadScriptOnce(
+            "egov-everify-liveness-script",
+            "https://hackathon-everify-face-liveness.e.gov.ph/js/everify-liveness-sdk.min.js",
+          );
+        }
+      })
+      .catch(() => {
+        if (!cancelled) setApiError("Hindi makuha ang public client configuration ng backend.");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
   // Demo shell: pull DBM-gated matches immediately so Benepisyo isn't empty.
   useEffect(() => {
-    if (!isDemoSession(accessToken.current)) return;
+    if (!isDemoSession(sessionKind.current)) return;
     let cancelled = false;
-    (async () => {
-      try {
-        await loadBenefitMatches(DEMO_SESSION.citizenId);
-        if (cancelled) return;
-        setScanDone(true);
-        setConfidence(98.4);
-        livenessSessionToken.current = "demo-liveness-session";
-        setEverifyDone(true);
-      } catch {
-        if (cancelled) return;
-        // Offline demo fallback — still walk the happy path without live API.
-        const fallback = demoFallbackMatches();
-        matchIds.current = fallback.map((m) => m.id);
-        setBenefits(enrichMatches(fallback));
-        setScanDone(true);
-        setConfidence(98.4);
-        livenessSessionToken.current = "demo-liveness-session";
-        setEverifyDone(true);
-      }
-    })();
+    const fallback = demoFallbackMatches();
+    matchIds.current = fallback.map((m) => m.id);
+    setBenefits(enrichMatches(fallback));
+    setScanDone(true);
+    setConfidence(98.4);
+    livenessSessionToken.current = "demo-liveness-session";
+    eVerifyLivenessSessionId.current = "demo-everify-session";
+    setEverifyDone(true);
     return () => {
       cancelled = true;
     };
@@ -207,6 +272,14 @@ export default function App() {
   useEffect(() => {
     if (screen !== 6 && screen !== 7) return;
     if (projectsLoadedFor.current !== null && projects.length > 0) return;
+
+    if (DEMO_MODE) {
+      setProjects(demoTransparencyProjects());
+      projectsLoadedFor.current = new Date().getFullYear();
+      setProjectsLoading(false);
+      setProjectsError("");
+      return;
+    }
 
     let cancelled = false;
     setProjectsLoading(true);
@@ -251,6 +324,9 @@ export default function App() {
   }, [screen, projects.length]);
 
   const goTo = (nextScreen: number) => {
+    // Demo users are already authenticated and verified; keep all identity
+    // gates out of the local presentation flow.
+    if (DEMO_MODE && nextScreen >= 1 && nextScreen <= 3) nextScreen = 4;
     setNavDir(nextScreen >= prevScreen.current ? "forward" : "back");
     prevScreen.current = nextScreen;
     setScreen(nextScreen);
@@ -267,33 +343,37 @@ export default function App() {
   const backToBenefits = () => goTo(4);
   const goTransparency = () => goTo(6);
 
-  const onPhilsysChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const digits = e.target.value.replace(/\D/g, "").slice(0, 16);
-    const groups = digits.match(/.{1,4}/g) || [];
-    setPhilsysId(groups.join("-"));
+  const onExchangeCodeChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setExchangeCode(e.target.value.slice(0, 512));
     setIdError("");
   };
 
-  const signIn = () => {
-    const digits = philsysId.replace(/\D/g, "");
-    if (digits.length !== 16) {
-      setIdError("Ilagay ang tamang 16-digit na PhilSys number.");
+  const signIn = (widgetExchangeCode?: string) => {
+    const code = (widgetExchangeCode ?? exchangeCode).trim();
+    if (!code) {
+      setIdError("Kailangan ang one-time eGovPH SSO exchange code.");
       return;
     }
     setSsoLoading(true);
     setApiError("");
     (async () => {
       try {
-        const exchange = await api.exchangeSso(digits);
-        accessToken.current = exchange.accessToken;
-        const p = await api.ssoProfile(exchange.accessToken);
+        const completed = await api.completeSso(code);
+        const p = completed.profile;
+        if (!p.uniqid || !p.firstName || !p.lastName || !p.birthdate) {
+          throw new Error("SSO profile is missing required minimum fields");
+        }
         const nextProfile = {
           firstName: p.firstName,
           lastName: p.lastName,
-          birthDate: p.birthDate,
-          civilStatus: p.civilStatus,
-          vitalStatus: p.vitalStatus,
+          birthDate: p.birthdate,
+          civilStatus: "",
+          vitalStatus: "",
+          ...(p.email ? { email: p.email } : {}),
+          ...(p.contactNumber ? { contactNumber: p.contactNumber } : {}),
         };
+        sessionKind.current = "authenticated";
+        citizenId.current = p.uniqid;
         profile.current = nextProfile;
         setProfileView(nextProfile);
         setSsoLoading(false);
@@ -305,6 +385,37 @@ export default function App() {
     })();
   };
 
+  useEffect(() => {
+    window.onEgovSsoSuccess = (code) => {
+      signIn(code);
+    };
+    return () => {
+      delete window.onEgovSsoSuccess;
+    };
+  });
+
+  const useDemoSession = () => {
+    sessionKind.current = "demo";
+    citizenId.current = DEMO_SESSION.citizenId;
+    profile.current = { ...DEMO_SESSION.profile };
+    setProfileView({ ...DEMO_SESSION.profile });
+    setIdError("");
+    goTo(2);
+  };
+
+  const continueEverifyOnly = () => {
+    if (!identityDraft.firstName.trim() || !identityDraft.lastName.trim() || !identityDraft.birthDate) {
+      setIdError("Ilagay ang first name, last name, at birth date para sa eVerify.");
+      return;
+    }
+    profile.current = { ...profile.current, ...identityDraft };
+    setProfileView(profile.current);
+    sessionKind.current = "authenticated";
+    citizenId.current = `everify-${identityDraft.firstName.trim().toLowerCase()}-${identityDraft.birthDate}`;
+    setIdError("");
+    goTo(2);
+  };
+
   const startScan = () => {
     setScanning(true);
     setScanProgress(0);
@@ -312,8 +423,9 @@ export default function App() {
     setApiError("");
     (async () => {
       // Demo shell: simulate Face Liveness so the journey works without a live capture.
-      if (isDemoSession(accessToken.current)) {
+      if (isDemoSession(sessionKind.current)) {
         livenessSessionToken.current = "demo-liveness-session";
+        eVerifyLivenessSessionId.current = "demo-everify-session";
         scanTimer.current = setInterval(() => {
           setScanProgress((p) => Math.min(92, p + 10 + Math.random() * 8));
         }, 140);
@@ -326,17 +438,39 @@ export default function App() {
         return;
       }
       try {
+        if (!clientConfig?.eVerify.publicKey || !window.eKYC) {
+          throw new Error("eVerify Web SDK is not configured");
+        }
+        const captureWindow = window.open("about:blank", "bangon-face-liveness");
         const session = await api.createLivenessSession("post");
-        livenessSessionToken.current = session.sessionToken;
+        livenessSessionToken.current = session.token;
+        if (captureWindow) captureWindow.location.href = session.url;
+        else window.open(session.url, "_blank", "noopener,noreferrer");
         scanTimer.current = setInterval(() => {
           setScanProgress((p) => Math.min(90, p + 8 + Math.random() * 8));
-        }, 160);
-        const result = await api.getLivenessResult(session.sessionToken);
+        }, 1000);
+        let result = await api.getLivenessResult(session.token);
+        for (let attempt = 0; !result.passed && attempt < 59; attempt += 1) {
+          if (["FAILED", "EXPIRED", "CANCELLED"].includes(result.status.toUpperCase())) break;
+          await wait(2000);
+          result = await api.getLivenessResult(session.token);
+        }
+        if (!result.passed) {
+          throw new Error(`Face Liveness did not pass (${result.status})`);
+        }
+        const sdkResult = await window.eKYC().start({
+          pubKey: clientConfig.eVerify.publicKey,
+        });
+        const sdkSessionId = sdkResult.result?.session_id?.trim() ?? "";
+        if (sdkResult.status !== "COMPLETED" || !sdkSessionId) {
+          throw new Error("eVerify liveness was not completed");
+        }
+        eVerifyLivenessSessionId.current = sdkSessionId;
         if (scanTimer.current) clearInterval(scanTimer.current);
         setScanning(false);
         setScanDone(true);
         setScanProgress(100);
-        setConfidence(result.confidence ?? 97.8);
+        setConfidence(result.confidence ?? 0);
       } catch (err) {
         if (scanTimer.current) clearInterval(scanTimer.current);
         setScanning(false);
@@ -359,7 +493,7 @@ export default function App() {
       setBenefits(enrichMatches(matches));
       return matches;
     } catch (err) {
-      if (!isDemoSession(accessToken.current)) throw err;
+      if (!isDemoSession(sessionKind.current)) throw err;
       const fallback = demoFallbackMatches();
       matchIds.current = fallback.map((m) => m.id);
       setBenefits(enrichMatches(fallback));
@@ -376,23 +510,32 @@ export default function App() {
     (async () => {
       try {
         // Demo shell has no real SSO token — skip live eVerify and match on seeded profile.
-        if (isDemoSession(accessToken.current)) {
+        if (isDemoSession(sessionKind.current)) {
           citizenId.current = DEMO_SESSION.citizenId;
           await loadBenefitMatches(DEMO_SESSION.citizenId);
           setEverifyLoading(false);
           setEverifyDone(true);
           return;
         }
+        if (!citizenId.current) {
+          throw new Error("SSO profile has no stable citizen identifier");
+        }
         const confirmed = await api.confirmIdentity({
-          token: accessToken.current,
           sessionToken: livenessSessionToken.current,
-          faceLivenessSessionId: livenessSessionToken.current,
+          faceLivenessSessionId: eVerifyLivenessSessionId.current,
           firstName: profile.current.firstName,
           lastName: profile.current.lastName,
           birthDate: profile.current.birthDate,
         });
-        citizenId.current = confirmed.citizenId;
-        await loadBenefitMatches(confirmed.citizenId);
+        const verifiedProfile = {
+          ...profile.current,
+          birthDate: confirmed.dateOfBirth,
+          civilStatus: confirmed.civilStatus,
+          vitalStatus: confirmed.vitalStatus,
+        };
+        profile.current = verifiedProfile;
+        setProfileView(verifiedProfile);
+        await loadBenefitMatches(citizenId.current);
         setEverifyLoading(false);
         setEverifyDone(true);
       } catch (err) {
@@ -412,7 +555,12 @@ export default function App() {
   useEffect(() => {
     if (screen !== 3) return;
     if (everifyDone || everifyLoading || everifyError) return;
-    if (scanDone && accessToken.current && livenessSessionToken.current) {
+    if (
+      scanDone &&
+      sessionKind.current &&
+      livenessSessionToken.current &&
+      eVerifyLivenessSessionId.current
+    ) {
       runEverify();
     }
     // intentionally only when landing on screen 3
@@ -434,7 +582,7 @@ export default function App() {
     setDisburseBusy(true);
     setApiError("");
     const matchId = selectedMatchId.current;
-    const demo = isDemoSession(accessToken.current) || matchId.startsWith("demo-match-");
+    const demo = isDemoSession(sessionKind.current) || matchId.startsWith("demo-match-");
     (async () => {
       try {
         if (demo) {
@@ -451,16 +599,18 @@ export default function App() {
           disbursedAmount.current = 1000;
           void result;
         } else if (disburseStep === 2) {
-          await api.notify(matchId, "09171234567");
+          const phone = profile.current.contactNumber?.trim();
+          if (!phone) throw new Error("Walang mobile number sa consented SSO profile para sa eMessage");
+          await api.notify(matchId, phone);
         } else if (disburseStep === 3) {
           const anchored = await api.anchor(matchId);
-          setAnchorHash(anchored.anchorHash);
+          setAnchorHash(anchored.hash);
         }
         setDisburseStep((s) => s + 1);
         setDisburseBusy(false);
       } catch (err) {
         setDisburseBusy(false);
-        setApiError(err instanceof ApiError ? `BANGON error (${err.status})` : "BANGON connection failed");
+        setApiError(err instanceof ApiError ? `BANGON error (${err.status})` : err instanceof Error ? err.message : "BANGON connection failed");
       }
     })();
   };
@@ -520,6 +670,13 @@ export default function App() {
       ]);
       return;
     }
+    if (DEMO_MODE || isDemoSession(sessionKind.current)) {
+      setAiMessages((m) => [...m, {
+        role: "ai",
+        text: "Batay sa demo PhilSys profile at DBM review, kwalipikado ka sa napiling benepisyo. Ito ay simulated result lamang.",
+      }]);
+      return;
+    }
     setAiBusy(true);
     (async () => {
       try {
@@ -552,29 +709,29 @@ export default function App() {
     setApiError("");
     (async () => {
       try {
-        if (isDemoSession(accessToken.current)) {
+        if (isDemoSession(sessionKind.current)) {
           await wait(500);
           setCaseId(`DEMO-CASE-${Date.now().toString(36).toUpperCase()}`);
           setReportSubmitted(true);
           return;
         }
         const result = await api.reportNonDelivery({
-          accessToken: accessToken.current,
+          accessToken: "",
           citizenId: citizenId.current,
           benefitId: selectedBenefitId ?? "",
           benefitTitle: selectedBenefit.title,
-          mobile: "09171234567",
+          mobile: profile.current.contactNumber ?? "",
           firstName: profile.current.firstName,
           lastName: profile.current.lastName,
           gender: "unspecified",
-          email: "",
+          email: profile.current.email ?? "",
           description: `${reportCategory}: ${reportText.trim()}`,
           regionCode: "",
           provinceCode: "",
           municipalityCode: "",
           barangayCode: "",
         });
-        setCaseId(result.caseId);
+        setCaseId(result.caseNumber);
         setReportSubmitted(true);
       } catch (err) {
         setApiError(err instanceof ApiError ? `eReport error (${err.status})` : "eReport connection failed");
@@ -613,22 +770,25 @@ export default function App() {
         )}
         <div style={{ flex: 1, minHeight: 0, paddingBottom: 96, position: "relative", overflow: "hidden" }}>
           <div key={screen} className={`screen-pane screen-pane-${navDir}`}>
-            {screen === 0 && <OnboardingScreen onStart={next} onGoTo={goTo} />}
-            {screen === 1 && (
+            {screen === 0 && <OnboardingScreen demoMode={DEMO_MODE} onStart={next} onGoTo={goTo} />}
+            {screen === 1 && !DEMO_MODE && (
               <SsoScreen
-                philsysId={philsysId}
+                exchangeCode={exchangeCode}
                 idError={idError}
                 ssoLoading={ssoLoading}
+                ssoEnvironment={clientConfig?.sso.environment ?? "STAGING"}
+                ssoConfigured={Boolean(clientConfig?.sso.clientId)}
+                demoMode={DEMO_MODE}
                 onBack={back}
-                onChange={onPhilsysChange}
-                onUseMock={(id) => {
-                  setPhilsysId(id);
-                  setIdError("");
-                }}
-                onSignIn={signIn}
+                onChange={onExchangeCodeChange}
+                onUseDemo={useDemoSession}
+                onSignIn={() => signIn()}
+                identityDraft={identityDraft}
+                onIdentityChange={(field, value) => setIdentityDraft((draft) => ({ ...draft, [field]: value }))}
+                onContinueEverifyOnly={continueEverifyOnly}
               />
             )}
-            {screen === 2 && (
+            {screen === 2 && !DEMO_MODE && (
               <FaceScanScreen
                 scanning={scanning}
                 scanProgress={scanProgress}
@@ -639,13 +799,13 @@ export default function App() {
                 onContinue={continueFromScan}
               />
             )}
-            {screen === 3 && (
+            {screen === 3 && !DEMO_MODE && (
               <EverifyScreen
                 everifyLoading={everifyLoading}
                 everifyDone={everifyDone}
                 everifyError={everifyError}
                 scanDone={scanDone}
-                hasSession={Boolean(accessToken.current)}
+                hasSession={Boolean(sessionKind.current)}
                 profile={profileView}
                 onBack={() => goTo(0)}
                 onNext={() => goTo(4)}
@@ -653,16 +813,16 @@ export default function App() {
                   setEverifyError("");
                   runEverify();
                 }}
-                onGoScan={() => goTo(accessToken.current ? 2 : 1)}
+                onGoScan={() => goTo(sessionKind.current ? 2 : 1)}
               />
             )}
-            {screen === 4 && (
+            {(screen === 4 || (DEMO_MODE && screen >= 1 && screen <= 3)) && (
               <BenefitsScreen
                 benefits={benefits}
                 everifyDone={everifyDone}
                 onBack={() => goTo(0)}
                 onSelect={selectBenefit}
-                onGoVerify={() => goTo(everifyDone ? 3 : scanDone ? 3 : accessToken.current ? 2 : 1)}
+                onGoVerify={() => goTo(everifyDone ? 3 : scanDone ? 3 : sessionKind.current ? 2 : 1)}
               />
             )}
             {screen === 5 && (
@@ -717,12 +877,12 @@ export default function App() {
                 disburseDone={disburseDone}
                 disburseStep={disburseStep}
                 anchorHash={anchorHash}
-                hasSession={Boolean(accessToken.current)}
+                hasSession={Boolean(sessionKind.current)}
                 everifyDone={everifyDone}
                 onBack={() => goTo(0)}
                 onGoDisburse={() => goTo(5)}
                 onGoBenefits={() => goTo(4)}
-                onGoVerify={() => goTo(accessToken.current ? (scanDone ? 3 : 2) : 1)}
+                onGoVerify={() => goTo(sessionKind.current ? (scanDone ? 3 : 2) : 1)}
               />
             )}
           </div>
@@ -1100,7 +1260,7 @@ export default function App() {
   );
 }
 
-function OnboardingScreen({ onStart, onGoTo }: { onStart: () => void; onGoTo: (screen: number) => void }) {
+function OnboardingScreen({ demoMode, onStart, onGoTo }: { demoMode: boolean; onStart: () => void; onGoTo: (screen: number) => void }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", padding: "18px 20px 24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -1266,7 +1426,9 @@ function OnboardingScreen({ onStart, onGoTo }: { onStart: () => void; onGoTo: (s
         </div>
       </div>
 
-      <button
+      {demoMode ? <div style={{ marginTop: 22, padding: "13px 16px", borderRadius: 22, background: "#ECFDF5", color: "#047857", textAlign: "center", fontSize: 13, fontWeight: 700 }}>
+        Demo mode · Naka-sign in at pre-verified
+      </div> : <button
         style={{
           background: "#0F766E",
           color: "#fff",
@@ -1281,7 +1443,7 @@ function OnboardingScreen({ onStart, onGoTo }: { onStart: () => void; onGoTo: (s
         onClick={onStart}
       >
         Simulan ang B.A.N.G.O.N
-      </button>
+      </button>}
       <div style={{ textAlign: "center", fontSize: 11.5, color: "#94A3A0", marginTop: 12 }}>
         Opisyal na serbisyo ng pamahalaan · eGov PH
       </div>
@@ -1315,21 +1477,33 @@ function BackHeader({ title, onBack }: { title: string; onBack: () => void }) {
 }
 
 function SsoScreen({
-  philsysId,
+  exchangeCode,
   idError,
   ssoLoading,
+  ssoEnvironment,
+  ssoConfigured,
+  demoMode,
   onBack,
   onChange,
-  onUseMock,
+  onUseDemo,
   onSignIn,
+  identityDraft,
+  onIdentityChange,
+  onContinueEverifyOnly,
 }: {
-  philsysId: string;
+  exchangeCode: string;
   idError: string;
   ssoLoading: boolean;
+  ssoEnvironment: string;
+  ssoConfigured: boolean;
+  demoMode: boolean;
   onBack: () => void;
   onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  onUseMock: (id: string) => void;
+  onUseDemo: () => void;
   onSignIn: () => void;
+  identityDraft: { firstName: string; lastName: string; birthDate: string };
+  onIdentityChange: (field: "firstName" | "lastName" | "birthDate", value: string) => void;
+  onContinueEverifyOnly: () => void;
 }) {
   return (
     <div style={{ display: "flex", flexDirection: "column", minHeight: "100%" }}>
@@ -1354,14 +1528,33 @@ function SsoScreen({
           </div>
           <div>
             <div style={{ fontSize: 14.5, fontWeight: 700, color: "#1F2937" }}>eGovPH SSO</div>
-            <div style={{ fontSize: 12, color: "#5B6B76" }}>Opisyal na secure sign-in gateway</div>
+            <div style={{ fontSize: 12, color: "#5B6B76" }}>Opisyal na secure sign-in gateway · {ssoEnvironment}</div>
           </div>
         </div>
-        <label style={{ fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }}>PhilSys Number (PCN)</label>
+        <div id="egov-sso-widget-button" style={{ minHeight: 48 }} />
+        <div id="egov-sso-widget-portal" />
+        <div style={{ margin: "18px 0 10px", paddingTop: 16, borderTop: "1px solid #E2E8F0" }}>
+          <div style={{ fontSize: 14, fontWeight: 700, color: "#1F2937" }}>Gamitin ang eVerify nang walang SSO</div>
+          <div style={{ fontSize: 12, color: "#64748B", margin: "4px 0 10px" }}>Ilagay ang demographics, pagkatapos ay kukunin ng backend ang eVerify Bearer token.</div>
+          <div style={{ display: "grid", gap: 8 }}>
+            <input aria-label="First name" value={identityDraft.firstName} onChange={(e) => onIdentityChange("firstName", e.target.value)} placeholder="First name" style={{ border: "1.5px solid #DCE3E1", borderRadius: 12, padding: 12, fontSize: 14 }} />
+            <input aria-label="Last name" value={identityDraft.lastName} onChange={(e) => onIdentityChange("lastName", e.target.value)} placeholder="Last name" style={{ border: "1.5px solid #DCE3E1", borderRadius: 12, padding: 12, fontSize: 14 }} />
+            <input aria-label="Birth date" type="date" value={identityDraft.birthDate} onChange={(e) => onIdentityChange("birthDate", e.target.value)} style={{ border: "1.5px solid #DCE3E1", borderRadius: 12, padding: 12, fontSize: 14 }} />
+          </div>
+          <button type="button" onClick={onContinueEverifyOnly} style={{ width: "100%", marginTop: 10, background: "#2563EB", color: "#fff", border: "none", borderRadius: 20, padding: 13, fontWeight: 700, cursor: "pointer" }}>Magpatuloy sa eVerify</button>
+        </div>
+        {!ssoConfigured && (
+          <div style={{ color: "#B45309", fontSize: 12.5, marginBottom: 12 }}>
+            Hindi pa configured ang public SSO client ID sa backend.
+          </div>
+        )}
+        <label style={{ fontSize: 13, fontWeight: 600, color: "#334155", marginBottom: 6 }}>
+          One-time exchange code (staging/manual test)
+        </label>
         <input
-          value={philsysId}
+          value={exchangeCode}
           onChange={onChange}
-          placeholder="0000-0000-0000-0000"
+          placeholder="I-paste ang dashboard-issued exchange code"
           style={{
             border: "1.5px solid #DCE3E1",
             borderRadius: 20,
@@ -1373,32 +1566,15 @@ function SsoScreen({
           }}
         />
         {idError && <div style={{ color: "#B91C1C", fontSize: 12.5, marginTop: 6 }}>{idError}</div>}
-        <div style={{ fontSize: 11.5, fontWeight: 700, color: "#94A3A0", textTransform: "uppercase", letterSpacing: 0.5, marginTop: 20 }}>
-          Mock PhilSys ID (para sa demo)
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: 8, marginTop: 8 }}>
-          {MOCK_IDS.map((m) => (
-            <div
-              key={m.id}
-              style={{
-                display: "flex",
-                justifyContent: "space-between",
-                alignItems: "center",
-                border: "1.5px solid #E2E8F0",
-                borderRadius: 20,
-                padding: "11px 14px",
-                cursor: "pointer",
-              }}
-              onClick={() => onUseMock(m.id)}
-            >
-              <div>
-                <div style={{ fontSize: 13, fontWeight: 700, color: "#1F2937" }}>{m.name}</div>
-                <div style={{ fontSize: 11.5, color: "#94A3A0", letterSpacing: 0.5 }}>{m.id}</div>
-              </div>
-              <span style={{ fontSize: 11, fontWeight: 700, color: "#2563EB" }}>Gamitin</span>
-            </div>
-          ))}
-        </div>
+        {demoMode && (
+          <button
+            type="button"
+            onClick={onUseDemo}
+            style={{ marginTop: 14, border: "1.5px solid #E2E8F0", borderRadius: 20, padding: 12, background: "#fff", color: "#2563EB", fontWeight: 700, cursor: "pointer" }}
+          >
+            Gumamit ng synthetic demo identity
+          </button>
+        )}
         <div style={{ flex: 1 }} />
         <button
           style={{

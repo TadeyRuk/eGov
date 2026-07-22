@@ -244,7 +244,6 @@ export type ConfirmCitizenIdentityDeps = {
 };
 
 export type ConfirmCitizenIdentityInput = {
-  readonly token: string;
   readonly liveness: FaceLivenessResult;
   /** eVerify Face Liveness Web SDK `result.session_id`. */
   readonly faceLivenessSessionId: string;
@@ -295,8 +294,14 @@ export async function confirmCitizenIdentity(
   const suffix = input.suffix?.trim();
   if (suffix) payload.suffix = suffix;
 
+  // eVerify client credentials and bearer tokens are server-side concerns.
+  // Authenticate immediately before the query instead of accepting a token
+  // from an untrusted browser/mobile client.
+  const authenticated = await deps.eVerify.authenticate();
+  if (!authenticated.ok) return authenticated;
+
   const verified = await deps.eVerify.verifyPersonalInfo({
-    token: input.token,
+    token: authenticated.value.token,
     payload,
   });
   if (!verified.ok) return verified;

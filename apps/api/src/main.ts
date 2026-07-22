@@ -138,6 +138,22 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/client/config") {
+      send(res, 200, {
+        sso: {
+          environment: process.env.EGOV_SSO_ENV?.trim().toUpperCase() || "STAGING",
+          clientId:
+            process.env.EGOV_SSO_CLIENT_ID?.trim() ||
+            process.env.EGOV_SSO_PARTNER_CODE?.trim() ||
+            "",
+        },
+        eVerify: {
+          publicKey: process.env.EVERIFY_PUBLIC_KEY?.trim() || "",
+        },
+      });
+      return;
+    }
+
     if (method === "POST" && url.pathname === "/ai/orchestrate") {
       const body = (await readJson(req)) as {
         prompt: string;
@@ -283,7 +299,6 @@ const server = createServer(async (req, res) => {
 
     if (method === "POST" && url.pathname === "/bangon/confirm-identity") {
       const body = (await readJson(req)) as {
-        token: string;
         sessionToken?: string;
         sessionId?: string;
         faceLivenessSessionId: string;

@@ -1,4 +1,4 @@
-const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8787";
+const API_BASE = (import.meta.env.VITE_API_BASE ?? "http://localhost:8787").replace(/\/$/, "");
 
 export class ApiError extends Error {
   status: number;
@@ -26,30 +26,57 @@ const get = <T>(path: string) => request<T>(path);
 
 export type SsoExchangeResult = { accessToken: string; scope?: string };
 export type SsoProfile = {
-  firstName: string;
-  lastName: string;
+  uniqid?: string;
+  fullName?: string;
+  firstName?: string;
+  lastName?: string;
   middleName?: string;
-  suffix?: string;
-  birthDate: string;
+  birthdate?: string;
+  address?: string;
+  email?: string;
+  contactNumber?: string;
+};
+
+export type ClientConfig = {
+  sso: { environment: string; clientId: string };
+  eVerify: { publicKey: string };
+};
+
+export type EligibilityProfile = {
+  dateOfBirth: string;
   civilStatus: string;
   vitalStatus: string;
 };
 
+export type BenefitNotificationResult = {
+  status:
+    | "SENT"
+    | "SUPPRESSED_DUPLICATE"
+    | "SUPPRESSED_CATEGORY_COOLDOWN"
+    | "SUPPRESSED_DAILY_LIMIT";
+  category: string;
+  deliveryId?: string;
+};
+
 export const api = {
+  clientConfig: () => get<ClientConfig>("/client/config"),
   exchangeSso: (exchangeCode: string) =>
     post<SsoExchangeResult>("/auth/sso/exchange", { exchangeCode }),
   ssoProfile: (accessToken: string) =>
     post<SsoProfile>("/auth/sso/profile", { accessToken }),
+  completeSso: (exchangeCode: string) =>
+    post<{ authenticated: true; profile: SsoProfile }>("/auth/sso/complete", {
+      exchangeCode,
+    }),
 
   createLivenessSession: (action: "redirect" | "post" | "close" = "post") =>
-    post<{ sessionToken: string; url?: string }>("/bangon/liveness/session", { action }),
+    post<{ token: string; url: string }>("/bangon/liveness/session", { action }),
   getLivenessResult: (sessionToken: string) =>
-    get<{ status: string; confidence?: number }>(
+    get<{ status: string; confidence: number | null; passed: boolean }>(
       `/bangon/liveness/result/${encodeURIComponent(sessionToken)}`,
     ),
 
   confirmIdentity: (input: {
-    token: string;
     sessionToken: string;
     faceLivenessSessionId: string;
     firstName: string;
@@ -57,7 +84,7 @@ export const api = {
     birthDate: string;
     middleName?: string;
     suffix?: string;
-  }) => post<{ citizenId: string }>("/bangon/confirm-identity", input),
+  }) => post<EligibilityProfile>("/bangon/confirm-identity", input),
 
   findMatches: (input: {
     citizenId: string;
@@ -69,11 +96,14 @@ export const api = {
     ),
 
   notify: (matchId: string, citizenPhone: string) =>
-    post<{ delivered: boolean }>(`/bangon/matches/${matchId}/notify`, { citizenPhone }),
+    post<BenefitNotificationResult>(`/bangon/matches/${matchId}/notify`, {
+      citizenPhone,
+      category: "QUALIFICATION_RESULT",
+    }),
   disburse: (matchId: string, amount: number) =>
-    post<{ reference: string }>(`/bangon/matches/${matchId}/disburse`, { amount }),
+    post<{ transactionId?: string }>(`/bangon/matches/${matchId}/disburse`, { amount }),
   anchor: (matchId: string) =>
-    post<{ anchorHash: string }>(`/bangon/matches/${matchId}/anchor`, {}),
+    post<{ hash: string; chainSubmitted: boolean }>(`/bangon/matches/${matchId}/anchor`, {}),
   explain: (matchId: string) =>
     post<{ explanation: string }>(`/bangon/matches/${matchId}/explain`, {}),
 
@@ -92,7 +122,7 @@ export const api = {
     provinceCode: string;
     municipalityCode: string;
     barangayCode: string;
-  }) => post<{ caseId: string }>("/bangon/report-non-delivery", input),
+  }) => post<{ caseNumber: string }>("/bangon/report-non-delivery", input),
 
   transparencyProjects: (query?: {
     programCode?: string;

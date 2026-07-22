@@ -125,7 +125,6 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
   };
 
   const baseInput = {
-    token: "t",
     faceLivenessSessionId: "sdk-session-1",
     firstName: "Juan",
     lastName: "Dela Cruz",
@@ -187,6 +186,40 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     const profile: CitizenEligibilityProfile = result.value;
     assert.equal(profile.civilStatus, "WIDOWED");
     assert.equal(profile.vitalStatus, "ALIVE");
+  });
+
+  it("uses a server-minted eVerify token for the personal-info query", async () => {
+    let receivedToken = "";
+    const tokenCheckingPort: EVerifyPort = {
+      ...eVerify,
+      async authenticate() {
+        return ok({ token: "server-token", raw: {} });
+      },
+      async verifyPersonalInfo(input) {
+        receivedToken = input.token;
+        return ok({
+          raw: {
+            date_of_birth: "1950-01-01",
+            civil_status: "widowed",
+            vital_status: "alive",
+          },
+        });
+      },
+    };
+    const result = await confirmCitizenIdentity(
+      { eVerify: tokenCheckingPort },
+      {
+        ...baseInput,
+        liveness: {
+          status: "SUCCEEDED",
+          confidence: 99,
+          passed: true,
+          raw: {},
+        },
+      },
+    );
+    assert.equal(result.ok, true);
+    assert.equal(receivedToken, "server-token");
   });
 
   it("rejects invalid date of birth", async () => {

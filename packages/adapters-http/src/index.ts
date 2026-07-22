@@ -193,7 +193,6 @@ export type BangonHttpDeps = ConfirmCitizenIdentityDeps &
 
 export type BangonHttpHandlers = {
   confirmIdentity(body: {
-    token: string;
     /** Face Liveness API session token from createSession. */
     sessionToken?: string;
     /** Alias for sessionToken. */
@@ -285,7 +284,6 @@ export function createBangonHttpHandlers(
       const liveness = await getFaceLivenessResult(deps, { sessionToken });
       if (!liveness.ok) return toHttpResponse(liveness);
       const profile = await confirmCitizenIdentity(deps, {
-        token: body.token,
         liveness: liveness.value,
         faceLivenessSessionId: body.faceLivenessSessionId,
         firstName: body.firstName,
@@ -433,9 +431,10 @@ export function createAuthHttpHandlers(deps: AuthHttpDeps): AuthHttpHandlers {
         },
       );
       if (!result.ok) return toHttpResponse(result);
+      const { raw: _raw, ...profile } = result.value;
       return {
         status: 200,
-        body: { authenticated: true, profile: result.value.raw },
+        body: { authenticated: true, profile },
       };
     },
   };
