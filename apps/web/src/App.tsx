@@ -441,23 +441,12 @@ export default function App() {
         if (!clientConfig?.eVerify.publicKey || !window.eKYC) {
           throw new Error("eVerify Web SDK is not configured");
         }
-        const captureWindow = window.open("about:blank", "bangon-face-liveness");
-        const session = await api.createLivenessSession("post");
-        livenessSessionToken.current = session.token;
-        if (captureWindow) captureWindow.location.href = session.url;
-        else window.open(session.url, "_blank", "noopener,noreferrer");
+        // The eVerify SDK itself performs the required live-person capture and
+        // returns its session id. Do not open the separate Face Liveness API
+        // here: that would make citizens complete two biometric checks.
         scanTimer.current = setInterval(() => {
           setScanProgress((p) => Math.min(90, p + 8 + Math.random() * 8));
         }, 1000);
-        let result = await api.getLivenessResult(session.token);
-        for (let attempt = 0; !result.passed && attempt < 59; attempt += 1) {
-          if (["FAILED", "EXPIRED", "CANCELLED"].includes(result.status.toUpperCase())) break;
-          await wait(2000);
-          result = await api.getLivenessResult(session.token);
-        }
-        if (!result.passed) {
-          throw new Error(`Face Liveness did not pass (${result.status})`);
-        }
         const sdkResult = await window.eKYC().start({
           pubKey: clientConfig.eVerify.publicKey,
         });
@@ -466,11 +455,14 @@ export default function App() {
           throw new Error("eVerify liveness was not completed");
         }
         eVerifyLivenessSessionId.current = sdkSessionId;
+        // The SDK does not guarantee a numeric confidence score in its public
+        // result. eVerify validates the liveness session server-side below.
+        livenessSessionToken.current = "";
         if (scanTimer.current) clearInterval(scanTimer.current);
         setScanning(false);
         setScanDone(true);
         setScanProgress(100);
-        setConfidence(result.confidence ?? 0);
+        setConfidence(0);
       } catch (err) {
         if (scanTimer.current) clearInterval(scanTimer.current);
         setScanning(false);
@@ -535,11 +527,21 @@ export default function App() {
         };
         profile.current = verifiedProfile;
         setProfileView(verifiedProfile);
-        await loadBenefitMatches(citizenId.current);
+        try {
+          await loadBenefitMatches(citizenId.current);
+        } catch (matchError) {
+          throw new Error(
+            matchError instanceof ApiError
+              ? `Benefit matching error (${matchError.status})`
+              : "Benefit matching connection failed",
+          );
+        }
         setEverifyLoading(false);
         setEverifyDone(true);
       } catch (err) {
-        const msg = err instanceof ApiError ? `eVerify error (${err.status})` : "eVerify connection failed";
+        const msg = err instanceof ApiError
+          ? `eVerify error (${err.status})`
+          : `eVerify connection failed${err instanceof Error && err.message ? `: ${err.message}` : ""}`;
         setEverifyLoading(false);
         setEverifyError(msg);
         setApiError(msg);
