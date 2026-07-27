@@ -1,4 +1,9 @@
-const API_BASE = (import.meta.env.VITE_API_BASE ?? "http://localhost:8787").replace(/\/$/, "");
+// Local development still uses the Node API server. In a Vercel build the
+// serverless functions live under the same origin at `/api`, so never bake a
+// developer machine's localhost address into the public bundle.
+const API_BASE = (
+  import.meta.env.VITE_API_BASE ?? (import.meta.env.DEV ? "http://localhost:8787" : "/api")
+).replace(/\/$/, "");
 
 export class ApiError extends Error {
   status: number;
