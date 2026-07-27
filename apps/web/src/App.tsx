@@ -527,7 +527,15 @@ export default function App() {
         };
         profile.current = verifiedProfile;
         setProfileView(verifiedProfile);
-        await loadBenefitMatches(citizenId.current);
+        try {
+          await loadBenefitMatches(citizenId.current);
+        } catch (matchError) {
+          throw new Error(
+            matchError instanceof ApiError
+              ? `Benefit matching error (${matchError.status})`
+              : "Benefit matching connection failed",
+          );
+        }
         setEverifyLoading(false);
         setEverifyDone(true);
       } catch (err) {
