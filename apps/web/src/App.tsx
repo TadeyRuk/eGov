@@ -531,7 +531,9 @@ export default function App() {
         setEverifyLoading(false);
         setEverifyDone(true);
       } catch (err) {
-        const msg = err instanceof ApiError ? `eVerify error (${err.status})` : "eVerify connection failed";
+        const msg = err instanceof ApiError
+          ? `eVerify error (${err.status})`
+          : `eVerify connection failed${err instanceof Error && err.message ? `: ${err.message}` : ""}`;
         setEverifyLoading(false);
         setEverifyError(msg);
         setApiError(msg);

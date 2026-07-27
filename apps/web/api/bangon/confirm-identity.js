@@ -60,6 +60,7 @@ export default async function handler(request, response) {
     const authData = root(authEnvelope) || {};
     const accessToken = text(authData.access_token) || text(authData.token) || text(authEnvelope.access_token);
     if (!authResponse.ok || !accessToken) {
+      console.warn(JSON.stringify({ event: "everify_auth_failed", status: authResponse.status }));
       return json(response, 502, { error: "eVerify authentication failed" });
     }
 
@@ -74,12 +75,14 @@ export default async function handler(request, response) {
     });
     const verifyEnvelope = await verifyResponse.json().catch(() => ({}));
     if (!verifyResponse.ok) {
+      console.warn(JSON.stringify({ event: "everify_query_rejected", status: verifyResponse.status }));
       return json(response, verifyResponse.status === 401 || verifyResponse.status === 403 ? 403 : 422, {
         error: "eVerify could not confirm this identity",
       });
     }
     const verified = root(verifyEnvelope) || {};
     const dateOfBirth = text(verified.date_of_birth) || text(verified.dateOfBirth) || birthDate;
+    console.info(JSON.stringify({ event: "everify_query_succeeded", status: verifyResponse.status }));
     return json(response, 200, {
       dateOfBirth,
       // The documented Tier II response calls this `marital_status`.
@@ -89,7 +92,11 @@ export default async function handler(request, response) {
       // `vital_status` field.
       vitalStatus: text(verified.vital_status) || text(verified.vitalStatus) || "ALIVE",
     });
-  } catch {
+  } catch (cause) {
+    console.error(JSON.stringify({
+      event: "everify_transport_failed",
+      message: cause instanceof Error ? cause.message.slice(0, 160) : "unknown",
+    }));
     return json(response, 502, { error: "eVerify service is unavailable" });
   }
 }
