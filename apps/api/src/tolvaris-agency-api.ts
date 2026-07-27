@@ -45,9 +45,19 @@ export type AgencySignatureHeaders = {
   readonly signature: string;
 };
 
-type VerificationResult =
-  | { readonly ok: true; readonly agency: AgencyKey }
-  | { readonly ok: false; readonly status: number; readonly message: string };
+type VerificationSuccess = { readonly ok: true; readonly agency: AgencyKey };
+type VerificationFailure = {
+  readonly ok: false;
+  readonly status: number;
+  readonly message: string;
+};
+type VerificationResult = VerificationSuccess | VerificationFailure;
+
+function isVerificationFailure(
+  result: VerificationResult,
+): result is VerificationFailure {
+  return result.ok === false;
+}
 
 const usedNonces = new Map<string, number>();
 const MAX_CLOCK_SKEW_MS = 5 * 60 * 1_000;
@@ -168,7 +178,7 @@ export async function publishSignedAgencyProject(input: {
     headers: input.headers,
     agencyKeys,
   });
-  if (!verified.ok) {
+  if (isVerificationFailure(verified)) {
     console.warn(JSON.stringify({
       level: "warn",
       event: "tolvaris_agency_auth",

@@ -204,6 +204,9 @@ export type BangonHttpHandlers = {
     birthDate: string;
     middleName?: string;
     suffix?: string;
+    /** Preferred citizen key for later match steps (e.g. SSO uniqid). */
+    citizenId?: string;
+    uniqid?: string;
   }): Promise<HttpResponse>;
   findMatches(body: {
     citizenId: string;
@@ -283,6 +286,11 @@ export function createBangonHttpHandlers(
       }
       const liveness = await getFaceLivenessResult(deps, { sessionToken });
       if (!liveness.ok) return toHttpResponse(liveness);
+
+      // Mint eVerify Bearer server-side — never treat SSO JWT as eVerify token.
+      const auth = await deps.eVerify.authenticate();
+      if (!auth.ok) return toHttpResponse(auth);
+
       const profile = await confirmCitizenIdentity(deps, {
         liveness: liveness.value,
         faceLivenessSessionId: body.faceLivenessSessionId,
@@ -294,10 +302,38 @@ export function createBangonHttpHandlers(
           : {}),
         ...(body.suffix !== undefined ? { suffix: body.suffix } : {}),
       });
-      return toHttpResponse(profile);
+      if (!profile.ok) return toHttpResponse(profile);
+
+      const first = body.firstName.trim().toLowerCase().replace(/\s+/g, "-");
+      const last = body.lastName.trim().toLowerCase().replace(/\s+/g, "-");
+      const dob = body.birthDate.trim();
+      const citizenId =
+        (body.citizenId ?? body.uniqid ?? "").trim() ||
+        `${first}-${last}-${dob}`;
+
+      return {
+        status: 200,
+        body: {
+          citizenId,
+          dateOfBirth: profile.value.dateOfBirth.toISOString(),
+          civilStatus: profile.value.civilStatus,
+          vitalStatus: profile.value.vitalStatus,
+        },
+      };
     },
 
     async findMatches(body) {
+      if (!body.citizenId?.trim() || !body.profile?.dateOfBirth || !body.profile?.civilStatus || !body.profile?.vitalStatus) {
+        return {
+          status: 400,
+          body: {
+            error: {
+              code: "VALIDATION",
+              message: "citizenId and profile.{dateOfBirth,civilStatus,vitalStatus} are required",
+            },
+          },
+        };
+      }
       const profile: CitizenEligibilityProfile = {
         dateOfBirth: new Date(body.profile.dateOfBirth),
         civilStatus: body.profile.civilStatus,

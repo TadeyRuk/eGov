@@ -58,5 +58,14 @@ export async function getFaceLivenessResult(
   if (token.length === 0) {
     return err(appError("VALIDATION", "sessionToken is required"));
   }
+  // Debug shell placeholders must never be proxied to the platform API.
+  if (token.startsWith("skip-")) {
+    return err(
+      appError(
+        "VALIDATION",
+        "sessionToken looks like a debug skip placeholder; create a real Face Liveness session and complete capture first",
+      ),
+    );
+  }
   return deps.faceLiveness.getResult(token);
 }

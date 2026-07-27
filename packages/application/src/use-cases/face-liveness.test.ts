@@ -68,6 +68,25 @@ describe("Face Liveness use cases", () => {
     assert.equal(result.error.code, "VALIDATION");
   });
 
+  it("getFaceLivenessResult rejects debug skip placeholders", async () => {
+    const faceLiveness: FaceLivenessPort = {
+      async createSession() {
+        throw new Error("unused");
+      },
+      async getResult() {
+        throw new Error("should not call platform");
+      },
+    };
+    const result = await getFaceLivenessResult(
+      { faceLiveness },
+      { sessionToken: "skip-liveness-session" },
+    );
+    assert.equal(result.ok, false);
+    if (result.ok) return;
+    assert.equal(result.error.code, "VALIDATION");
+    assert.match(result.error.message, /skip placeholder/i);
+  });
+
   it("getFaceLivenessResult propagates adapter errors", async () => {
     const faceLiveness: FaceLivenessPort = {
       async createSession() {

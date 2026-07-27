@@ -13,6 +13,7 @@ import {
   orchestrateEgovAi,
   type AiToolPolicy,
   type Clock,
+  type EgovAiOrchestrationOutcome,
 } from "@egov/application";
 import { randomUUID } from "node:crypto";
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
@@ -99,7 +100,16 @@ function send(res: ServerResponse, status: number, body: unknown): void {
   res.end(payload);
 }
 
-const server = createServer(async (req, res) => {
+function isEgovAiFailure(
+  outcome: EgovAiOrchestrationOutcome,
+): outcome is Extract<EgovAiOrchestrationOutcome, { readonly ok: false }> {
+  return outcome.ok === false;
+}
+
+export const handleRequest = async (
+  req: IncomingMessage,
+  res: ServerResponse,
+): Promise<void> => {
   const url = new URL(req.url ?? "/", "http://localhost");
   const method = req.method ?? "GET";
   const requestIdHeader = req.headers["x-request-id"];
@@ -178,14 +188,15 @@ const server = createServer(async (req, res) => {
         },
         { ...body, correlationId: requestId },
       );
-      if (result.ok) {
-        send(res, 200, result.value);
-      } else {
-        const status = result.error.code === "VALIDATION" ? 400 : 503;
+      const outcome: EgovAiOrchestrationOutcome = result;
+      if (isEgovAiFailure(outcome)) {
+        const status = outcome.error.code === "VALIDATION" ? 400 : 503;
         send(res, status, {
-          error: { code: result.error.code, message: result.error.message },
-          metrics: result.metrics,
+          error: { code: outcome.error.code, message: outcome.error.message },
+          metrics: outcome.metrics,
         });
+      } else {
+        send(res, 200, outcome.value);
       }
       return;
     }
@@ -297,6 +308,21 @@ const server = createServer(async (req, res) => {
       return;
     }
 
+    if (method === "GET" && url.pathname === "/bangon/everify/config") {
+      const publicKey = process.env.EVERIFY_PUBLIC_KEY?.trim() ?? "";
+      if (!publicKey) {
+        send(res, 503, {
+          error: {
+            code: "UNAVAILABLE",
+            message: "EVERIFY_PUBLIC_KEY is not configured",
+          },
+        });
+        return;
+      }
+      send(res, 200, { publicKey });
+      return;
+    }
+
     if (method === "POST" && url.pathname === "/bangon/confirm-identity") {
       const body = (await readJson(req)) as {
         sessionToken?: string;
@@ -307,6 +333,8 @@ const server = createServer(async (req, res) => {
         birthDate: string;
         middleName?: string;
         suffix?: string;
+        citizenId?: string;
+        uniqid?: string;
       };
       const result = await bangon.confirmIdentity(body);
       send(res, result.status, result.body);
@@ -440,9 +468,12 @@ const server = createServer(async (req, res) => {
       },
     });
   }
-});
+};
 
-const port = Number(process.env.PORT ?? 8787);
-server.listen(port, () => {
-  console.log(`eGov API listening on http://localhost:${port}`);
-});
+if (process.env.VERCEL === undefined) {
+  const server = createServer(handleRequest);
+  const port = Number(process.env.PORT ?? 8787);
+  server.listen(port, () => {
+    console.log(`eGov API listening on http://localhost:${port}`);
+  });
+}
