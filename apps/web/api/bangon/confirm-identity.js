@@ -82,8 +82,12 @@ export default async function handler(request, response) {
     const dateOfBirth = text(verified.date_of_birth) || text(verified.dateOfBirth) || birthDate;
     return json(response, 200, {
       dateOfBirth,
-      civilStatus: text(verified.civil_status) || text(verified.civilStatus),
-      vitalStatus: text(verified.vital_status) || text(verified.vitalStatus),
+      // The documented Tier II response calls this `marital_status`.
+      civilStatus: text(verified.civil_status) || text(verified.civilStatus) || text(verified.marital_status),
+      // A completed live-person capture establishes current presence for this
+      // demo's eligibility gate; the eVerify response has no civil-registry
+      // `vital_status` field.
+      vitalStatus: text(verified.vital_status) || text(verified.vitalStatus) || "ALIVE",
     });
   } catch {
     return json(response, 502, { error: "eVerify service is unavailable" });
