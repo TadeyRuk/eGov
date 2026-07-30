@@ -28,6 +28,7 @@ import {
   type DisburseBenefitDeps,
   type ExplainEligibilityDeps,
   type FaceLivenessPort,
+  type FaceLivenessResult,
   type FaceLivenessSessionAction,
   type FindEligibleBenefitsDeps,
   type GetFaceLivenessResultDeps,
@@ -272,28 +273,32 @@ export function createBangonHttpHandlers(
 ): BangonHttpHandlers {
   return {
     async confirmIdentity(body) {
-      const sessionToken = (body.sessionToken ?? body.sessionId ?? "").trim();
-      if (sessionToken.length === 0) {
+      const faceLivenessSessionId = (body.faceLivenessSessionId ?? "").trim();
+      if (!faceLivenessSessionId) {
         return {
           status: 400,
           body: {
             error: {
               code: "VALIDATION",
-              message: "sessionToken (or sessionId) is required",
+              message: "faceLivenessSessionId (eVerify Web SDK session_id) is required",
             },
           },
         };
       }
-      const liveness = await getFaceLivenessResult(deps, { sessionToken });
-      if (!liveness.ok) return toHttpResponse(liveness);
 
-      // Mint eVerify Bearer server-side — never treat SSO JWT as eVerify token.
-      const auth = await deps.eVerify.authenticate();
-      if (!auth.ok) return toHttpResponse(auth);
+      // Optional legacy Face Liveness API gate. BANGON web uses eVerify SDK only;
+      // eVerify validates the SDK session server-side on /api/query.
+      const sessionToken = (body.sessionToken ?? body.sessionId ?? "").trim();
+      let liveness: FaceLivenessResult | undefined;
+      if (sessionToken.length > 0) {
+        const gate = await getFaceLivenessResult(deps, { sessionToken });
+        if (!gate.ok) return toHttpResponse(gate);
+        liveness = gate.value;
+      }
 
       const profile = await confirmCitizenIdentity(deps, {
-        liveness: liveness.value,
-        faceLivenessSessionId: body.faceLivenessSessionId,
+        ...(liveness !== undefined ? { liveness } : {}),
+        faceLivenessSessionId,
         firstName: body.firstName,
         lastName: body.lastName,
         birthDate: body.birthDate,

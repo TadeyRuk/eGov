@@ -65,6 +65,25 @@ function isDemoSession(token: string): boolean {
   return token === DEMO_SESSION.accessToken;
 }
 
+function apiFailureMessage(err: unknown, label: string): string {
+  if (err instanceof ApiError) {
+    const body = err.body as { error?: { message?: string } } | undefined;
+    const detail = body?.error?.message?.trim();
+    return detail ? `${label} (${err.status}): ${detail}` : `${label} (${err.status})`;
+  }
+  if (err instanceof Error && err.message.trim()) {
+    return `${label}: ${err.message}`;
+  }
+  return `${label} connection failed`;
+}
+
+function splitFullName(fullName: string): { firstName: string; lastName: string } {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return { firstName: "", lastName: "" };
+  if (parts.length === 1) return { firstName: parts[0]!, lastName: parts[0]! };
+  return { firstName: parts[0]!, lastName: parts.slice(1).join(" ") };
+}
+
 function wait(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -199,6 +218,7 @@ export default function App() {
     { role: "ai", text: "Kumusta! Ako si eGov AI. Anong gusto mong malaman tungkol sa iyong benepisyo?" },
   ]);
 
+  const ssoInFlightCode = useRef("");
   const scanTimer = useRef<ReturnType<typeof setInterval>>();
   const t = useRef<ReturnType<typeof setTimeout>>();
 
@@ -354,33 +374,75 @@ export default function App() {
       setIdError("Kailangan ang one-time eGovPH SSO exchange code.");
       return;
     }
+    if (ssoLoading || ssoInFlightCode.current === code) {
+      return;
+    }
+    ssoInFlightCode.current = code;
     setSsoLoading(true);
     setApiError("");
+    setIdError("");
     (async () => {
       try {
         const completed = await api.completeSso(code);
         const p = completed.profile;
-        if (!p.uniqid || !p.firstName || !p.lastName || !p.birthdate) {
-          throw new Error("SSO profile is missing required minimum fields");
+        const fromFull = splitFullName(p.fullName ?? "");
+        // SSO profile from eGov may omit names; fall back to the eVerify draft inputs.
+        const firstName = (
+          p.firstName?.trim() ||
+          fromFull.firstName ||
+          identityDraft.firstName
+        ).trim();
+        const lastName = (
+          p.lastName?.trim() ||
+          fromFull.lastName ||
+          identityDraft.lastName
+        ).trim();
+        const birthDate = (p.birthdate?.trim() || identityDraft.birthDate).trim();
+        if (!firstName || !lastName) {
+          throw new Error(
+            "SSO profile has no name — fill First/Last above, then try SSO again",
+          );
         }
+        if (!birthDate) {
+          throw new Error(
+            "SSO profile has no birthdate — fill Birth date above, then try SSO again",
+          );
+        }
+        // Official checklist: bind by uniqid when present, otherwise name + birthdate.
+        const citizenKey =
+          p.uniqid?.trim() ||
+          `${firstName}|${lastName}|${birthDate}`.toLowerCase();
         const nextProfile = {
-          firstName: p.firstName,
-          lastName: p.lastName,
-          birthDate: p.birthdate,
+          firstName,
+          lastName,
+          birthDate,
           civilStatus: "",
           vitalStatus: "",
           ...(p.email ? { email: p.email } : {}),
           ...(p.contactNumber ? { contactNumber: p.contactNumber } : {}),
         };
         sessionKind.current = "authenticated";
-        citizenId.current = p.uniqid;
+        citizenId.current = citizenKey;
         profile.current = nextProfile;
         setProfileView(nextProfile);
+        setExchangeCode("");
         setSsoLoading(false);
+        ssoInFlightCode.current = "";
         goTo(2);
       } catch (err) {
         setSsoLoading(false);
-        setApiError(err instanceof ApiError ? `SSO error (${err.status})` : "SSO connection failed");
+        ssoInFlightCode.current = "";
+        // Spent/invalid codes come back as 400/422 — say so clearly.
+        if (err instanceof ApiError && (err.status === 400 || err.status === 422)) {
+          setApiError(
+            apiFailureMessage(
+              err,
+              "SSO exchange failed — code may be spent or expired; mint a fresh one",
+            ),
+          );
+          return;
+        }
+        setApiError(apiFailureMessage(err, "SSO failed"));
       }
     })();
   };
@@ -392,7 +454,9 @@ export default function App() {
     return () => {
       delete window.onEgovSsoSuccess;
     };
-  });
+    // Re-bind when loading flips so the handler always sees current state.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ssoLoading, exchangeCode]);
 
   const useDemoSession = () => {
     sessionKind.current = "demo";
@@ -421,6 +485,8 @@ export default function App() {
     setScanProgress(0);
     setScanDone(false);
     setApiError("");
+    livenessSessionToken.current = "";
+    eVerifyLivenessSessionId.current = "";
     (async () => {
       // Demo shell: simulate Face Liveness so the journey works without a live capture.
       if (isDemoSession(sessionKind.current)) {
@@ -441,9 +507,9 @@ export default function App() {
         if (!clientConfig?.eVerify.publicKey || !window.eKYC) {
           throw new Error("eVerify Web SDK is not configured");
         }
-        // The eVerify SDK itself performs the required live-person capture and
-        // returns its session id. Do not open the separate Face Liveness API
-        // here: that would make citizens complete two biometric checks.
+        // Single capture: eVerify Face Liveness Web SDK only.
+        // confirm-identity sends result.session_id as faceLivenessSessionId;
+        // eVerify validates it server-side on /api/query.
         scanTimer.current = setInterval(() => {
           setScanProgress((p) => Math.min(90, p + 8 + Math.random() * 8));
         }, 1000);
@@ -455,8 +521,6 @@ export default function App() {
           throw new Error("eVerify liveness was not completed");
         }
         eVerifyLivenessSessionId.current = sdkSessionId;
-        // The SDK does not guarantee a numeric confidence score in its public
-        // result. eVerify validates the liveness session server-side below.
         livenessSessionToken.current = "";
         if (scanTimer.current) clearInterval(scanTimer.current);
         setScanning(false);
@@ -465,8 +529,11 @@ export default function App() {
         setConfidence(0);
       } catch (err) {
         if (scanTimer.current) clearInterval(scanTimer.current);
+        livenessSessionToken.current = "";
+        eVerifyLivenessSessionId.current = "";
         setScanning(false);
-        setApiError(err instanceof ApiError ? `Liveness error (${err.status})` : "Liveness connection failed");
+        setScanDone(false);
+        setApiError(apiFailureMessage(err, "Liveness error"));
       }
     })();
   };
@@ -513,11 +580,13 @@ export default function App() {
           throw new Error("SSO profile has no stable citizen identifier");
         }
         const confirmed = await api.confirmIdentity({
-          sessionToken: livenessSessionToken.current,
           faceLivenessSessionId: eVerifyLivenessSessionId.current,
           firstName: profile.current.firstName,
           lastName: profile.current.lastName,
           birthDate: profile.current.birthDate,
+          ...(livenessSessionToken.current
+            ? { sessionToken: livenessSessionToken.current }
+            : {}),
         });
         const verifiedProfile = {
           ...profile.current,
@@ -539,9 +608,7 @@ export default function App() {
         setEverifyLoading(false);
         setEverifyDone(true);
       } catch (err) {
-        const msg = err instanceof ApiError
-          ? `eVerify error (${err.status})`
-          : `eVerify connection failed${err instanceof Error && err.message ? `: ${err.message}` : ""}`;
+        const msg = apiFailureMessage(err, "eVerify error");
         setEverifyLoading(false);
         setEverifyError(msg);
         setApiError(msg);
@@ -549,7 +616,25 @@ export default function App() {
     })();
   };
 
+  const resetForFreshScan = () => {
+    setEverifyError("");
+    setEverifyDone(false);
+    setEverifyLoading(false);
+    setScanDone(false);
+    setScanProgress(0);
+    setConfidence(0);
+    setApiError("");
+    livenessSessionToken.current = "";
+    eVerifyLivenessSessionId.current = "";
+    goTo(2);
+  };
+
   const continueFromScan = () => {
+    if (!eVerifyLivenessSessionId.current) {
+      setApiError("Kumpletuhin muli ang eVerify face scan.");
+      goTo(2);
+      return;
+    }
     goTo(3);
     runEverify();
   };
@@ -560,7 +645,6 @@ export default function App() {
     if (
       scanDone &&
       sessionKind.current &&
-      livenessSessionToken.current &&
       eVerifyLivenessSessionId.current
     ) {
       runEverify();
@@ -811,11 +895,14 @@ export default function App() {
                 profile={profileView}
                 onBack={() => goTo(0)}
                 onNext={() => goTo(4)}
-                onRetry={() => {
-                  setEverifyError("");
-                  runEverify();
+                onRetry={resetForFreshScan}
+                onGoScan={() => {
+                  if (!sessionKind.current) {
+                    goTo(1);
+                    return;
+                  }
+                  resetForFreshScan();
                 }}
-                onGoScan={() => goTo(sessionKind.current ? 2 : 1)}
               />
             )}
             {(screen === 4 || (DEMO_MODE && screen >= 1 && screen <= 3)) && (
@@ -1537,7 +1624,9 @@ function SsoScreen({
         <div id="egov-sso-widget-portal" />
         <div style={{ margin: "18px 0 10px", paddingTop: 16, borderTop: "1px solid #E2E8F0" }}>
           <div style={{ fontSize: 14, fontWeight: 700, color: "#1F2937" }}>Gamitin ang eVerify nang walang SSO</div>
-          <div style={{ fontSize: 12, color: "#64748B", margin: "4px 0 10px" }}>Ilagay ang demographics, pagkatapos ay kukunin ng backend ang eVerify Bearer token.</div>
+          <div style={{ fontSize: 12, color: "#64748B", margin: "4px 0 10px" }}>
+            I-fill ang name + birth date dito. Ginagamit din ito bilang backup kung kulang ang SSO profile.
+          </div>
           <div style={{ display: "grid", gap: 8 }}>
             <input aria-label="First name" value={identityDraft.firstName} onChange={(e) => onIdentityChange("firstName", e.target.value)} placeholder="First name" style={{ border: "1.5px solid #DCE3E1", borderRadius: 12, padding: 12, fontSize: 14 }} />
             <input aria-label="Last name" value={identityDraft.lastName} onChange={(e) => onIdentityChange("lastName", e.target.value)} placeholder="Last name" style={{ border: "1.5px solid #DCE3E1", borderRadius: 12, padding: 12, fontSize: 14 }} />
@@ -1759,7 +1848,7 @@ function EverifyScreen({
               {everifyError}
             </div>
             <div style={{ fontSize: 13, color: "#5B6B76", lineHeight: 1.5 }}>
-              Hindi namin makumpirma ang iyong datos sa ngayon. Subukan ulit o kumpletuhin muna ang face scan.
+              Hindi namin makumpirma ang iyong datos sa ngayon. Kailangan ng bagong eVerify face scan — ang session ay one-time use.
             </div>
             <div style={{ flex: 1, minHeight: 16 }} />
             <button

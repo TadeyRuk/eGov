@@ -5,7 +5,7 @@ import type {
   PlatformJson,
 } from "@egov/application";
 import { isFaceLivenessPassed } from "@egov/application";
-import { ok, type Result } from "@egov/shared";
+import { appError, err, ok, type Result } from "@egov/shared";
 import {
   DEFAULT_BASE_URLS,
   envOrDefault,
@@ -41,16 +41,27 @@ export function createFaceLivenessAdapter(env: PlatformEnv): FaceLivenessPort {
       if (input.callbackUrl !== undefined) body.callback_url = input.callbackUrl;
       if (input.delay !== undefined) body.delay = input.delay;
 
-      const res = await platformFetch(`${base()}/v1/liveness/session`, {
-        method: "POST",
-        headers: headers.value,
-        body: JSON.stringify(body),
-      });
-      if (!res.ok) return res;
-
-      const token = String(res.value.json.token ?? "");
-      const url = String(res.value.json.url ?? "");
-      return ok({ token, url, raw: res.value.json });
+      // Hackathon Face Liveness flakes with transient fetch failures (~503 UNAVAILABLE).
+      let lastError: Result<FaceLivenessSession> | undefined;
+      for (let attempt = 0; attempt < 3; attempt += 1) {
+        const res = await platformFetch(`${base()}/v1/liveness/session`, {
+          method: "POST",
+          headers: headers.value,
+          body: JSON.stringify(body),
+        });
+        if (res.ok) {
+          const token = String(res.value.json.token ?? "");
+          const url = String(res.value.json.url ?? "");
+          return ok({ token, url, raw: res.value.json });
+        }
+        lastError = res;
+        if (res.error.code !== "UNAVAILABLE" || attempt === 2) break;
+        await new Promise((resolve) => setTimeout(resolve, 500 * (attempt + 1)));
+      }
+      return (
+        lastError ??
+        err(appError("UNAVAILABLE", "Face Liveness session create failed"))
+      );
     },
 
     async getResult(sessionToken: string): Promise<Result<FaceLivenessResult>> {

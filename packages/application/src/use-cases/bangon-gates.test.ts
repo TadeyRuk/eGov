@@ -188,6 +188,16 @@ describe("confirmCitizenIdentity Face Liveness gate", () => {
     assert.equal(profile.vitalStatus, "ALIVE");
   });
 
+  it("accepts eVerify SDK-only confirm without Face Liveness API gate", async () => {
+    const result = await confirmCitizenIdentity(
+      { eVerify },
+      { ...baseInput },
+    );
+    assert.equal(result.ok, true);
+    if (!result.ok) return;
+    assert.equal(result.value.civilStatus, "WIDOWED");
+  });
+
   it("uses a server-minted eVerify token for the personal-info query", async () => {
     let receivedToken = "";
     const tokenCheckingPort: EVerifyPort = {

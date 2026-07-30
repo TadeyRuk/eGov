@@ -236,15 +236,17 @@ export async function disburseBenefit(
 
 // ─── confirmCitizenIdentity ─────────────────────────────────────────────────
 //
-// Dual path: Face Liveness API gate (SUCCEEDED + confidence >= 95) AND eVerify
-// Tier Web SDK session id on POST /api/query as face_liveness_session_id.
+// Primary path: eVerify Tier Web SDK session id on POST /api/query as
+// face_liveness_session_id. Optional Face Liveness API result may still be
+// supplied by older clients; when present it must pass SUCCEEDED + ≥ 95.
 
 export type ConfirmCitizenIdentityDeps = {
   readonly eVerify: EVerifyPort;
 };
 
 export type ConfirmCitizenIdentityInput = {
-  readonly liveness: FaceLivenessResult;
+  /** Optional Face Liveness API gate result (legacy / Android dual path). */
+  readonly liveness?: FaceLivenessResult;
   /** eVerify Face Liveness Web SDK `result.session_id`. */
   readonly faceLivenessSessionId: string;
   readonly firstName: string;
@@ -260,6 +262,7 @@ export async function confirmCitizenIdentity(
   input: ConfirmCitizenIdentityInput,
 ): Promise<Result<CitizenEligibilityProfile>> {
   if (
+    input.liveness &&
     !isFaceLivenessPassed(input.liveness.status, input.liveness.confidence)
   ) {
     return err(

@@ -30,4 +30,15 @@ describe("mapSsoCitizenProfile", () => {
     assert.equal(profile.uniqid, "x");
     assert.equal(profile.fullName, "Josie");
   });
+
+  it("accepts numeric id aliases and nested data.user", () => {
+    const profile = mapSsoCitizenProfile({
+      status: "ok",
+      data: { user: { id: 42, first_name: "Ana", last_name: "Reyes", birth_date: "1990-01-02" } },
+    });
+    assert.equal(profile.uniqid, "42");
+    assert.equal(profile.firstName, "Ana");
+    assert.equal(profile.lastName, "Reyes");
+    assert.equal(profile.birthdate, "1990-01-02");
+  });
 });

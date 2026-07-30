@@ -1,33 +1,96 @@
 import type { EgovSsoCitizenProfile, PlatformJson } from "../ports/index.js";
 
-function pickString(
-  obj: PlatformJson,
-  ...keys: readonly string[]
-): string | undefined {
-  for (const key of keys) {
-    const value = obj[key];
-    if (typeof value === "string" && value.trim().length > 0) {
-      return value.trim();
-    }
+function asNonEmptyString(value: unknown): string | undefined {
+  if (typeof value === "string" && value.trim().length > 0) {
+    return value.trim();
+  }
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return String(value);
   }
   return undefined;
 }
 
-function unwrapProfileRoot(raw: PlatformJson): PlatformJson {
-  const data = raw.data;
-  if (data && typeof data === "object" && !Array.isArray(data)) {
-    return data as PlatformJson;
+function pickScalar(
+  obj: PlatformJson,
+  ...keys: readonly string[]
+): string | undefined {
+  for (const key of keys) {
+    const value = asNonEmptyString(obj[key]);
+    if (value !== undefined) return value;
   }
-  const user = raw.user;
-  if (user && typeof user === "object" && !Array.isArray(user)) {
-    return user as PlatformJson;
-  }
-  const profile = raw.profile;
-  if (profile && typeof profile === "object" && !Array.isArray(profile)) {
-    return profile as PlatformJson;
-  }
-  return raw;
+  return undefined;
 }
+
+function asObject(value: unknown): PlatformJson | undefined {
+  if (value && typeof value === "object" && !Array.isArray(value)) {
+    return value as PlatformJson;
+  }
+  return undefined;
+}
+
+/**
+ * Walk common envelope shapes from hackathon SSO (`data`, `user`, `profile`,
+ * nested `data.user`, etc.) and return the richest object that looks like a
+ * citizen record.
+ */
+function unwrapProfileRoot(raw: PlatformJson): PlatformJson {
+  const candidates: PlatformJson[] = [raw];
+  const data = asObject(raw.data);
+  if (data) {
+    candidates.push(data);
+    for (const nestedKey of ["user", "profile", "citizen", "account"] as const) {
+      const nested = asObject(data[nestedKey]);
+      if (nested) candidates.push(nested);
+    }
+  }
+  for (const key of ["user", "profile", "citizen", "account", "result"] as const) {
+    const nested = asObject(raw[key]);
+    if (nested) candidates.push(nested);
+  }
+
+  const score = (obj: PlatformJson): number => {
+    let n = 0;
+    for (const key of Object.keys(obj)) {
+      if (
+        /uniqid|unique_id|uniqueid|user_id|userid|subject|sub\b|egov/i.test(key)
+      ) {
+        n += 3;
+      }
+      if (/first_name|firstname|last_name|lastname|birth|email|mobile|name/i.test(key)) {
+        n += 1;
+      }
+    }
+    return n;
+  };
+
+  let best = raw;
+  let bestScore = score(raw);
+  for (const candidate of candidates) {
+    const s = score(candidate);
+    if (s > bestScore) {
+      best = candidate;
+      bestScore = s;
+    }
+  }
+  return best;
+}
+
+const UNIQID_KEYS = [
+  "uniqid",
+  "unique_id",
+  "uniqueId",
+  "uid",
+  "user_id",
+  "userId",
+  "userid",
+  "egov_uniqid",
+  "egovUniqid",
+  "egov_user_id",
+  "egovUserId",
+  "subject",
+  "sub",
+  "id",
+] as const;
 
 /**
  * Map eGov SSO partner profile JSON into typed sync fields when present.
@@ -36,16 +99,16 @@ function unwrapProfileRoot(raw: PlatformJson): PlatformJson {
  */
 export function mapSsoCitizenProfile(raw: PlatformJson): EgovSsoCitizenProfile {
   const root = unwrapProfileRoot(raw);
-  const uniqid = pickString(root, "uniqid", "unique_id", "uniqueId", "uid");
-  const firstName = pickString(
+  const uniqid = pickScalar(root, ...UNIQID_KEYS) ?? pickScalar(raw, ...UNIQID_KEYS);
+  const firstName = pickScalar(
     root,
     "first_name",
     "firstName",
     "given_name",
     "givenName",
   );
-  const middleName = pickString(root, "middle_name", "middleName");
-  const lastName = pickString(
+  const middleName = pickScalar(root, "middle_name", "middleName");
+  const lastName = pickScalar(
     root,
     "last_name",
     "lastName",
@@ -55,9 +118,9 @@ export function mapSsoCitizenProfile(raw: PlatformJson): EgovSsoCitizenProfile {
   );
   const composed = [firstName, middleName, lastName].filter(Boolean).join(" ");
   const fullName =
-    pickString(root, "name", "full_name", "fullName") ??
+    pickScalar(root, "name", "full_name", "fullName") ??
     (composed.length > 0 ? composed : undefined);
-  const birthdate = pickString(
+  const birthdate = pickScalar(
     root,
     "birthdate",
     "birth_date",
@@ -65,9 +128,9 @@ export function mapSsoCitizenProfile(raw: PlatformJson): EgovSsoCitizenProfile {
     "date_of_birth",
     "dateOfBirth",
   );
-  const address = pickString(root, "address", "full_address", "fullAddress");
-  const email = pickString(root, "email", "email_address", "emailAddress");
-  const contactNumber = pickString(
+  const address = pickScalar(root, "address", "full_address", "fullAddress");
+  const email = pickScalar(root, "email", "email_address", "emailAddress");
+  const contactNumber = pickScalar(
     root,
     "contact_number",
     "contactNumber",

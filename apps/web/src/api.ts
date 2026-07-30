@@ -82,7 +82,8 @@ export const api = {
     ),
 
   confirmIdentity: (input: {
-    sessionToken: string;
+    /** Optional legacy Face Liveness API token. Prefer eVerify SDK only. */
+    sessionToken?: string;
     faceLivenessSessionId: string;
     firstName: string;
     lastName: string;

@@ -213,17 +213,18 @@ Poll until terminal status. Server proxies `GET /v1/liveness/result/:token`.
 
 ### `POST /bangon/confirm-identity`
 
-Dual path (both required):
+Primary path (BANGON web):
 
-1. **Face Liveness API** — `sessionToken` from `POST /bangon/liveness/session`; server polls result; pass = `SUCCEEDED` + confidence ≥ 95.0.
-2. **eVerify Tier Web SDK** — `faceLivenessSessionId` (= SDK `result.session_id`) plus demographics; server builds official `/api/query` body including `face_liveness_session_id`.
+1. **eVerify Tier Web SDK** — `faceLivenessSessionId` (= SDK `result.session_id`) plus demographics; server builds official `/api/query` body including `face_liveness_session_id`. eVerify validates the SDK session server-side.
+
+Optional legacy gate (older Android dual-capture clients):
+
+2. **Face Liveness API** — if `sessionToken` from `POST /bangon/liveness/session` is also sent, server polls result; pass = `SUCCEEDED` + confidence ≥ 95.0.
 
 **Body:**
 
 ```json
 {
-  "token": "<eVerify Bearer access_token from POST /api/auth>",
-  "sessionToken": "<Face Liveness API token from /bangon/liveness/session>",
   "faceLivenessSessionId": "<Web SDK result.session_id>",
   "firstName": "Juan",
   "middleName": "Santos",
@@ -233,8 +234,7 @@ Dual path (both required):
 }
 ```
 
-`sessionId` is accepted as an alias for `sessionToken`.
-
+Optional: `sessionToken` / `sessionId` (Face Liveness API token).
 **200:** `CitizenEligibilityProfile`
 
 ```json
@@ -245,8 +245,8 @@ Dual path (both required):
 }
 ```
 
-**400:** missing Face Liveness API token, Tier session id, or demographics  
-**403:** Face Liveness API gate did not pass (`SUCCEEDED` + confidence ≥ 95.0)
+**400:** missing eVerify Tier session id or demographics  
+**403:** optional Face Liveness API gate did not pass (`SUCCEEDED` + confidence ≥ 95.0), when `sessionToken` was provided
 
 ### `POST /bangon/matches`
 
@@ -367,10 +367,9 @@ Citizen-initiated eReport complaint. Maps to eReport `submit_complaint` with rep
 
 1. eGovPH callback (`…/egovph/sso?exchange_code=…`) → Android → `POST /auth/sso/exchange` with `SSO_AUTHENTICATION` → store `accessToken`.
 2. Optional: `POST /auth/sso/profile` → sync name / birthdate / address / email / contact / `uniqid`; auto-login; no local profile edit.
-3. Face Liveness API gate: `POST /bangon/liveness/session` → open returned `url` → poll `GET /bangon/liveness/result/:token` until `passed` (or fail). Keep `token` as `sessionToken`.
-4. eVerify Tier Web SDK → `faceLivenessSessionId` (= `result.session_id`).
-5. eVerify `access_token` + demographics + both session ids → `POST /bangon/confirm-identity`.
-6. `POST /bangon/matches` → list of match ids.
+3. eVerify Tier Web SDK → `faceLivenessSessionId` (= `result.session_id`).
+4. Demographics + `faceLivenessSessionId` → `POST /bangon/confirm-identity` (optional legacy `sessionToken` from Face Liveness API if dual-capture client).
+5. Matches / notify / disburse / anchor / explain as needed.6. `POST /bangon/matches` → list of match ids.
 7. Per match: `notify` / `disburse` / `anchor` / `explain` as needed.
 8. If unpaid/undelivered: `POST /bangon/report-non-delivery`.
 
